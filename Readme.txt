@@ -1,2 +1,2 @@
 Softverove inzinierstvo 2025 
-Internship management system 
+Internship management system develop
