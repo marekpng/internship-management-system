@@ -1,5 +1,26 @@
 <?php
 use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\StudentController;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\Auth\LoginController;
+use Laravel\Passport\Http\Controllers\AccessTokenController;
+use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
+use Laravel\Passport\Http\Controllers\TransientTokenController;
+
+
 
 Route::post('/register/student', [RegisterController::class, 'registerStudent']);
+Route::post('/register/company', [RegisterController::class, 'registerCompany']);
+
+
+Route::middleware(['auth:api', 'role:student'])->group(function () {
+    Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
+});
+
+Route::middleware(['auth:api', 'role:company'])->group(function () {
+    Route::get('/company/dashboard', [CompanyController::class, 'dashboard']);
+});
+
+Route::post('/login', [LoginController::class, 'login']);
+

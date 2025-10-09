@@ -13,13 +13,32 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+
+            // Spoločné
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->boolean('must_change_password')->default(true);
+            $table->string('role')->default('Student'); // Student, Supervisor, Company, External
             $table->rememberToken();
             $table->timestamps();
-        });
+
+            // Študent
+            $table->string('first_name')->nullable();
+            $table->string('last_name')->nullable();
+            $table->string('address')->nullable();
+            $table->string('student_email')->unique()->nullable();
+            $table->string('alternative_email')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('study_field')->nullable();
+
+            // Firma
+            $table->string('company_name')->nullable();
+            $table->string('company_address')->nullable();
+            $table->string('contact_person_name')->nullable();
+            $table->string('contact_person_email')->nullable();
+            $table->string('contact_person_phone')->nullable();
+        });;
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

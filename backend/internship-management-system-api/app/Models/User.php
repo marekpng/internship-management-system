@@ -1,11 +1,12 @@
 <?php
 
-namespace App\Models;
+namespace app\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 use Laravel\Passport\HasApiTokens;
 
 class User extends Authenticatable
@@ -18,6 +19,12 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
+        'email',
+        'password',
+        'role',
+        'must_change_password',
+
+        // Študent
         'first_name',
         'last_name',
         'address',
@@ -25,10 +32,13 @@ class User extends Authenticatable
         'alternative_email',
         'phone',
         'study_field',
-        'email',
-        'password',
-        'role',
-        'must_change_password',
+
+        // Firma
+        'company_name',
+        'company_address',
+        'contact_person_name',
+        'contact_person_email',
+        'contact_person_phone',
     ];
 
 
@@ -41,6 +51,18 @@ class User extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    // Kontrola roly
+    public function hasRole(string $roleName): bool
+    {
+        return $this->role && strtolower($this->role) === strtolower($roleName);
+    }
+
+    // Generovanie náhodného hesla
+    public static function generateRandomPassword(int $length = 12): string
+    {
+        return Str::random($length);
+    }
 
     /**
      * Get the attributes that should be cast.
