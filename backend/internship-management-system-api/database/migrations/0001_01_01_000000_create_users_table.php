@@ -19,26 +19,30 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->boolean('must_change_password')->default(true);
-            $table->string('role')->default('Student'); // Student, Supervisor, Company, External
             $table->rememberToken();
             $table->timestamps();
 
             // Študent
             $table->string('first_name')->nullable();
             $table->string('last_name')->nullable();
-            $table->string('address')->nullable();
             $table->string('student_email')->unique()->nullable();
             $table->string('alternative_email')->nullable();
             $table->string('phone')->nullable();
             $table->string('study_field')->nullable();
 
+            // Adresa (spoločná)
+            $table->string('street')->nullable();
+            $table->string('house_number')->nullable();
+            $table->string('city')->nullable();
+            $table->string('postal_code')->nullable();
+
             // Firma
             $table->string('company_name')->nullable();
-            $table->string('company_address')->nullable();
             $table->string('contact_person_name')->nullable();
             $table->string('contact_person_email')->nullable();
             $table->string('contact_person_phone')->nullable();
-        });;
+            $table->boolean('company_account_active_state')->default(false);
+        });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

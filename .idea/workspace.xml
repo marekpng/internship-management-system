@@ -5,26 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="92645a05-ccc0-4c2d-a393-8be3af2ecbef" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Controllers/Auth/LoginController.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Controllers/CompanyController.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Controllers/StudentController.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Middleware/RoleMiddleware.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Providers/AuthServiceProvider.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155236_create_oauth_auth_codes_table.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155237_create_oauth_access_tokens_table.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155238_create_oauth_refresh_tokens_table.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155239_create_oauth_clients_table.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155240_create_oauth_device_codes_table.php" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/seeders/UserRoleSeeder.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/prettier.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Models/Role.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_12_173444_create_roles_table.php" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/seeders/RoleSeeder.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Readme.txt" beforeDir="false" afterPath="$PROJECT_DIR$/Readme.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Controllers/Auth/LoginController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Controllers/Auth/LoginController.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Controllers/Auth/RegisterController.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Controllers/Auth/RegisterController.php" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Middleware/RoleMiddleware.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Http/Middleware/RoleMiddleware.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/app/Models/User.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Models/User.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/app/Providers/AppServiceProvider.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/app/Providers/AppServiceProvider.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/bootstrap/app.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/bootstrap/app.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/config/auth.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/config/auth.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/0001_01_01_000000_create_users_table.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/0001_01_01_000000_create_users_table.php" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_131301_add_student_fields_to_users_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155236_create_oauth_auth_codes_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155237_create_oauth_access_tokens_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155238_create_oauth_refresh_tokens_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155239_create_oauth_clients_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/database/migrations/2025_10_09_155240_create_oauth_device_codes_table.php" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/database/seeders/UserRoleSeeder.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/database/seeders/UserRoleSeeder.php" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/internship-management-system-api/routes/api.php" beforeDir="false" afterPath="$PROJECT_DIR$/backend/internship-management-system-api/routes/api.php" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -93,6 +90,8 @@
       <workItem from="1760017919019" duration="41000" />
       <workItem from="1760017984027" duration="499000" />
       <workItem from="1760018499056" duration="7713000" />
+      <workItem from="1760030774134" duration="17000" />
+      <workItem from="1760289322458" duration="5659000" />
     </task>
     <servers />
   </component>

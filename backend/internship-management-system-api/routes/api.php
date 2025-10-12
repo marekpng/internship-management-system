@@ -12,7 +12,8 @@ use Laravel\Passport\Http\Controllers\TransientTokenController;
 
 Route::post('/register/student', [RegisterController::class, 'registerStudent']);
 Route::post('/register/company', [RegisterController::class, 'registerCompany']);
-
+Route::get('/company/activate/{id}', [RegisterController::class, 'activateCompany'])
+    ->name('company.activate');
 
 Route::middleware(['auth:api', 'role:student'])->group(function () {
     Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
@@ -23,4 +24,5 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
 });
 
 Route::post('/login', [LoginController::class, 'login']);
-
+Route::middleware('auth:api')->post('/logout', [LoginController::class, 'logout']);
+Route::middleware('auth:api')->post('/change-password', [PasswordController::class, 'changePassword']);

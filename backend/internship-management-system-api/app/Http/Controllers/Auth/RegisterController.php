@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
@@ -9,14 +10,16 @@ use Illuminate\Support\Facades\Mail;
 
 class RegisterController extends Controller
 {
-    // Registrácia študenta
     public function registerStudent(Request $request)
     {
         $request->validate([
             'first_name' => 'required|string',
             'last_name' => 'required|string',
             'student_email' => 'required|email|unique:users,student_email',
-            'address' => 'nullable|string',
+            'city' => 'nullable|string',
+            'street' => 'nullable|string',
+            'house_number' => 'nullable|string',
+            'postal_code' => 'nullable|string',
             'alternative_email' => 'nullable|email',
             'phone' => 'nullable|string',
             'study_field' => 'nullable|string',
@@ -27,21 +30,28 @@ class RegisterController extends Controller
         $student = User::create([
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
+            'email' => $request->student_email,
             'student_email' => $request->student_email,
-            'email' => $request->student_email, // hlavný login email
-            'address' => $request->address,
+            'city' => $request->city,
+            'street' => $request->street,
+            'house_number' => $request->house_number,
+            'postal_code' => $request->postal_code,
             'alternative_email' => $request->alternative_email,
             'phone' => $request->phone,
             'study_field' => $request->study_field,
-            'role' => 'Student',
             'password' => Hash::make($password),
             'must_change_password' => true,
         ]);
 
-        // Odoslanie emailu
-        Mail::raw("Vaše prihlasovacie heslo je: $password", function ($message) use ($student) {
+        // Priradenie roly
+        $studentRole = Role::where('name', 'student')->first();
+        if ($studentRole) {
+            $student->roles()->attach($studentRole->id);
+        }
+
+        Mail::raw("Vaše prihlasovacie heslo je: $password\n\nPo prvom prihlásení si ho musíte zmeniť.", function ($message) use ($student) {
             $message->to($student->student_email)
-                ->subject('Registrácia študenta');
+                ->subject('Registrácia študenta - prihlasovacie údaje');
         });
 
         return response()->json([
@@ -49,7 +59,6 @@ class RegisterController extends Controller
         ]);
     }
 
-    // Registrácia firmy
     public function registerCompany(Request $request)
     {
         $request->validate([
@@ -69,19 +78,46 @@ class RegisterController extends Controller
             'contact_person_email' => $request->contact_person_email,
             'email' => $request->contact_person_email,
             'contact_person_phone' => $request->contact_person_phone,
-            'role' => 'Company',
             'password' => Hash::make($password),
             'must_change_password' => true,
+            'company_account_active_state' => false,
         ]);
 
-        // Odoslanie emailu
-        Mail::raw("Vaše prihlasovacie heslo je: $password", function ($message) use ($company) {
+        $companyRole = Role::where('name', 'Company')->first();
+        if ($companyRole) {
+            $company->roles()->attach($companyRole->id);
+        }
+
+        $activationUrl = URL::temporarySignedRoute(
+            'company.activate',
+            Carbon::now()->addMinutes(60),
+            ['id' => $company->id]
+        );
+
+        Mail::raw("Vaša firma bola zaregistrovaná. Kliknite na nasledujúci odkaz pre aktiváciu účtu:\n\n$activationUrl", function ($message) use ($company) {
             $message->to($company->contact_person_email)
-                ->subject('Registrácia firmy');
+                ->subject('Aktivácia firemného účtu');
         });
 
         return response()->json([
-            'message' => 'Firma bola úspešne zaregistrovaná. Heslo bolo odoslané emailom.',
+            'message' => 'Firma bola úspešne zaregistrovaná. Aktivačný link bol odoslaný emailom.',
         ]);
+    }
+
+    public function activateCompany(Request $request, $id)
+    {
+        if (!$request->hasValidSignature()) {
+            return response()->json(['error' => 'Aktivačný link je neplatný alebo expiroval.'], 403);
+        }
+
+        $company = User::findOrFail($id);
+
+        if ($company->company_account_active_state) {
+            return response()->json(['message' => 'Účet je už aktivovaný.']);
+        }
+
+        $company->update(['company_account_active_state' => true]);
+
+        return response()->json(['message' => 'Účet bol úspešne aktivovaný.']);
     }
 }

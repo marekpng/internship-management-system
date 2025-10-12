@@ -6,12 +6,13 @@ commands:
  php artisan serve
  php artisan migrate:fresh 
  php artisan passport:install
+ php artisan db:seed --class=RoleSeeder
 
 docker mailpit:
 docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
 
-//vytvorenie zaznamu do oauth_clients tabulky
-php artisan passport:client --personal 
+//vytvorenie zaznamu do oauth_clients tabulky na tokeny vytvaranie
+ php artisan passport:client --personal --provider=users
 
 
 priklad .env ako to mam setupnute:

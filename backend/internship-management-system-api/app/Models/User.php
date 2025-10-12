@@ -1,6 +1,6 @@
 <?php
 
-namespace app\Models;
+namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -27,7 +27,10 @@ class User extends Authenticatable
         // Študent
         'first_name',
         'last_name',
-        'address',
+        'street',
+        'house_number',
+        'city',
+        'postal_code',
         'student_email',
         'alternative_email',
         'phone',
@@ -35,10 +38,10 @@ class User extends Authenticatable
 
         // Firma
         'company_name',
-        'company_address',
         'contact_person_name',
         'contact_person_email',
         'contact_person_phone',
+        'company_account_active_state',
     ];
 
 
@@ -53,9 +56,25 @@ class User extends Authenticatable
     ];
 
     // Kontrola roly
+    public function roles()
+    {
+        return $this->belongsToMany(Role::class, 'role_user');
+    }
+
+    /**
+     * Check if user has a specific role.
+     */
     public function hasRole(string $roleName): bool
     {
-        return $this->role && strtolower($this->role) === strtolower($roleName);
+        return $this->roles()->where('name', strtolower($roleName))->exists();
+    }
+
+    /**
+     * Check if user has any of the given roles.
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        return $this->roles()->whereIn('name', array_map('strtolower', $roles))->exists();
     }
 
     // Generovanie náhodného hesla
@@ -74,6 +93,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'company_account_active_state' => 'boolean',
         ];
     }
 }
