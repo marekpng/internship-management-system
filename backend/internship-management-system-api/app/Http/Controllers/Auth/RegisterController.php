@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
+use App\Mail\ResetPasswordMail;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-
+use Illuminate\Support\Facades\URL;
+use Carbon\Carbon;
 class RegisterController extends Controller
 {
     public function registerStudent(Request $request)
@@ -67,9 +70,9 @@ class RegisterController extends Controller
             'contact_person_name' => 'required|string',
             'contact_person_email' => 'required|email|unique:users,email',
             'contact_person_phone' => 'nullable|string',
+            'password' => 'required|string|min:8|confirmed',
         ]);
 
-        $password = User::generateRandomPassword();
 
         $company = User::create([
             'company_name' => $request->company_name,
@@ -78,8 +81,8 @@ class RegisterController extends Controller
             'contact_person_email' => $request->contact_person_email,
             'email' => $request->contact_person_email,
             'contact_person_phone' => $request->contact_person_phone,
-            'password' => Hash::make($password),
-            'must_change_password' => true,
+            'password' => Hash::make($request->password),
+            'must_change_password' => true, //todo mjaros opytat sa ze ci to ma byt true alebo false
             'company_account_active_state' => false,
         ]);
 
@@ -120,4 +123,5 @@ class RegisterController extends Controller
 
         return response()->json(['message' => 'Účet bol úspešne aktivovaný.']);
     }
+
 }

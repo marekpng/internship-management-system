@@ -25,4 +25,9 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
 
 Route::post('/login', [LoginController::class, 'login']);
 Route::middleware('auth:api')->post('/logout', [LoginController::class, 'logout']);
-Route::middleware('auth:api')->post('/change-password', [PasswordController::class, 'changePassword']);
+Route::middleware('auth:api')->post('/change-password', [LoginController::class, 'changePassword']);
+
+Route::post('/forgot-password', [LoginController::class, 'forgotPassword']);
+Route::post('/reset-password', [LoginController::class, 'resetPassword']);
+
+
