@@ -4,7 +4,7 @@
     margin: 0;
     font-family: 'Inter', sans-serif;
     background-color: #e9f3ee;
-    /* žiadne veľké logo na pozadí stránky – bude v karte (nižšie) */
+    /* veľké logo je len vo vnútri karty (nie na pozadí celej stránky) */
     display: flex;
     justify-content: center;
     align-items: center;

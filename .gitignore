@@ -4,3 +4,6 @@
 # Frontend build artefacts
 frontend/node_modules
 frontend/dist
+
+# Vite cache
+/frontend/.vite/
