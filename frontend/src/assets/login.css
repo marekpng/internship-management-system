@@ -1,21 +1,18 @@
-/* Vzhľad pre prihlasovaciu stránku */
-.login-body {
+/* Vzhľad pre prihlasovaciu stránku - wrapper (centrovanie celej stránky) */
+.login-body,
+.login {
     margin: 0;
     font-family: 'Inter', sans-serif;
     background-color: #e9f3ee;
-    background-image: url('stu-logo.png');
-    /* Logo v pozadí (nepovinné) */
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 450px;
-    background-attachment: fixed;
+    /* žiadne veľké logo na pozadí stránky – bude v karte (nižšie) */
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
 }
 
 .login-container {
+    position: relative;
     background-color: rgba(255, 255, 255, 0.92);
     padding: 40px 30px;
     border-radius: 12px;
@@ -23,6 +20,19 @@
     max-width: 400px;
     width: 100%;
     text-align: center;
+    overflow: hidden;
+    border: 6px solid #008736;
+}
+
+/* Veľká vodotlač STU vo vnútri karty */
+.login-container::before,
+.login .card::before {
+    content: "";
+    position: absolute;
+    inset: 14px; /* odsadenie dovnútra od zeleného rámika */
+    background: url('stu-logo.png') center/88% no-repeat;
+    opacity: 0.08;
+    pointer-events: none;
 }
 
 .login-logo img {
