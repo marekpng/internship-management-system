@@ -20,8 +20,13 @@
         </form>
 
         <p class="register-link">
+<<<<<<< HEAD
   Nemáš účet? <router-link to="/register">Zaregistruj sa</router-link>
 </p>
+=======
+          Nemáš účet? <a href="#">Zaregistruj sa</a>
+        </p>
+>>>>>>> origin/feature/Scrum10_student_formular
       </div>
     </div>
   </div>

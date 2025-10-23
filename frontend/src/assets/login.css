@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Vzhľad pre prihlasovaciu stránku - wrapper (centrovanie celej stránky) */
 .login-body,
 .login {
@@ -13,6 +14,26 @@
 
 .login-container {
     position: relative;
+=======
+/* Vzhľad pre prihlasovaciu stránku */
+.login-body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background-color: #e9f3ee;
+    background-image: url('stu-logo.png');
+    /* Logo v pozadí (nepovinné) */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 450px;
+    background-attachment: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.login-container {
+>>>>>>> origin/feature/Scrum10_student_formular
     background-color: rgba(255, 255, 255, 0.92);
     padding: 40px 30px;
     border-radius: 12px;
@@ -20,6 +41,7 @@
     max-width: 400px;
     width: 100%;
     text-align: center;
+<<<<<<< HEAD
     overflow: hidden;
     border: 6px solid #008736;
 }
@@ -33,6 +55,8 @@
     background: url('stu-logo.png') center/88% no-repeat;
     opacity: 0.08;
     pointer-events: none;
+=======
+>>>>>>> origin/feature/Scrum10_student_formular
 }
 
 .login-logo img {
