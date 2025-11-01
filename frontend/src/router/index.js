@@ -5,6 +5,7 @@ import RegisterChoiceView from '../views/RegisterChoiceView.vue'
 import RegisterStudentView from '../views/RegisterStudentView.vue'
 import RegisterCompanyView from '../views/RegisterCompanyView.vue'
 
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
