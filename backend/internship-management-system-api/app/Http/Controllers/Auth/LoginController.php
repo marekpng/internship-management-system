@@ -28,7 +28,9 @@ class LoginController extends Controller
                 'message' => 'Neplatný email alebo heslo.'
             ], 401);
         }
+
         $roles = $user->roles->pluck('name')->toArray();
+
         // Firma musí mať aktívny účet
         if (in_array('company', $roles) && !$user->company_account_active_state) {
             return response()->json([
@@ -36,6 +38,18 @@ class LoginController extends Controller
             ], 403);
         }
 
+        // 🔹 Nové – kontrola, či používateľ musí zmeniť heslo
+        if ($user->must_change_password) {
+            return response()->json([
+                'status' => 'FORCE_PASSWORD_CHANGE',
+                'message' => 'Musíte zmeniť svoje heslo pred pokračovaním.',
+                'user' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'roles' => $user->roles->pluck('name'),
+                ],
+            ], 403);
+        }
 
         $mustChangePassword = $user->must_change_password;
 
@@ -81,26 +95,20 @@ class LoginController extends Controller
 
         $user = $request->user();
 
-
         if (!Hash::check($request->current_password, $user->password)) {
             return response()->json([
                 'message' => 'Neplatné aktuálne heslo.'
             ], 403);
         }
 
-
         $user->password = Hash::make($request->new_password);
-        $user->must_change_password = false;
+        $user->must_change_password = false; // 🔹 reset flagu po úspešnej zmene
         $user->save();
 
         return response()->json([
             'message' => 'Heslo bolo úspešne zmenené.'
         ]);
     }
-
-
-
-
 
     // --- ZABUDLI STE HESLO ---
     public function forgotPassword(Request $request)
@@ -111,16 +119,15 @@ class LoginController extends Controller
 
         $email = $request->email;
 
-//        if (str_ends_with($email, '@student.ukf.sk')) {
-//            return response()->json(['message' => 'Alternatívne študentské emaily nie sú podporované.'], 400); //todo mjaros upravit este funkcionalitu neviem ci to takto mysli alebo ako lebo firma neviem ako resetne heslo potom
-//        }
+        // if (str_ends_with($email, '@student.ukf.sk')) {
+        //     return response()->json(['message' => 'Alternatívne študentské emaily nie sú podporované.'], 400);
+        // }
 
         $user = User::where('email', $email)->first();
 
         if (!$user) {
             return response()->json(['message' => 'Používateľ s týmto emailom neexistuje.'], 404);
         }
-
 
         $token = Str::random(60);
 
@@ -134,9 +141,7 @@ class LoginController extends Controller
         );
         $url = url("/reset-password?token={$token}&email={$email}");
 
-
         Mail::to($email)->send(new ResetPasswordMail($url));
-
 
         return response()->json(['message' => 'Na váš email bol odoslaný link na obnovenie hesla.']);
     }
@@ -170,6 +175,4 @@ class LoginController extends Controller
 
         return response()->json(['message' => 'Heslo bolo úspešne obnovené.']);
     }
-
-
 }
