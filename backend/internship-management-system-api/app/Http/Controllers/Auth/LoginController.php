@@ -38,21 +38,6 @@ class LoginController extends Controller
             ], 403);
         }
 
-        // 🔹 Nové – kontrola, či používateľ musí zmeniť heslo
-        if ($user->must_change_password) {
-            return response()->json([
-                'status' => 'FORCE_PASSWORD_CHANGE',
-                'message' => 'Musíte zmeniť svoje heslo pred pokračovaním.',
-                'user' => [
-                    'id' => $user->id,
-                    'email' => $user->email,
-                    'roles' => $user->roles->pluck('name'),
-                ],
-            ], 403);
-        }
-
-        $mustChangePassword = $user->must_change_password;
-
         // Vygenerujeme nový token (Passport)
         $tokenResult = $user->createToken('API Token');
         $token = $tokenResult->accessToken;
@@ -61,7 +46,6 @@ class LoginController extends Controller
             'access_token' => $token,
             'token_type' => 'Bearer',
             'expires_at' => $tokenResult->token->expires_at,
-            'must_change_password' => $mustChangePassword,
             'user' => [
                 'id' => $user->id,
                 'email' => $user->email,
@@ -102,7 +86,6 @@ class LoginController extends Controller
         }
 
         $user->password = Hash::make($request->new_password);
-        $user->must_change_password = false; // 🔹 reset flagu po úspešnej zmene
         $user->save();
 
         return response()->json([
@@ -139,6 +122,7 @@ class LoginController extends Controller
                 'created_at' => now(),
             ]
         );
+
         $url = url("/reset-password?token={$token}&email={$email}");
 
         Mail::to($email)->send(new ResetPasswordMail($url));
