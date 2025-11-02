@@ -15,6 +15,13 @@ docker run -d --name mailpit -p 1025:1025 -p 8025:8025 axllent/mailpit
  php artisan passport:client --personal --provider=users
 
 
+// DOCKERIZACIA
+- pri prvom spusteni je potrebne  pouzit build
+
+docker-compose build
+docker-compose up -d
+
+
 priklad .env ako to mam setupnute:
 
 APP_NAME=Laravel
