@@ -1,4 +1,6 @@
 <template>
+  <div class="landing">
+  <HeaderComponent />
   <div class="login-body">
     <div class="login-container">
       <div class="login-box">
@@ -25,10 +27,14 @@
       </div>
     </div>
   </div>
+    <FooterComponent />
+</div>
 </template>
 
 <script setup>
-// Zatiaľ netreba žiadny JS
+import '@/assets/landing.css'
+import HeaderComponent from '@/components/HeaderComponent.vue'
+import FooterComponent from '@/components/FooterComponent.vue'
 </script>
 
 <style src="../assets/login.css"></style>

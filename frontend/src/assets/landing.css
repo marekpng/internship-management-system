@@ -148,3 +148,26 @@ body { margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto
   .landing .container{ padding: 12px 24px; }
   .landing .hero, .landing section{ padding-left: 0; padding-right: 0; }
 }
+/* --- Sticky footer --- */
+html, body {
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.landing {
+  flex: 1; /* aby hlavný obsah zaberal zvyšok priestoru */
+  display: flex;
+  flex-direction: column;
+}
+
+.landing main {
+  flex: 1; /* toto zabezpečí, že footer sa odtlačí na spodok */
+}
+
+.landing footer {
+  margin-top: auto;
+}
