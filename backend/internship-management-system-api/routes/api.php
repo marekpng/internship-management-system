@@ -35,7 +35,7 @@ Route::post('/reset-password', [LoginController::class, 'resetPassword']);
 
 Route::get('internships', [InternshipController::class, 'index']);
 Route::get('internships/{id}', [InternshipController::class, 'show']);
-Route::post('internships', [InternshipController::class, 'store']);
+
 Route::put('internships/{id}', [InternshipController::class, 'update']);
 Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
 

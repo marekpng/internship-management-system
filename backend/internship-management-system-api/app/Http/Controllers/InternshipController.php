@@ -25,24 +25,7 @@ class InternshipController extends Controller
         return response()->json($internship);
     }
 
-    /**
-     * Vytvoriť novú stáž.
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
-            'status' => 'required|string|max:255',
-            'year' => 'required|integer',
-            'company_id' => 'required|exists:users,id',
-            'student_id' => 'required|exists:users,id',
-            'garant_id' => 'required|exists:users,id',
-        ]);
 
-        $internship = Internship::create($request->all());
-        return response()->json($internship, 201);
-    }
 
     /**
      * Aktualizovať stáž.

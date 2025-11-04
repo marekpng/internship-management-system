@@ -71,7 +71,6 @@ class RegisterController extends Controller
             'contact_person_email' => 'required|email|unique:users,email',
             'contact_person_phone' => 'nullable|string',
             'password' => 'required|string|min:8|confirmed',
-            'ico' => 'required|string|min:6'
         ]);
 
 

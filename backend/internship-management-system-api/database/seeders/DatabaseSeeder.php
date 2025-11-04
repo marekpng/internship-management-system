@@ -1,24 +1,23 @@
 <?php
 
+// database/seeders/DatabaseSeeder.php
+
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
+use Database\Seeders\RoleSeeder; // Správna cesta k RoleSeeder
+use Database\Seeders\UserSeeder;
+use Database\Seeders\InternshipSeeder;
 
 class DatabaseSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
-    public function run(): void
+    public function run()
     {
-        // Vytvor testovacieho používateľa
-        User::factory()->create([
-            'first_name' => 'Test',
-            'last_name' => 'User',
-            'email' => 'test@example.com',
-            'password' => bcrypt('password'),
-            'must_change_password' => false,
+        // Zavoláme rôzne seedery
+        $this->call([
+            // RoleSeeder::class,        // Seedujeme roly
+            UserSeeder::class,        // Seedujeme používateľov
+            InternshipSeeder::class,  // Seedujeme internshipy
         ]);
     }
 }
