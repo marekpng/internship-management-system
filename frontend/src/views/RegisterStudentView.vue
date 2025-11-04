@@ -1,4 +1,6 @@
 <template>
+  <div class="landing">
+    <HeaderComponent />
   <div class="page">
     <h1>Registrácia študenta</h1>
 
@@ -65,12 +67,16 @@
       </button>
     </form>
   </div>
+    <FooterComponent />
+</div>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue'
-import axios from 'axios' // ✅ jednoduchý import, žiadny plugin netreba
-
+import axios from 'axios' 
+import '@/assets/landing.css'
+import HeaderComponent from '@/components/HeaderComponent.vue'
+import FooterComponent from '@/components/FooterComponent.vue'
 const form = reactive({
   first_name: '',
   last_name: '',

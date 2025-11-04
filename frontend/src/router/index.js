@@ -12,12 +12,14 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/home', name: 'home', component: HomeView },
+    { path: '/', name: 'landing', component: LandingPage },
     { path: '/login', name: 'login', component: LoginView },
     { path: '/register', name: 'registerChoice', component: RegisterChoiceView },
     { path: '/register/student', name: 'registerStudent', component: RegisterStudentView },
     { path: '/register/company', name: 'registerCompany', component: RegisterCompanyView },
     { path: '/', name: 'landing', component: LandingPage },
     { path: '/change-password', name: 'changePassword', component: ChangePasswordView },
+
 
   ],
 })

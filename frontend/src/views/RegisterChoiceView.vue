@@ -1,4 +1,6 @@
 <template>
+  <div class="landing">
+  <HeaderComponent />
   <div class="page">
     <h1>Registrácia</h1>
     <p>Vyberte, čo chcete registrovať:</p>
@@ -8,10 +10,14 @@
       <RouterLink class="btn secondary" to="/register/company">Registrovať firmu</RouterLink>
     </div>
   </div>
+  <FooterComponent />
+</div>
 </template>
 
 <script setup>
-// nič netreba – len jednoduchá stránka s linkami
+import '@/assets/landing.css'
+import HeaderComponent from '@/components/HeaderComponent.vue'
+import FooterComponent from '@/components/FooterComponent.vue'
 </script>
 
 <style scoped>
@@ -20,4 +26,5 @@ h1 { margin: 0 0 12px; color:#0a7b3e; }
 .actions { display: flex; gap: 12px; margin-top: 16px; }
 .btn { padding: 10px 16px; border-radius: 8px; text-decoration: none; background:#0a7b3e; color:#fff; }
 .btn.secondary { background:#1f7a8c; }
+
 </style>

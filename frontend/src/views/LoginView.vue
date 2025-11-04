@@ -1,4 +1,6 @@
 <template>
+  <div class="landing">
+  <HeaderComponent />
   <div class="login-body">
     <div class="login-container">
       <div class="login-box">
@@ -41,9 +43,12 @@
       </div>
     </div>
   </div>
+    <FooterComponent />
+</div>
 </template>
 
 <script setup>
+
 import { ref } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
@@ -90,6 +95,11 @@ async function login() {
     loading.value = false
   }
 }
+
+import '@/assets/landing.css'
+import HeaderComponent from '@/components/HeaderComponent.vue'
+import FooterComponent from '@/components/FooterComponent.vue'
+
 </script>
 
 <style src="../assets/login.css"></style>
