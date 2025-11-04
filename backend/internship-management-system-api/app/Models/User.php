@@ -94,6 +94,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'company_account_active_state' => 'boolean',
+            'must_change_password' => 'boolean',
         ];
     }
 }

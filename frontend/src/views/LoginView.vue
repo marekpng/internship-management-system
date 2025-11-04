@@ -3,24 +3,40 @@
     <div class="login-container">
       <div class="login-box">
         <div class="login-logo">
-          <!-- použij obrázok z public/ (rovnako ako pri HomeView) -->
           <img src="@/assets/logo-fpv.png" alt="UKF FPV logo" />
         </div>
 
         <h2>Prihlásenie</h2>
 
-        <form>
+        <form @submit.prevent="login">
           <label for="email">Email</label>
-          <input type="email" id="email" placeholder="Zadaj email" required />
+          <input
+            type="email"
+            id="email"
+            v-model.trim="email"
+            placeholder="Zadaj email"
+            required
+          />
 
           <label for="password">Heslo</label>
-          <input type="password" id="password" placeholder="Zadaj heslo" required />
+          <input
+            type="password"
+            id="password"
+            v-model.trim="password"
+            placeholder="Zadaj heslo"
+            required
+          />
 
-          <button type="submit">Prihlásiť sa</button>
+          <div v-if="error" class="error">{{ error }}</div>
+
+          <button type="submit" :disabled="loading">
+            {{ loading ? 'Prihlasujem...' : 'Prihlásiť sa' }}
+          </button>
         </form>
 
         <p class="register-link">
-          Nemáš účet? <router-link to="/register">Zaregistruj sa</router-link>
+          Nemáš účet?
+          <router-link to="/register">Zaregistruj sa</router-link>
         </p>
       </div>
     </div>
@@ -28,7 +44,52 @@
 </template>
 
 <script setup>
-// Zatiaľ netreba žiadny JS
+import { ref } from 'vue'
+import axios from 'axios'
+import { useRouter } from 'vue-router'
+
+const email = ref('')
+const password = ref('')
+const error = ref('')
+const loading = ref(false)
+const router = useRouter()
+
+async function login() {
+  error.value = ''
+  loading.value = true
+
+  try {
+    const res = await axios.post('http://127.0.0.1:8000/api/login', {
+      email: email.value,
+      password: password.value,
+    })
+
+    // Skontrolujeme, či backend nevyžaduje zmenu hesla
+    if (res.data.status === 'FORCE_PASSWORD_CHANGE') {
+      localStorage.setItem('user_email', res.data.user.email)
+      router.push('/change-password')
+      return
+    }
+
+    // Inak uložíme token a presmerujeme na hlavnú stránku
+    localStorage.setItem('access_token', res.data.access_token)
+    localStorage.setItem('user_email', res.data.user.email)
+    router.push('/')
+  } catch (err) {
+    if (err.response) {
+      if (err.response.data.status === 'FORCE_PASSWORD_CHANGE') {
+        localStorage.setItem('user_email', err.response.data.user.email)
+        router.push('/change-password')
+        return
+      }
+      error.value = err.response.data.message || 'Nesprávny email alebo heslo.'
+    } else {
+      error.value = 'Chyba pripojenia k serveru.'
+    }
+  } finally {
+    loading.value = false
+  }
+}
 </script>
 
 <style src="../assets/login.css"></style>

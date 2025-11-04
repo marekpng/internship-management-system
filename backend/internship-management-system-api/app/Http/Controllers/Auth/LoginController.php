@@ -38,6 +38,21 @@ class LoginController extends Controller
             ], 403);
         }
 
+        // 🔹 Nové – kontrola, či používateľ musí zmeniť heslo
+        if ($user->must_change_password) {
+            return response()->json([
+                'status' => 'FORCE_PASSWORD_CHANGE',
+                'message' => 'Musíte zmeniť svoje heslo pred pokračovaním.',
+                'user' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'roles' => $user->roles->pluck('name'),
+                ],
+            ], 403);
+        }
+
+        $mustChangePassword = $user->must_change_password;
+
         // Vygenerujeme nový token (Passport)
         $tokenResult = $user->createToken('API Token');
         $token = $tokenResult->accessToken;
@@ -46,6 +61,7 @@ class LoginController extends Controller
             'access_token' => $token,
             'token_type' => 'Bearer',
             'expires_at' => $tokenResult->token->expires_at,
+            'must_change_password' => $mustChangePassword,
             'user' => [
                 'id' => $user->id,
                 'email' => $user->email,
@@ -70,28 +86,46 @@ class LoginController extends Controller
         ]);
     }
 
-    public function changePassword(Request $request)
-    {
-        $request->validate([
-            'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed', // musí byť "new_password_confirmation" v requeste
-        ]);
+public function changePassword(Request $request)
+{
+    $request->validate([
+        'current_password' => 'required|string',
+        'new_password' => 'required|string|min:8|confirmed', // musí byť "new_password_confirmation" v requeste
+        'email' => 'nullable|email' //  doplnené pre prípad, že používateľ nie je prihlásený
+    ]);
 
-        $user = $request->user();
+    // Získame aktuálneho používateľa z tokenu
+    $user = $request->user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json([
-                'message' => 'Neplatné aktuálne heslo.'
-            ], 403);
-        }
-
-        $user->password = Hash::make($request->new_password);
-        $user->save();
-
-        return response()->json([
-            'message' => 'Heslo bolo úspešne zmenené.'
-        ]);
+    //  Ak používateľ nie je prihlásený (napr. pri vynútenej zmene hesla)
+    // skúsime ho nájsť podľa emailu, ktorý príde z frontendu
+    if (!$user && $request->email) {
+        $user = User::where('email', $request->email)->first();
     }
+
+    // Ak používateľ stále neexistuje, vrátime chybu
+    if (!$user) {
+        return response()->json([
+            'message' => 'Používateľ nebol nájdený.'
+        ], 404);
+    }
+
+    // Overíme, či aktuálne heslo sedí
+    if (!Hash::check($request->current_password, $user->password)) {
+        return response()->json([
+            'message' => 'Neplatné aktuálne heslo.'
+        ], 403);
+    }
+
+    // Zmena hesla a reset flagu po úspešnej zmene
+    $user->password = Hash::make($request->new_password);
+    $user->must_change_password = false; // 🔹 reset flagu po úspešnej zmene
+    $user->save();
+
+    return response()->json([
+        'message' => 'Heslo bolo úspešne zmenené.'
+    ]);
+}
 
     // --- ZABUDLI STE HESLO ---
     public function forgotPassword(Request $request)
@@ -122,7 +156,6 @@ class LoginController extends Controller
                 'created_at' => now(),
             ]
         );
-
         $url = url("/reset-password?token={$token}&email={$email}");
 
         Mail::to($email)->send(new ResetPasswordMail($url));

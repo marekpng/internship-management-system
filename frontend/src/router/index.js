@@ -5,7 +5,7 @@ import RegisterChoiceView from '../views/RegisterChoiceView.vue'
 import RegisterStudentView from '../views/RegisterStudentView.vue'
 import RegisterCompanyView from '../views/RegisterCompanyView.vue'
 import LandingPage from '../views/LandingPage.vue'
-
+import ChangePasswordView from '../views/ChangePasswordView.vue'
 
 
 const router = createRouter({
@@ -17,6 +17,8 @@ const router = createRouter({
     { path: '/register/student', name: 'registerStudent', component: RegisterStudentView },
     { path: '/register/company', name: 'registerCompany', component: RegisterCompanyView },
     { path: '/', name: 'landing', component: LandingPage },
+    { path: '/change-password', name: 'changePassword', component: ChangePasswordView },
+
   ],
 })
 
