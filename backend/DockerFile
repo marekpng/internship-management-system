@@ -1,5 +1,4 @@
 FROM php:8.4-fpm-alpine 
-# -NASA VERZIA- ? 
 
 RUN apk update && apk add --no-cache \
     bash \

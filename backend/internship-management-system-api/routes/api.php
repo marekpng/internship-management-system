@@ -7,6 +7,8 @@ use App\Http\Controllers\Auth\LoginController;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
 use Laravel\Passport\Http\Controllers\TransientTokenController;
+use App\Http\Controllers\InternshipController;
+
 
 
 
@@ -29,5 +31,12 @@ Route::middleware('auth:api')->post('/change-password', [LoginController::class,
 
 Route::post('/forgot-password', [LoginController::class, 'forgotPassword']);
 Route::post('/reset-password', [LoginController::class, 'resetPassword']);
+
+
+Route::get('internships', [InternshipController::class, 'index']);
+Route::get('internships/{id}', [InternshipController::class, 'show']);
+
+Route::put('internships/{id}', [InternshipController::class, 'update']);
+Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
 
 
