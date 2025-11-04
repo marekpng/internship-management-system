@@ -12,7 +12,7 @@ class Internship extends Model
 
     public function company()
     {
-        return $this->belongsTo(Company::class);
+        return $this->belongsTo(User::class, 'company_id');
     }
 
     public function student()
@@ -39,4 +39,6 @@ class Internship extends Model
     {
         return $this->documents()->pluck('document_name')->toArray();
     }
+
+    
 }

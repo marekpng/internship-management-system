@@ -7,23 +7,6 @@ use Illuminate\Http\Request;
 
 class DocumentController extends Controller
 {
-    /**
-     * Získať všetky dokumenty.
-     */
-    public function index()
-    {
-        $documents = Document::all();
-        return response()->json($documents);
-    }
-
-    /**
-     * Získať detail dokumentu.
-     */
-    public function show($id)
-    {
-        $document = Document::findOrFail($id);
-        return response()->json($document);
-    }
 
     /**
      * Vytvoriť nový dokument.
@@ -63,5 +46,23 @@ class DocumentController extends Controller
         $document = Document::findOrFail($id);
         $document->delete();
         return response()->json(null, 204);
+    }
+    
+    /**
+     * Získať všetky dokumenty.
+     */
+    public function index()
+    {
+        $documents = Document::all();
+        return response()->json($documents);
+    }
+
+    /**
+     * Získať detail dokumentu.
+     */
+    public function show($id)
+    {
+        $document = Document::findOrFail($id);
+        return response()->json($document);
     }
 }

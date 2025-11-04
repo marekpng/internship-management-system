@@ -12,7 +12,7 @@ return new class extends Migration
     public function up()
     {
         Schema::create('internships', function (Blueprint $table) {
-            $table->id('internship_id');
+            $table->id();
             $table->timestamps();
 
             $table->dateTime('start_date');
@@ -24,7 +24,7 @@ return new class extends Migration
             // Cudzie kľúče
             $table->foreignId('garant_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
-            $table->foreignId('company_id')->constrained('company')->onDelete('cascade');
+            $table->foreignId('company_id')->constrained('users')->onDelete('cascade');
         });
     }
 

@@ -35,7 +35,7 @@ class InternshipController extends Controller
             'end_date' => 'required|date',
             'status' => 'required|string|max:255',
             'year' => 'required|integer',
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => 'required|exists:users,id',
             'student_id' => 'required|exists:users,id',
             'garant_id' => 'required|exists:users,id',
         ]);
@@ -56,7 +56,7 @@ class InternshipController extends Controller
             'end_date' => 'required|date',
             'status' => 'required|string|max:255',
             'year' => 'required|integer',
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => 'required|exists:users,id',
             'student_id' => 'required|exists:users,id',
             'garant_id' => 'required|exists:users,id',
         ]);

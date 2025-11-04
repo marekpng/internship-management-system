@@ -11,11 +11,6 @@ class Company extends Model
 
     protected $fillable = ['company_name', 'company_account_activity', 'ico', 'street', 'city', 'zip'];
 
-    public function contactPersons()
-    {
-        return $this->hasMany(User::class);
-    }
-
     public function internships()
     {
         return $this->hasMany(Internship::class);
