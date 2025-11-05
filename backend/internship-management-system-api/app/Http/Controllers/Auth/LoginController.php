@@ -1,6 +1,6 @@
 <?php
 
-namespace app\Http\Controllers\Auth;
+namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Mail\ResetPasswordMail;
@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
 
 class LoginController extends Controller
 {
@@ -38,7 +39,7 @@ class LoginController extends Controller
             ], 403);
         }
 
-        // 🔹 Nové – kontrola, či používateľ musí zmeniť heslo
+        //  kontrola, či používateľ musí zmeniť heslo
         if ($user->must_change_password) {
             return response()->json([
                 'status' => 'FORCE_PASSWORD_CHANGE',
@@ -48,7 +49,7 @@ class LoginController extends Controller
                     'email' => $user->email,
                     'roles' => $user->roles->pluck('name'),
                 ],
-            ], 403);
+            ], 200);
         }
 
         $mustChangePassword = $user->must_change_password;
@@ -88,6 +89,12 @@ class LoginController extends Controller
 
 public function changePassword(Request $request)
 {
+    // Logovanie požiadavky prichádzajúcej na server
+    Log::info('Zmena hesla - prichádzajúci request:', [
+        'email' => $request->email,
+        'token' => $request->bearerToken(),
+    ]);
+
     $request->validate([
         'current_password' => 'required|string',
         'new_password' => 'required|string|min:8|confirmed', // musí byť "new_password_confirmation" v requeste
@@ -97,21 +104,42 @@ public function changePassword(Request $request)
     // Získame aktuálneho používateľa z tokenu
     $user = $request->user();
 
-    //  Ak používateľ nie je prihlásený (napr. pri vynútenej zmene hesla)
+    //  Ak route nemá middleware auth:api, pokúsime sa načítať používateľa manuálne z tokenu
+    if (!$user && $request->bearerToken()) {
+        try {
+            $user = auth('api')->user();
+            Log::info('Používateľ načítaný manuálne z tokenu.', ['user_id' => optional($user)->id]);
+        } catch (\Exception $e) {
+            Log::warning('Nepodarilo sa načítať používateľa z tokenu.', ['chyba' => $e->getMessage()]);
+        }
+    }
+
+    // Ak používateľ nie je prihlásený (napr. pri vynútenej zmene hesla)
     // skúsime ho nájsť podľa emailu, ktorý príde z frontendu
     if (!$user && $request->email) {
         $user = User::where('email', $request->email)->first();
+        Log::info('Používateľ bol nájdený podľa emailu.', ['email' => $request->email]);
     }
 
     // Ak používateľ stále neexistuje, vrátime chybu
     if (!$user) {
+        Log::error('Používateľ nebol nájdený.', ['email' => $request->email]);
         return response()->json([
             'message' => 'Používateľ nebol nájdený.'
         ], 404);
     }
 
+    //  Ak používateľ nie je prihlásený a nemá flag must_change_password → zákaz
+    if (!$request->bearerToken() && !$user->must_change_password) {
+        Log::warning('Neautorizovaný prístup – bez tokenu a bez must_change_password.', ['email' => $request->email]);
+        return response()->json([
+            'message' => 'Neautorizovaný prístup.'
+        ], 403);
+    }
+
     // Overíme, či aktuálne heslo sedí
     if (!Hash::check($request->current_password, $user->password)) {
+        Log::warning('Neplatné aktuálne heslo.', ['user_id' => $user->id]);
         return response()->json([
             'message' => 'Neplatné aktuálne heslo.'
         ], 403);
@@ -121,6 +149,8 @@ public function changePassword(Request $request)
     $user->password = Hash::make($request->new_password);
     $user->must_change_password = false; // 🔹 reset flagu po úspešnej zmene
     $user->save();
+
+    Log::info('Heslo bolo úspešne zmenené.', ['user_id' => $user->id]);
 
     return response()->json([
         'message' => 'Heslo bolo úspešne zmenené.'
@@ -191,5 +221,36 @@ public function changePassword(Request $request)
         DB::table('password_resets')->where('email', $request->email)->delete();
 
         return response()->json(['message' => 'Heslo bolo úspešne obnovené.']);
+    }
+
+        /**
+     * Zmena údajov používateľa (napr. alternatívny email)
+     */
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'alternative_email' => 'nullable|email',
+        ]);
+
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'Používateľ nie je prihlásený.'
+            ], 401);
+        }
+
+        // Aktualizácia údajov
+        $user->alternative_email = $request->alternative_email;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Údaje boli úspešne aktualizované.',
+            'user' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'alternative_email' => $user->alternative_email,
+            ],
+        ]);
     }
 }
