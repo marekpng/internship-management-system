@@ -21,6 +21,9 @@ Route::middleware(['auth:api', 'role:student'])->group(function () {
     Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
 });
 
+// Verejný endpoint pre načítanie všetkých firiem (pre študentov)
+Route::get('/companies', [CompanyController::class, 'list']);
+
 Route::middleware(['auth:api', 'role:company'])->group(function () {
     Route::get('/company/dashboard', [CompanyController::class, 'dashboard']);
 });
@@ -35,9 +38,9 @@ Route::post('/reset-password', [LoginController::class, 'resetPassword']);
 
 Route::get('internships', [InternshipController::class, 'index']);
 Route::get('internships/{id}', [InternshipController::class, 'show']);
+Route::post('internships', [InternshipController::class, 'store']);
 
 Route::put('internships/{id}', [InternshipController::class, 'update']);
 Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
 
 Route::middleware('auth:api')->post('/update-profile', [LoginController::class, 'updateProfile']);
-
