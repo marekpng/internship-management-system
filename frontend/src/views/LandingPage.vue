@@ -82,8 +82,8 @@
     <section id="faq" class="section-alt">
       <div class="container">
         <h2 class="section-title">Časté otázky</h2>
-        <details><summary>Je stránka napojená na Laravel autentifikáciu?</summary><p>Áno, tlačidlá vedú na /login a /register.</p></details>
-        <details><summary>Ako sú dáta uložené?</summary><p>Do SQL (MySQL/PostgreSQL) cez Laravel Eloquent.</p></details>
+        <details><summary>Je stránka napojená na Laravel autentifikáciu?</summary><p>presne</p></details>
+        <details><summary>Ako sú dáta uložené?</summary><p>skúška.</p></details>
         <details><summary>Je možné exportovať PDF?</summary><p>Áno, v rámci sekcie „Moja prax“.</p></details>
       </div>
     </section>
