@@ -39,4 +39,5 @@ Route::get('internships/{id}', [InternshipController::class, 'show']);
 Route::put('internships/{id}', [InternshipController::class, 'update']);
 Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
 
+Route::middleware('auth:api')->post('/update-profile', [LoginController::class, 'updateProfile']);
 
