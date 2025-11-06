@@ -26,7 +26,7 @@
             <h3>Pridanie novej praxe</h3>
             <ul>
               <li>Žiak vyplní miesto a termín</li>
-              <li>Učiteľ schváli a priradí mentora</li>
+              <li>Učiteľ schváli pridanie praxe </li>
               <li>Automatické generovanie záznamov etáp</li>
             </ul>
           </div>
@@ -42,7 +42,7 @@
       <div class="container">
         <h2 class="section-title">O predmete</h2>
         <p class="section-text">
-          Cieľom predmetu je rozvíjať praktické zručnosti študentov. Aplikácia zjednodušuje komunikáciu medzi učiteľom a žiakom a ukladá dáta do SQL cez Laravel.
+          Cieľom predmetu je rozvíjať praktické zručnosti študentov. Aplikácia zjednodušuje komunikáciu medzi učiteľom a žiakom.
         </p>
         <div class="grid-3">
           <div class="feature"><h3>Pre žiakov</h3><p>Rýchle zadanie praxe, denník etáp, hodnotenia.</p></div>
@@ -56,9 +56,9 @@
       <div class="container">
         <h2 class="section-title">Ako to funguje</h2>
         <div class="grid-3">
-          <div class="feature"><span class="badge">Krok 1</span><h3>Registrácia / Prihlásenie</h3><p>Trasy /register a /login (alebo Laravel).</p></div>
-          <div class="feature"><span class="badge">Krok 2</span><h3>Zadanie praxe</h3><p>Ukladanie do SQL (practices, stages, evaluations).</p></div>
-          <div class="feature"><span class="badge">Krok 3</span><h3>Schválenie a hodnotenie</h3><p>Učiteľ potvrdí prax a priradí mentora.</p></div>
+          <div class="feature"><span class="badge">Krok 1</span><h3>Registrácia / Prihlásenie</h3><p>Trasy /register a /login</p></div>
+          <div class="feature"><span class="badge">Krok 2</span><h3>Zadanie praxe</h3><p>Pridanie názov praxe</p></div>
+          <div class="feature"><span class="badge">Krok 3</span><h3>Schválenie a hodnotenie</h3><p>Učiteľ potvrdí prax</p></div>
         </div>
       </div>
     </section>
@@ -67,10 +67,10 @@
       <div class="container">
         <h2 class="section-title">Výhody</h2>
         <div class="benefits">
-          <div class="benefit">Jednoduché UI bez rušivých prvkov.</div>
-          <div class="benefit">Jasné CTA: Registrácia a Prihlásenie.</div>
-          <div class="benefit">Responzívny dizajn.</div>
-          <div class="benefit">Pripravené pre roly učiteľ/žiak.</div>
+          <div class="benefit">Priehľadné rozhranie</div>
+          <div class="benefit">Jednoduchá manipulácia</div>
+          <div class="benefit">Všetko na jednom mieste</div>
+          <div class="benefit">Ľahká komunikácia medzi učitelom a žiakom</div>
         </div>
         <div class="hero-actions" style="margin-top:24px">
           <a class="btn btn-primary" href="/register">Registruj sa</a>
@@ -82,8 +82,8 @@
     <section id="faq" class="section-alt">
       <div class="container">
         <h2 class="section-title">Časté otázky</h2>
-        <details><summary>Je stránka napojená na Laravel autentifikáciu?</summary><p>presne</p></details>
-        <details><summary>Ako sú dáta uložené?</summary><p>skúška.</p></details>
+        <details><summary>Je možné pridať firmu bez jej registrácie?</summary><p>Nie</p></details>
+        <details><summary>Viem si v tomto prostredí nájsť prax?</summary><p>Nie</p></details>
         <details><summary>Je možné exportovať PDF?</summary><p>Áno, v rámci sekcie „Moja prax“.</p></details>
       </div>
     </section>
