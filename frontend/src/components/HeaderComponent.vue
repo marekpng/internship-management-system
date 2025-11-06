@@ -8,10 +8,10 @@
 
 
       <nav class="nav-links">
-        <a href="#o-predmete">O predmete</a>
-        <a href="#ako-funguje">Ako to funguje</a>
-        <a href="#vyhody">Výhody</a>
-        <a href="#faq">FAQ</a>
+        <a href="/#o-predmete">O predmete</a>
+        <a href="/#ako-funguje">Ako to funguje</a>
+        <a href="/#vyhody">Výhody</a>
+        <a href="/#faq">FAQ</a>
       </nav>
 
       <div class="nav-cta">

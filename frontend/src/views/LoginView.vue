@@ -76,10 +76,14 @@ async function login() {
       return
     }
 
-    // Inak uložíme token a presmerujeme na hlavnú stránku
-    localStorage.setItem('access_token', res.data.access_token)
-    localStorage.setItem('user_email', res.data.user.email)
-    router.push('/')
+   // Uložíme token a používateľa
+localStorage.setItem('access_token', res.data.access_token)
+localStorage.setItem('user', JSON.stringify(res.data.user))
+
+// Presmerovanie na dashboard
+setTimeout(() => {
+  router.push('/student/dashboard')
+}, 200)
   } catch (err) {
     if (err.response) {
       if (err.response.data.status === 'FORCE_PASSWORD_CHANGE') {

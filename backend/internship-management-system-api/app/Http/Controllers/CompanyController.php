@@ -21,4 +21,13 @@ class CompanyController
             ],
         ]);
     }
+    public function list()
+{
+    // Vráti všetkých používateľov, ktorí majú company_name vyplnené
+    $companies = \App\Models\User::whereNotNull('company_name')
+        ->select('id', 'company_name', 'email')
+        ->get();
+
+    return response()->json($companies);
+}
 }

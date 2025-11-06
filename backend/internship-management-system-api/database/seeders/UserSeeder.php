@@ -1,7 +1,5 @@
 <?php
 
-// database/seeders/UserSeeder.php
-
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -9,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Models\User;
-use App\Models\Role; // Importujeme model Role
+use App\Models\Role;
 
 class UserSeeder extends Seeder
 {
@@ -24,12 +22,10 @@ class UserSeeder extends Seeder
         ];
 
         foreach ($roles as $role) {
-            Role::firstOrCreate([
-                'name' => $role,
-            ]);
+            Role::firstOrCreate(['name' => $role]);
         }
 
-        // Vytvorenie používateľov
+        // Definícia používateľov
         $users = [
             [
                 'email' => 'student@example.com',
@@ -38,7 +34,7 @@ class UserSeeder extends Seeder
                 'last_name' => 'Doe',
                 'student_email' => 'john.student@example.com',
                 'phone' => '123456789',
-                'role_names' => ['student'], // Rola používateľa
+                'role_names' => ['student'],
             ],
             [
                 'email' => 'company@example.com',
@@ -47,7 +43,9 @@ class UserSeeder extends Seeder
                 'last_name' => 'Company',
                 'student_email' => 'alice.company@example.com',
                 'phone' => '987654321',
-                'role_names' => ['company'], // Rola používateľa
+                'role_names' => ['company'],
+                'company_account_active_state' => 1,
+                'company_name' => 'Company s.r.o',
             ],
             [
                 'email' => 'garant@example.com',
@@ -56,13 +54,13 @@ class UserSeeder extends Seeder
                 'last_name' => 'Garant',
                 'student_email' => 'bob.garant@example.com',
                 'phone' => '111222333',
-                'role_names' => ['garant'], // Rola používateľa
+                'role_names' => ['garant'],
             ],
         ];
 
         foreach ($users as $userData) {
-            // Vytvárame používateľa
-            $user = User::create([
+            // Vytvoríme základné údaje
+            $userAttributes = [
                 'email' => $userData['email'],
                 'password' => $userData['password'],
                 'first_name' => $userData['first_name'],
@@ -71,9 +69,18 @@ class UserSeeder extends Seeder
                 'phone' => $userData['phone'],
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
-            ]);
+            ];
 
-            // Priradíme roly používateľovi
+            // Ak má používateľ rolu "company", pridáme aj firemné údaje
+            if (in_array('company', $userData['role_names'])) {
+                $userAttributes['company_account_active_state'] = $userData['company_account_active_state'] ?? 0;
+                $userAttributes['company_name'] = $userData['company_name'] ?? 'Neznáma firma';
+            }
+
+            // Vytvorenie používateľa
+            $user = User::create($userAttributes);
+
+            // Priradenie rolí
             $roles = Role::whereIn('name', $userData['role_names'])->get();
             $user->roles()->attach($roles);
         }
