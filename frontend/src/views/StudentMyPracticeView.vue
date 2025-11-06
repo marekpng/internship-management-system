@@ -19,7 +19,7 @@
             <p><strong>Firma:</strong> {{  p.company_name }}</p>
             <p>
               <label for="year">Rok:</label>
-              <input id="year" type="number" v-model.number="editForm.year" required />
+              <input id="year" type="number" v-model.number="editForm.year" required disabled />
             </p>
             <p>
               <label for="semester">Semester:</label>
@@ -72,7 +72,7 @@ const loadPractices = async () => {
   loading.value = true
   try {
     const token = localStorage.getItem('access_token')
-    const response = await axios.get('http://localhost:8000/api/internships', {
+    const response = await axios.get('http://localhost:8000/api/internships/my', {
       headers: { Authorization: `Bearer ${token}` },
     })
     practices.value = response.data
@@ -83,14 +83,26 @@ const loadPractices = async () => {
   }
 }
 
+const toInputDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+
+
 const startEditing = (practice) => {
   editingPracticeId.value = practice.id
   editForm.value.year = practice.year
   editForm.value.semester = practice.semester
-  // format dates as yyyy-mm-dd for input type date
-  editForm.value.start_date = practice.start_date ? new Date(practice.start_date).toISOString().substring(0,10) : ''
-  editForm.value.end_date = practice.end_date ? new Date(practice.end_date).toISOString().substring(0,10) : ''
+  // správne formátovanie dátumov bez posunu
+  editForm.value.start_date = toInputDate(practice.start_date)
+  editForm.value.end_date = toInputDate(practice.end_date)
 }
+
 
 const cancelEditing = () => {
   editingPracticeId.value = null

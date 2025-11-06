@@ -125,4 +125,37 @@ class InternshipController extends Controller
         $internship->delete();
         return response()->json(null, 204);
     }
+
+    /**
+ * Získať všetky praxe, kde dané token zodpovedá študentovi, firme alebo garantovi.
+ */
+public function myInternships(Request $request)
+{
+    $user = $request->user();
+
+    $internships = Internship::with(['company', 'student', 'garant'])
+        ->where('student_id', $user->id)
+        ->orWhere('company_id', $user->id)
+        ->orWhere('garant_id', $user->id)
+        ->get();
+
+    $data = $internships->map(function ($internship) {
+        return [
+            'id' => $internship->id,
+            'year' => $internship->year,
+            'semester' => $internship->semester,
+            'start_date' => $internship->start_date,
+            'end_date' => $internship->end_date,
+            'status' => $internship->status,
+            'company_id' => $internship->company_id,
+            'company_name' => $internship->company ? ($internship->company->company_name ?? $internship->company->name ?? 'Neznáma firma') : 'Neznáma firma',
+            'student_id' => $internship->student_id,
+            'garant_id' => $internship->garant_id,
+        ];
+    });
+
+    return response()->json($data);
+}
+
+
 }
