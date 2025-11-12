@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Internship;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 class InternshipController extends Controller
 {
@@ -44,52 +46,77 @@ class InternshipController extends Controller
     /**
      * Pridať novú stáž.
      */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
-            'semester' => 'required|string|max:255',
-            'status' => 'required|string|max:255',
-            'year' => 'required|integer',
-            'company_id' => 'required|exists:users,id',
-            'student_id' => 'required|exists:users,id',
-            'garant_id' => 'required|exists:users,id',
+public function store(Request $request)
+{
+    $validated = $request->validate([
+        'start_date' => 'required|date',
+        'end_date' => 'required|date',
+        'semester' => 'required|string|max:255',
+        'status' => 'required|string|max:255',
+        'year' => 'required|integer',
+        'company_id' => 'required|exists:users,id',
+        'student_id' => 'required|exists:users,id',
+        'garant_id' => 'required|exists:users,id',
+    ]);
+
+    // Kontrola duplicity praxe pre rovnaký rok a semester
+    if (
+        Internship::where('student_id', $validated['student_id'])
+            ->where('year', $validated['year'])
+            ->where('semester', $validated['semester'])
+            ->exists()
+    ) {
+        return response()->json(['error' => 'Študent už má vytvorenú prax pre tento rok a semester.'], 400);
+    }
+
+    try {
+        $internship = Internship::create([
+            'start_date' => $validated['start_date'] ?? null,
+            'end_date' => $validated['end_date'] ?? null,
+            'semester' => isset($validated['semester']) ? ucfirst($validated['semester']) : null,
+            'status' => $validated['status'] ?? null,
+            'year' => $validated['year'] ?? null,
+            'company_id' => $validated['company_id'] ?? null,
+            'student_id' => $validated['student_id'] ?? null,
+            'garant_id' => $validated['garant_id'] ?? null,
         ]);
 
-        // Kontrola duplicity praxe pre rovnaký rok a semester
-        if (
-            Internship::where('student_id', $validated['student_id'])
-                ->where('year', $validated['year'])
-                ->where('semester', $validated['semester'])
-                ->exists()
-        ) {
-            return response()->json(['error' => 'Študent už má vytvorenú prax pre tento rok a semester.'], 400);
-        }
-
+        // Automatické generovanie PDF dohody po vytvorení praxe
         try {
-            $internship = Internship::create([
-                'start_date' => $validated['start_date'] ?? null,
-                'end_date' => $validated['end_date'] ?? null,
-                'semester' => isset($validated['semester']) ? ucfirst($validated['semester']) : null,
-                'status' => $validated['status'] ?? null,
-                'year' => $validated['year'] ?? null,
-                'company_id' => $validated['company_id'] ?? null,
-                'student_id' => $validated['student_id'] ?? null,
-                'garant_id' => $validated['garant_id'] ?? null,
+            $student = $internship->student;
+            $company = $internship->company;
+            $garant = $internship->garant ?? (object)['first_name' => 'N/A', 'last_name' => ''];
+
+            $pdf = Pdf::loadView('pdf.agreement', [
+                'internship' => $internship,
+                'student' => $student,
+                'company' => $company,
+                'garant' => $garant,
             ]);
 
-            return response()->json([
-                'message' => 'Prax bola úspešne vytvorená.',
-                'internship' => $internship->load(['company', 'student', 'garant']),
-            ], 201);
+            $pdfPath = "internships/agreements/internship_{$internship->id}.pdf";
+            Storage::disk('public')->put($pdfPath, $pdf->output());
+
+            // Uložíme cestu k PDF (ak existuje stĺpec v tabuľke)
+            $internship->update(['agreement_pdf_path' => $pdfPath]);
+
         } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Nepodarilo sa vytvoriť prax.',
-                'details' => $e->getMessage(),
-            ], 400);
+            // Ak PDF zlyhá, len zalogujeme chybu, nezhodíme celú operáciu
+            \Log::error('Chyba pri generovaní PDF dohody: ' . $e->getMessage());
         }
+
+        return response()->json([
+            'message' => 'Prax bola úspešne vytvorená a PDF dohoda bola vygenerovaná.',
+            'internship' => $internship->load(['company', 'student', 'garant']),
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Nepodarilo sa vytvoriť prax.',
+            'details' => $e->getMessage(),
+        ], 400);
     }
+}
 
     /**
      * Aktualizovať stáž.
@@ -155,6 +182,30 @@ public function myInternships(Request $request)
     });
 
     return response()->json($data);
+}
+
+/**
+ * Stiahnuť PDF dohodu pre konkrétnu prax.
+ */
+public function downloadAgreement($id)
+{
+    $internship = Internship::findOrFail($id);
+
+    // Skontroluj, či má prax uloženú cestu k PDF
+    $pdfPath = $internship->agreement_pdf_path ?? "internships/agreements/internship_{$id}.pdf";
+
+    if (!\Storage::disk('public')->exists($pdfPath)) {
+        return response()->json([
+            'error' => 'PDF dohoda pre túto prax neexistuje.'
+        ], 404);
+    }
+
+    // Stiahnutie PDF súboru
+    return response()->download(
+        storage_path('app/public/' . $pdfPath),
+        "Dohoda_praxe_{$id}.pdf",
+        ['Content-Type' => 'application/pdf']
+    );
 }
 
 

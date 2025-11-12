@@ -12,6 +12,10 @@
           <p><strong>Semester:</strong> {{ p.semester }}</p>
           <p><strong>Začiatok praxe:</strong> {{ formatDate(p.start_date) }}</p>
           <p><strong>Koniec praxe:</strong> {{ formatDate(p.end_date) }}</p>
+
+          <!-- 🔽 Nové tlačidlo na stiahnutie PDF dohody -->
+          <button @click="downloadAgreement(p.id)">📄 Stiahnuť dohodu</button>
+
           <button @click="startEditing(p)">Upraviť prax</button>
         </template>
         <template v-else>
@@ -92,8 +96,6 @@ const toInputDate = (dateString) => {
   return `${year}-${month}-${day}`
 }
 
-
-
 const startEditing = (practice) => {
   editingPracticeId.value = practice.id
   editForm.value.year = practice.year
@@ -102,7 +104,6 @@ const startEditing = (practice) => {
   editForm.value.start_date = toInputDate(practice.start_date)
   editForm.value.end_date = toInputDate(practice.end_date)
 }
-
 
 const cancelEditing = () => {
   editingPracticeId.value = null
@@ -125,6 +126,13 @@ const submitEdit = async (id) => {
     console.error('Chyba pri aktualizácii praxe:', error)
     alert('Nepodarilo sa aktualizovať prax.')
   }
+}
+
+// 🔽 Nová funkcia pre stiahnutie PDF dohody
+const downloadAgreement = (id) => {
+  if (!id) return
+  const url = `http://localhost:8000/api/internships/${id}/agreement/download`
+  window.open(url, '_blank')
 }
 
 onMounted(loadPractices)

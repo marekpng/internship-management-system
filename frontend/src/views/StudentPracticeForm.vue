@@ -56,8 +56,16 @@
       <button type="submit">Uložiť prax</button>
     </form>
 
+    <!-- Správy o stave -->
     <p v-if="successMessage" class="success">{{ successMessage }}</p>
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+
+    <!-- 🔽 Nové tlačidlo na stiahnutie PDF dohody -->
+    <div v-if="pdfDownloadLink" class="pdf-download">
+      <button class="download-btn" @click="downloadPdf">
+        📄 Stiahnuť dohodu o praxi
+      </button>
+    </div>
   </div>
 </template>
 
@@ -80,6 +88,7 @@ const errorMessage = ref('')
 
 const start_date = ref('')
 const end_date = ref('')
+const pdfDownloadLink = ref('') // 🔽 pridane pre uloženie URL PDF
 
 const token = localStorage.getItem('access_token')
 const user = JSON.parse(localStorage.getItem('user'))
@@ -135,7 +144,7 @@ const submitForm = async () => {
   }
 
   try {
-    await axios.post(
+    const response = await axios.post(
       'http://localhost:8000/api/internships',
       {
         company_id: selected.id,
@@ -151,11 +160,16 @@ const submitForm = async () => {
         headers: { Authorization: `Bearer ${token}` }
       }
     )
+
     successMessage.value = 'Prax bola úspešne vytvorená!'
     errorMessage.value = ''
-    setTimeout(() => {
-      router.push('/student/my-practice')
-    }, 1500)
+    
+    // 🔽 Po vytvorení si uložíme link na PDF dohodu (napr. ID novej praxe)
+    const internshipId = response.data?.internship?.id
+    if (internshipId) {
+      pdfDownloadLink.value = `http://localhost:8000/api/internships/${internshipId}/agreement/download`
+    }
+
   } catch (error) {
     successMessage.value = ''
     errorMessage.value = 'Nepodarilo sa vytvoriť prax.'
@@ -165,6 +179,12 @@ const submitForm = async () => {
       console.error('Chyba:', error)
     }
   }
+}
+
+// 🔽 Funkcia pre stiahnutie PDF
+const downloadPdf = () => {
+  if (!pdfDownloadLink.value) return
+  window.open(pdfDownloadLink.value, '_blank')
 }
 </script>
 
@@ -192,5 +212,25 @@ const submitForm = async () => {
 
 .back-button:hover {
   color: #2e7d32;
+}
+
+.pdf-download {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.download-btn {
+  background-color: #1b5e20;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.download-btn:hover {
+  background-color: #2e7d32;
 }
 </style>
