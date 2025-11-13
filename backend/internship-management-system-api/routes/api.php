@@ -8,6 +8,8 @@ use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
 use Laravel\Passport\Http\Controllers\TransientTokenController;
 use App\Http\Controllers\InternshipController;
+use App\Http\Controllers\ExportController;
+
 
 
 
@@ -55,10 +57,10 @@ use Illuminate\Support\Facades\Storage;
 
 Route::get('/test-pdf', function () {
     $dummyData = [
-        'internship' => (object)['start_date' => '2025-03-01', 'end_date' => '2025-06-30'],
-        'student' => (object)['first_name' => 'Andrej', 'last_name' => 'Kováč', 'email' => 'andrej@example.com'],
-        'company' => (object)['company_name' => 'SoftCorp s.r.o.', 'contact_person_name' => 'Ján Novák', 'contact_person_email' => 'jan@softcorp.sk'],
-        'garant' => (object)['first_name' => 'Peter', 'last_name' => 'Horváth'],
+        'internship' => (object) ['start_date' => '2025-03-01', 'end_date' => '2025-06-30'],
+        'student' => (object) ['first_name' => 'Andrej', 'last_name' => 'Kováč', 'email' => 'andrej@example.com'],
+        'company' => (object) ['company_name' => 'SoftCorp s.r.o.', 'contact_person_name' => 'Ján Novák', 'contact_person_email' => 'jan@softcorp.sk'],
+        'garant' => (object) ['first_name' => 'Peter', 'last_name' => 'Horváth'],
     ];
 
     $pdf = Pdf::loadView('pdf.agreement', $dummyData);
@@ -67,3 +69,6 @@ Route::get('/test-pdf', function () {
 
     return response()->json(['message' => 'PDF bolo vytvorené.', 'path' => "/storage/{$path}"]);
 });
+
+Route::middleware(['auth:api', 'role:garant'])
+    ->get('/exports/internships', [ExportController::class, 'exportCsv']);

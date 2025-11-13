@@ -34,6 +34,9 @@
           Zobrazenie tvojej doterajšej praxe a detailov o jednotlivých etapách a úprave praxe.
         </div>
       </div>
+      <button class="green-button" @click="goToExport">
+    Export údajov
+  </button>
     </div>
   </div>
 </template>
@@ -85,6 +88,10 @@ const goToPracticeForm = () => {
 const goToMyPractice = () => {
   router.push('/student/my-practice')
 }
+const goToExport = () => {
+  router.push({ path: '/exporty' })
+}
+
 </script>
 
 <style src="../assets/style.css"></style>
@@ -96,4 +103,27 @@ const goToMyPractice = () => {
 .clickable:hover {
   background-color: #f9f9f9;
 }
+.green-button {
+  margin-top: 12px;
+  background-color: #16a34a; 
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.green-button:hover {
+  background-color: #15803d; 
+  transform: translateY(-1px);
+}
+
+.green-button:active {
+  transform: translateY(1px);
+}
+
+
 </style>
