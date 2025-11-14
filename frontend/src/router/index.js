@@ -39,18 +39,52 @@ const router = createRouter({
     },
     { path: '/change-password', name: 'changePassword', component: ChangePasswordView },
     { path: '/profile', name: 'profile', component: ProfileView, meta: { requiresAuth: true } },
-
-
+    {
+      path: '/company/dashboard',
+      name: 'companyDashboard',
+      component: () => import('@/views/CompanyDashboardView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/company/practices',
+      name: 'companyPractices',
+      component: () => import('@/views/CompanyPracticesView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/company/practices/:id',
+      name: 'companyPracticeDetail',
+      component: () => import('@/views/CompanyPracticeDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
   ],
 })
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('access_token')
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const role = user.role
+
+  // ak stránka vyžaduje login a user nemá token → redirect
   if (to.meta.requiresAuth && !token) {
-    next({ name: 'login' })
-  } else {
-    next()
+    return next({ name: 'login' })
   }
+
+  // ochrana routov pre študenta
+  if (role === 'student') {
+    if (to.path.startsWith('/company')) {
+      return next('/student/dashboard')
+    }
+  }
+
+  // ochrana routov pre firmu
+  if (role === 'company') {
+    if (to.path.startsWith('/student')) {
+      return next('/company/dashboard')
+    }
+  }
+
+  return next()
 })
 
 export default router
