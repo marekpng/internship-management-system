@@ -180,7 +180,11 @@ public function myInternships(Request $request)
             'company_id' => $internship->company_id,
             'company_name' => $internship->company ? ($internship->company->company_name ?? $internship->company->name ?? 'Neznáma firma') : 'Neznáma firma',
             'student_id' => $internship->student_id,
+            'student_first_name' => $internship->student ? $internship->student->first_name : 'Nezadané meno',
+            'student_last_name' => $internship->student ? $internship->student->last_name : 'Nezadané priezvisko',
             'garant_id' => $internship->garant_id,
+            'garant_first_name' => $internship->garant ? $internship->garant->first_name : 'Nezadané meno',
+            'garant_last_name' => $internship->garant ? $internship->garant->last_name : 'Nezadané priezvisko',
         ];
     });
 

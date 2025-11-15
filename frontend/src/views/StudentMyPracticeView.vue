@@ -7,20 +7,29 @@
     <div v-else-if="practices.length" class="practice-list">
       <div v-for="p in practices" :key="p.id" class="practice-details">
         <template v-if="editingPracticeId !== p.id">
-          <p><strong>Firma:</strong> {{  p.company_name }}</p>
+          <!-- Status v pravom hornom rohu -->
+          <div class="status-box">Stav praxe: {{ p.status }}</div>         
+          
+          <!-- Mená študenta a garanta pod statusom na pravej strane -->
+          <div class="names-container">
+            <p><strong>Študent:</strong> {{ p.student_first_name }} {{ p.student_last_name }}</p>
+            <p><strong>Garant:</strong> {{ p.garant_first_name }} {{ p.garant_last_name }}</p>
+          </div>
+
+          <p><strong>Firma:</strong> {{ p.company_name }}</p>
           <p><strong>Rok:</strong> {{ p.year }}</p>
           <p><strong>Semester:</strong> {{ p.semester }}</p>
           <p><strong>Začiatok praxe:</strong> {{ formatDate(p.start_date) }}</p>
-          <p><strong>Koniec praxe:</strong> {{ formatDate(p.end_date) }}</p>
+          <p><strong>Koniec praxe:</strong> {{ formatDate(p.end_date) }}</p>          
 
-          <!-- 🔽 Nové tlačidlo na stiahnutie PDF dohody -->
+          <!-- Tlačidlo na stiahnutie PDF dohody -->
           <button @click="downloadAgreement(p.id)">📄 Stiahnuť dohodu</button>
 
           <button @click="startEditing(p)">Upraviť prax</button>
         </template>
         <template v-else>
           <form @submit.prevent="submitEdit(p.id)">
-            <p><strong>Firma:</strong> {{  p.company_name }}</p>
+            <p><strong>Firma:</strong> {{ p.company_name }}</p>
             <p>
               <label for="year">Rok:</label>
               <input id="year" type="number" v-model.number="editForm.year" required disabled />
@@ -55,7 +64,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 
 const router = useRouter()
-const practices = ref([])
+const practices = ref([])  // zoznam praxí
 const loading = ref(true)
 const editingPracticeId = ref(null)
 const editForm = ref({
@@ -79,7 +88,14 @@ const loadPractices = async () => {
     const response = await axios.get('http://localhost:8000/api/internships/my', {
       headers: { Authorization: `Bearer ${token}` },
     })
-    practices.value = response.data
+    practices.value = response.data.map(practice => ({
+      ...practice,
+      status: practice.status || 'Nezadaný',
+      student_first_name: practice.student_first_name || 'Nezadané meno',
+      student_last_name: practice.student_last_name || 'Nezadané priezvisko',
+      garant_first_name: practice.garant_first_name || 'Nezadané meno',
+      garant_last_name: practice.garant_last_name || 'Nezadané priezvisko',
+    }))
   } catch (error) {
     console.error('Chyba pri načítaní praxe:', error)
   } finally {
@@ -100,7 +116,6 @@ const startEditing = (practice) => {
   editingPracticeId.value = practice.id
   editForm.value.year = practice.year
   editForm.value.semester = practice.semester
-  // správne formátovanie dátumov bez posunu
   editForm.value.start_date = toInputDate(practice.start_date)
   editForm.value.end_date = toInputDate(practice.end_date)
 }
@@ -128,7 +143,6 @@ const submitEdit = async (id) => {
   }
 }
 
-// 🔽 Nová funkcia pre stiahnutie PDF dohody
 const downloadAgreement = (id) => {
   if (!id) return
   const url = `http://localhost:8000/api/internships/${id}/agreement/download`
@@ -164,6 +178,7 @@ h2 {
   border-top: 1px solid #ddd;
   padding-top: 15px;
   margin-top: 15px;
+  position: relative;
 }
 
 .practice-details:first-of-type {
@@ -220,5 +235,32 @@ input[type="date"] {
 label {
   margin-right: 8px;
   font-weight: 500;
+}
+
+/* Status v pravom hornom rohu */
+.status-box {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #f0f0f0;
+  color: #1b5e20;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Mená študenta a garanta pod statusom */
+.names-container {
+  position: absolute;
+  top: 40px; /* Umiestnenie pod status */
+  right: 10px;
+  font-size: 14px;
+  color: #333;
+}
+
+.names-container p {
+  margin: 5px 0;
 }
 </style>
