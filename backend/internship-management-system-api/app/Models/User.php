@@ -55,10 +55,18 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $appends = ['role'];
+
     // Kontrola roly
     public function roles()
     {
         return $this->belongsToMany(Role::class, 'role_user');
+    }
+
+    // Accessor pre rolu – získanie názvu roly z pivot tabuľky
+    public function getRoleAttribute()
+    {
+        return $this->roles()->first()?->name;
     }
 
     /**

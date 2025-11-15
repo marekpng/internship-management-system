@@ -66,6 +66,11 @@ class LoginController extends Controller
             'user' => [
                 'id' => $user->id,
                 'email' => $user->email,
+                'company_name' => $user->company_name,
+                'contact_person_name' => $user->contact_person_name,
+                'contact_person_email' => $user->contact_person_email,
+                'contact_person_phone' => $user->contact_person_phone,
+                'company_account_active_state' => $user->company_account_active_state,
                 'roles' => $user->roles->pluck('name'),
             ],
         ]);

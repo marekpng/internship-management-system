@@ -80,9 +80,17 @@ async function login() {
 localStorage.setItem('access_token', res.data.access_token)
 localStorage.setItem('user', JSON.stringify(res.data.user))
 
-// Presmerovanie na dashboard
+// Presmerovanie podľa roly
+const role = res.data.user.roles?.[0]
+
 setTimeout(() => {
-  router.push('/student/dashboard')
+  if (role === 'student') {
+    router.push('/student/dashboard')
+  } else if (role === 'company') {
+    router.push('/company/dashboard')
+  } else {
+    router.push('/')
+  }
 }, 200)
   } catch (err) {
     if (err.response) {
