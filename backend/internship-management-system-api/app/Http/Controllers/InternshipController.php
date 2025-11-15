@@ -81,6 +81,9 @@ public function store(Request $request)
             'garant_id' => $validated['garant_id'] ?? null,
         ]);
 
+        //  Vytvoríme priečinok ak neexistuje
+        Storage::disk('public')->makeDirectory('internships/agreements');
+
         // Automatické generovanie PDF dohody po vytvorení praxe
         try {
             $student = $internship->student;
