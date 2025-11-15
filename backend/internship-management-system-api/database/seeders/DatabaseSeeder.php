@@ -15,7 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         // Zavoláme rôzne seedery
         $this->call([
-            // RoleSeeder::class,        // Seedujeme roly
+            RoleSeeder::class,        // Seedujeme roly
             UserSeeder::class,        // Seedujeme používateľov
             InternshipSeeder::class,  // Seedujeme internshipy
         ]);
