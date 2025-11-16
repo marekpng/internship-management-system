@@ -8,7 +8,8 @@ use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
 use Laravel\Passport\Http\Controllers\TransientTokenController;
 use App\Http\Controllers\InternshipController;
-
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Storage;
 
 
 
@@ -53,8 +54,7 @@ Route::middleware('auth:api')->post('/update-profile', [LoginController::class, 
 
 Route::get('internships/{id}/agreement/download', [InternshipController::class, 'downloadAgreement']);
 
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Facades\Storage;
+
 
 Route::get('/test-pdf', function () {
     $dummyData = [
@@ -69,4 +69,14 @@ Route::get('/test-pdf', function () {
     Storage::disk('public')->put($path, $pdf->output());
 
     return response()->json(['message' => 'PDF bolo vytvorené.', 'path' => "/storage/{$path}"]);
+});
+
+
+
+// EXTERNY SYSTEM
+Route::middleware(['auth:api', 'role:external'])->group(function () {
+    //Route::middleware('auth:api')->get('/external/internships/approved/', [InternshipController::class, 'getApprovedInternships']);
+    Route::get('/external/internships/approved/', [InternshipController::class, 'getApprovedInternships']);
+    Route::post('/external/internships/approved/{id}', [InternshipController::class, 'markAsDefended']);
+
 });

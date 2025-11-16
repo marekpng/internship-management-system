@@ -18,7 +18,8 @@ class UserSeeder extends Seeder
             'student',
             'company',
             'garant',
-            'admin'
+            'admin',
+            'external'
         ];
 
         foreach ($roles as $role) {
@@ -55,6 +56,17 @@ class UserSeeder extends Seeder
                 'student_email' => 'bob.garant@example.com',
                 'phone' => '111222333',
                 'role_names' => ['garant'],
+            ],
+            [
+                'email' => 'external@system.sk',
+                'password' => bcrypt('ExtSystem123!'),   // silné heslo
+                'role_names' => ['external'],
+
+                'first_name' => null,
+                'last_name' => null,
+                'student_email' => null,
+                'phone' => null,
+                'must_change_password' => 0,
             ],
         ];
 

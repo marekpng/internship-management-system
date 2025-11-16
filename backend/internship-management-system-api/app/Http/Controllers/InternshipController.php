@@ -268,4 +268,44 @@ class InternshipController extends Controller
         return $selectedGarantId;
     }
 
+
+    //EXTERNY SYSTEM
+    public function getApprovedInternships()
+    {
+        $internships = Internship::where('status', 'Schválená')
+            ->with(['student', 'garant', 'company'])
+            ->get();
+
+        return response()->json([
+            'count' => $internships->count(),
+            'data' => $internships
+        ]);
+    }
+    public function markAsDefended($id)
+    {
+        $internship = Internship::find($id);
+
+        if (!$internship) {
+            return response()->json([
+                'message' => 'Praxe s daným ID neexistuje.'
+            ], 404);
+        }
+
+        // Kontrola, či je aktuálne v stave "Schválená"
+        if ($internship->status !== 'Schválená') {
+            return response()->json([
+                'message' => "Praxe nie je v stave 'Schválená', aktuálny stav je: {$internship->status}"
+            ], 400);
+        }
+
+        // Zmena stavu
+        $internship->status = 'Obhájená';
+        $internship->save();
+
+        return response()->json([
+            'message' => 'Stav praxe bol úspešne zmenený na Obhájená.',
+            'internship' => $internship
+        ]);
+    }
+
 }
