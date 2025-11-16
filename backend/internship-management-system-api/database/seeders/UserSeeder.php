@@ -29,7 +29,7 @@ class UserSeeder extends Seeder
         $users = [
             [
                 'email' => 'student@example.com',
-                'password' => bcrypt('password123'),
+                'password' => bcrypt('password'),
                 'first_name' => 'John',
                 'last_name' => 'Doe',
                 'student_email' => 'john.student@example.com',
@@ -38,7 +38,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email' => 'company@example.com',
-                'password' => bcrypt('password123'),
+                'password' => bcrypt('password'),
                 'first_name' => 'Alice',
                 'last_name' => 'Company',
                 'student_email' => 'alice.company@example.com',
@@ -49,7 +49,7 @@ class UserSeeder extends Seeder
             ],
             [
                 'email' => 'garant@example.com',
-                'password' => bcrypt('password123'),
+                'password' => bcrypt('password'),
                 'first_name' => 'Bob',
                 'last_name' => 'Garant',
                 'student_email' => 'bob.garant@example.com',
@@ -69,6 +69,7 @@ class UserSeeder extends Seeder
                 'phone' => $userData['phone'],
                 'created_at' => Carbon::now(),
                 'updated_at' => Carbon::now(),
+                'must_change_password' => 0,
             ];
 
             // Ak má používateľ rolu "company", pridáme aj firemné údaje
