@@ -31,7 +31,7 @@ class InternshipSeeder extends Seeder
             'start_date' => now(),
             'end_date' => now()->addMonths(3),
             'semester' => 'Zimný',
-            'status' => 'Vytvorená',
+            'status' => 'Schválená',
             'year' => 2025,
             'company_id' => $company->id,
             'student_id' => $student->id,
