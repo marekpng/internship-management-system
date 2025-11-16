@@ -149,8 +149,7 @@ const submitForm = async () => {
       {
         company_id: selected.id,
         student_id: user?.id || 1,
-        garant_id: 1,
-        status: 'active',
+        status: 'Vytvorená',
         year: year.value,
         semester: semester.value,
         start_date: start_date.value,
