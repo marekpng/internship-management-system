@@ -1,6 +1,10 @@
 <template>
   <div class="container">
-    <h1>Prax v stave „Vytvorená“</h1>
+    <div class="header-bar">
+      <span class="header-title">Firemný portál • Praxe</span>
+      <button class="header-back" @click="$router.push('/company/dashboard')">Domov</button>
+    </div>
+    <h1>Prax v stave: {{ title }}</h1>
 
     <div v-if="loading">Načítavam…</div>
     <div v-else-if="internships.length === 0">
@@ -16,7 +20,7 @@
       >
         <strong>{{ internship.student.first_name }} {{ internship.student.last_name }}</strong>
         <div>{{ internship.student.email }}</div>
-        <div>Vytvorená: {{ formatDate(internship.created_at) }}</div>
+        <div>{{ internship.status }}: {{ formatDate(internship.created_at) }}</div>
       </li>
     </ul>
   </div>
@@ -32,13 +36,29 @@ export default {
     return {
       internships: [],
       loading: true,
+      status: null,
+      title: "Vytvorená",
     };
   },
 
   methods: {
     async loadInternships() {
       try {
-        const response = await axios.get("/company/internships/pending");
+        this.status = this.$route.query.status || "Vytvorená";
+
+        let url = "http://localhost:8000/api/company/internships/pending";
+
+        if (this.status === "Potvrdená") {
+          url = "http://localhost:8000/api/company/internships/approved";
+          this.title = "Potvrdená";
+        } else if (this.status === "Zamietnutá") {
+          url = "http://localhost:8000/api/company/internships/rejected";
+          this.title = "Zamietnutá";
+        } else {
+          this.title = "Vytvorená";
+        }
+
+        const response = await axios.get(url);
         this.internships = response.data;
       } catch (e) {
         console.error("Error loading internships:", e);
@@ -56,6 +76,13 @@ export default {
     }
   },
 
+  watch: {
+    '$route.query.status'() {
+      this.loading = true;
+      this.loadInternships();
+    }
+  },
+
   mounted() {
     this.loadInternships();
   }
@@ -66,10 +93,12 @@ export default {
 .container {
   padding: 20px;
 }
+
 .practice-list {
   list-style: none;
   padding: 0;
 }
+
 .practice-item {
   padding: 12px;
   margin-bottom: 10px;
@@ -78,7 +107,75 @@ export default {
   cursor: pointer;
   transition: background 0.2s;
 }
+
 .practice-item:hover {
   background: #f5f5f5;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ffffff;
+  padding: 14px 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+  margin-bottom: 25px;
+}
+
+.nav-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0b6b37;
+}
+
+.nav-right {
+  display: flex;
+  gap: 12px;
+}
+
+.nav-btn {
+  background: #0b6b37;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-weight: 600;
+}
+
+.nav-btn:hover {
+  background: #095a2f;
+}
+
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0b6b37;
+  padding: 12px 20px;
+  color: white;
+  margin-bottom: 20px;
+  border-radius: 8px;
+}
+
+.header-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.header-back {
+  background: white;
+  color: #0b6b37;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: none;
+  font-weight: 600;
+}
+
+.header-back:hover {
+  background: #f0f6f2;
 }
 </style>
