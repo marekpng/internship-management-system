@@ -26,7 +26,7 @@
 
       <!-- Rok a semester -->
       <label for="year">Rok</label>
-      <input id="year" v-model="year" type="number" required />
+      <input id="year" v-model="year" type="number" readonly />
 
       <label for="semester">Semester</label>
       <select id="semester" v-model="semester" required>
@@ -42,6 +42,7 @@
         v-model="start_date"
         type="date"
         required
+        @change="setYearFromStartDate"
       />
 
       <label for="end_date">Koniec praxe</label>
@@ -81,7 +82,7 @@ const companySearch = ref('')
 const companies = ref([])
 const filteredCompanies = ref([])
 const selectedCompany = ref(null)
-const year = ref(new Date().getFullYear())
+const year = ref(new Date().getFullYear())  // Počiatočný rok je nastavený na aktuálny rok
 const semester = ref('')
 const successMessage = ref('')
 const errorMessage = ref('')
@@ -92,6 +93,14 @@ const pdfDownloadLink = ref('') // 🔽 pridane pre uloženie URL PDF
 
 const token = localStorage.getItem('access_token')
 const user = JSON.parse(localStorage.getItem('user'))
+
+// Funkcia na nastavenie roku na základe začiatku praxe
+const setYearFromStartDate = () => {
+  if (start_date.value) {
+    // Nastavíme rok podľa začiatku praxe
+    year.value = new Date(start_date.value).getFullYear()
+  }
+}
 
 // Načítanie všetkých firiem
 onMounted(async () => {
@@ -150,7 +159,7 @@ const submitForm = async () => {
         company_id: selected.id,
         student_id: user?.id || 1,
         status: 'Vytvorená',
-        year: year.value,
+        year: year.value,  // Posielame správny rok
         semester: semester.value,
         start_date: start_date.value,
         end_date: end_date.value
