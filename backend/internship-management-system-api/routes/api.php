@@ -22,7 +22,7 @@ Route::middleware(['auth:api', 'role:student'])->group(function () {
 });
 
 Route::middleware('auth:api')->get('/internships/my', [InternshipController::class, 'myInternships']);
-
+Route::middleware('auth:api')->post('/internships/{id}/status', [InternshipController::class, 'changeStatus']);
 
 // Verejný endpoint pre načítanie všetkých firiem (pre študentov)
 Route::get('/companies', [CompanyController::class, 'list']);

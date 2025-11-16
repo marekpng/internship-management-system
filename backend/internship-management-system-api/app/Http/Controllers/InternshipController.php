@@ -215,5 +215,37 @@ public function downloadAgreement($id)
     );
 }
 
+/**
+ * Zmeniť stav stáže.
+ */
+public function changeStatus($id, Request $request)
+{
+    $validStatuses = [
+        'Vytvorená', 
+        'Potvrdená', 
+        'Schválená', 
+        'Zamietnutá', 
+        'Obhájená', 
+        'Neobhájená'
+    ];
+
+    // Validácia požiadavky: stav musí byť jedným z povolených
+    $validated = $request->validate([
+        'status' => 'required|string|in:' . implode(',', $validStatuses),
+    ]);
+
+    // Nájdeme stáž podľa ID
+    $internship = Internship::findOrFail($id);
+
+    // Aktualizujeme stav
+    $internship->status = $validated['status'];
+    $internship->save();
+
+    return response()->json([
+        'message' => 'Stav stáže bol úspešne zmenený.',
+        'internship' => $internship,
+    ]);
+}
+
 
 }
