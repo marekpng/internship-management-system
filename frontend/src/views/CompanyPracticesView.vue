@@ -4,11 +4,23 @@
       <span class="header-title">Firemný portál • Praxe</span>
       <button class="header-back" @click="$router.push('/company/dashboard')">Domov</button>
     </div>
+
+    <nav class="navbar">
+      <div class="nav-left">
+        <span class="nav-title">Firemné praxe</span>
+      </div>
+      <div class="nav-right">
+        <button class="nav-btn" @click="$router.push('/company/practices?status=Vytvorená')">Čakajúce</button>
+        <button class="nav-btn" @click="$router.push('/company/practices?status=Potvrdená')">Potvrdené</button>
+        <button class="nav-btn" @click="$router.push('/company/practices?status=Zamietnutá')">Zamietnuté</button>
+      </div>
+    </nav>
+
     <h1>Prax v stave: {{ title }}</h1>
 
     <div v-if="loading">Načítavam…</div>
     <div v-else-if="internships.length === 0">
-      <p>Zatiaľ tu nie sú žiadne nové praxe.</p>
+      <p>Zatiaľ tu nie sú žiadne praxe v tomto stave.</p>
     </div>
 
     <ul v-else class="practice-list">
