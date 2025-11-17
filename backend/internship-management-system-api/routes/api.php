@@ -28,9 +28,12 @@ Route::get('/companies', [CompanyController::class, 'list']);
 Route::middleware(['auth:api', 'role:company'])->group(function () {
     Route::get('/company/dashboard', [CompanyController::class, 'dashboard']);
     Route::get('/company/internships/pending', [CompanyController::class, 'pendingInternships']);
+    Route::get('/company/internships/approved', [CompanyController::class, 'approvedInternships']);
+    Route::get('/company/internships/rejected', [CompanyController::class, 'rejectedInternships']);
     Route::get('/company/internships/{id}', [CompanyController::class, 'internshipDetail']);
     Route::post('/company/internships/{id}/approve', [CompanyController::class, 'approveInternship']);
     Route::post('/company/internships/{id}/reject', [CompanyController::class, 'rejectInternship']);
+    Route::put('/company/internships/{id}/status', [CompanyController::class, 'updateStatus']);
 });
 
 Route::post('/login', [LoginController::class, 'login']);

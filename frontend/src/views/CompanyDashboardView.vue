@@ -23,15 +23,15 @@
 
     <section class="stats-section">
       <div class="container stats-grid">
-        <div class="stat-card">
+        <div class="stat-card" @click="goToStatus('Vytvorená')" style="cursor: pointer;">
           <h3>Čakajúce</h3>
           <p class="stat-number">{{ pendingCount }}</p>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" @click="goToStatus('Potvrdená')" style="cursor: pointer;">
           <h3>Potvrdené</h3>
           <p class="stat-number">{{ approvedCount }}</p>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" @click="goToStatus('Zamietnutá')" style="cursor: pointer;">
           <h3>Zamietnuté</h3>
           <p class="stat-number">{{ rejectedCount }}</p>
         </div>
@@ -71,6 +71,15 @@ export default {
       .catch((err) => {
         console.error("Nepodarilo sa načítať dáta firmy:", err);
       });
+
+    axios
+      .get("http://127.0.0.1:8000/api/company/internships/pending")
+      .then((res) => {
+        this.pendingCount = Array.isArray(res.data) ? res.data.length : 0;
+      })
+      .catch((err) => {
+        console.error("Nepodarilo sa načítať čakajúce praxe:", err);
+      });
   },
 
   methods: {
@@ -78,6 +87,9 @@ export default {
       localStorage.removeItem('access_token');
       localStorage.removeItem('user');
       this.$router.push('/login');
+    },
+    goToStatus(status) {
+      this.$router.push(`/company/practices?status=${encodeURIComponent(status)}`);
     }
   },
 };
