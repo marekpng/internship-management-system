@@ -1,4 +1,6 @@
 <?php
+
+use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StudentController;
@@ -83,3 +85,12 @@ Route::middleware(['auth:api', 'role:external'])->group(function () {
     Route::post('/external/internships/approved/{id}', [InternshipController::class, 'markAsDefended']);
 
 });
+
+//ADMIN
+
+
+Route::middleware(['auth:api', 'role:admin'])->group(function () {
+    Route::get('/admin/users/', [AdminController::class, 'index']);
+    Route::put('/admin/users/{id}', [AdminController::class, 'updateRoles']);
+});
+

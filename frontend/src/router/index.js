@@ -57,6 +57,29 @@ const router = createRouter({
       component: () => import('@/views/CompanyPracticeDetailView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/admin/login',
+      name: 'adminLogin',
+      component: () => import('@/views/Admin/AdminLoginView.vue')
+    },
+    {
+      path: '/admin/dashboard',
+      name: 'adminDashboard',
+      component: () => import('@/views/Admin/AdminDashboardView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin/dashboard',
+      name: 'adminDashboard',
+      component: () => import('@/views/Admin/AdminDashboardView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/admin/role-settings',
+      name: 'adminRoleSettings',
+      component: () => import('@/views/Admin/AdminRoleSettingsView.vue'),
+      meta: { requiresAuth: true }
+    },
   ],
 })
 

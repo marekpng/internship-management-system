@@ -59,8 +59,19 @@ class UserSeeder extends Seeder
             ],
             [
                 'email' => 'external@system.sk',
-                'password' => bcrypt('ExtSystem123!'),   // silné heslo
+                'password' => bcrypt('ExtSystem123!'),
                 'role_names' => ['external'],
+
+                'first_name' => null,
+                'last_name' => null,
+                'student_email' => null,
+                'phone' => null,
+                'must_change_password' => 0,
+            ],
+            [
+                'email' => 'admin@admin.sk',
+                'password' => bcrypt('Admin123!'),
+                'role_names' => ['admin'],
 
                 'first_name' => null,
                 'last_name' => null,
