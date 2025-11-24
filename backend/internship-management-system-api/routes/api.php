@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\GarantController;
 use App\Http\Controllers\Auth\LoginController;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
@@ -37,6 +38,26 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
     Route::post('/company/internships/{id}/reject', [CompanyController::class, 'rejectInternship']);
     Route::put('/company/internships/{id}/status', [CompanyController::class, 'updateStatus']);
 });
+
+Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function () {
+
+    Route::get('/dashboard', [GarantController::class, 'dashboard']);
+
+    // Zoznam praxí podľa stavu
+    Route::get('/internships/status/{status}', [GarantController::class, 'getByStatus']);
+
+    // Detail
+    Route::get('/internships/{id}', [GarantController::class, 'internshipDetail']);
+
+    // Garantove rozhodnutia
+    Route::post('/internships/{id}/approve', [GarantController::class, 'approveInternship']);
+    Route::post('/internships/{id}/disapprove', [GarantController::class, 'disapproveInternship']);
+
+    // Obhajoby
+    Route::post('/internships/{id}/defended', [GarantController::class, 'markDefended']);
+    Route::post('/internships/{id}/not-defended', [GarantController::class, 'markNotDefended']);
+});
+
 
 Route::post('/login', [LoginController::class, 'login']);
 Route::middleware('auth:api')->post('/logout', [LoginController::class, 'logout']);

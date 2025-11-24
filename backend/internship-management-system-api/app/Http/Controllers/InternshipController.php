@@ -226,6 +226,7 @@ class InternshipController extends Controller
             'Potvrdená',
             'Schválená',
             'Zamietnutá',
+            'Neschválená',
             'Obhájená',
             'Neobhájená',
         ];
