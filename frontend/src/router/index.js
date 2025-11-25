@@ -8,7 +8,9 @@ import RegisterCompanyView from '../views/RegisterCompanyView.vue'
 import LandingPage from '../views/LandingPage.vue'
 import ChangePasswordView from '../views/ChangePasswordView.vue'
 import ProfileView from '@/views/ProfileView.vue'
-
+import GarantDashboardView from '@/views/GarantDashboardView.vue'
+import GarantPracticesView from '@/views/GarantPracticesView.vue'
+import GarantPracticeDetailView from '@/views/GarantPracticeDetailView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -58,6 +60,24 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/garant/dashboard',
+      name: 'garantDashboard',
+      component: GarantDashboardView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/garant/practices',
+      name: 'garantPractices',
+      component: GarantPracticesView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/garant/practices/:id',
+      name: 'garantPracticeDetail',
+      component: GarantPracticeDetailView,
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/admin/login',
       name: 'adminLogin',
       component: () => import('@/views/Admin/AdminLoginView.vue')
@@ -95,15 +115,21 @@ router.beforeEach((to, from, next) => {
 
   // ochrana routov pre študenta
   if (role === 'student') {
-    if (to.path.startsWith('/company')) {
+    if (to.path.startsWith('/company') || to.path.startsWith('/garant')) {
       return next('/student/dashboard')
     }
   }
 
   // ochrana routov pre firmu
   if (role === 'company') {
-    if (to.path.startsWith('/student')) {
+    if (to.path.startsWith('/student' || to.path.startsWith('/garant'))) {
       return next('/company/dashboard')
+    }
+  }
+
+    if (role === 'garant') {
+    if (to.path.startsWith('/student') || to.path.startsWith('/company')) {
+      return next('/garant/dashboard')
     }
   }
 

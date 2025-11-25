@@ -1,18 +1,17 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Internship;
+use Illuminate\Http\Request;
 
 class GarantController extends Controller
 {
     public function dashboard(Request $request)
     {
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Vitaj, garant!',
-            'user' => $request->user(),
+            'user'    => $request->user(),
         ]);
     }
 
@@ -31,7 +30,7 @@ class GarantController extends Controller
             'Neobhájená',
         ];
 
-        if (!in_array($status, $allowed)) {
+        if (! in_array($status, $allowed)) {
             return response()->json(['error' => 'Neplatný stav'], 400);
         }
 
@@ -39,6 +38,30 @@ class GarantController extends Controller
             ->with(['student', 'company'])
             ->orderBy('created_at', 'DESC')
             ->get();
+    }
+
+    public function getCountByStatus($status)
+    {
+        $allowed = [
+            'Vytvorená',
+            'Potvrdená',
+            'Schválená',
+            'Neschválená',
+            'Zamietnutá',
+            'Obhájená',
+            'Neobhájená',
+        ];
+
+        if (! in_array($status, $allowed)) {
+            return response()->json(['error' => 'Neplatný stav'], 400);
+        }
+
+        $count = Internship::where('status', $status)->count();
+
+        return response()->json([
+            'status' => $status,
+            'count'  => $count,
+        ]);
     }
 
     /**
