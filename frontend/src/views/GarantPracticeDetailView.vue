@@ -11,8 +11,8 @@
 
     <div class="card">
       <h2>Študent</h2>
-      <p><strong>Meno:</strong> {{ internship.student.first_name }} {{ internship.student.last_name }}</p>
-      <p><strong>Email:</strong> {{ internship.student.email }}</p>
+      <p><strong>Meno:</strong> {{ internship.student?.first_name || "Neznámy študent" }} {{ internship.student?.last_name || "" }}</p>
+      <p><strong>Email:</strong> {{ internship.student?.email || "" }}</p>
 
       <h2>Prax</h2>
       <p><strong>Začiatok:</strong> {{ formatDate(internship.start_date) }}</p>
@@ -28,8 +28,8 @@
         <div class="form-group">
           <label>Nový stav:</label>
           <select v-model="editForm.status">
-            <option value="Obhájená">Obhájená</option>
-            <option value="Neobhájená">Neobhájená</option>
+            <option value="Obhájená">Obhájené</option>
+            <option value="Neobhájená">Neobhájené</option>
           </select>
         </div>
       </template>
@@ -83,7 +83,10 @@ export default {
     async loadDetail() {
       try {
         const id = this.$route.params.id;
-        const response = await axios.get(`http://localhost:8000/api/garant/internships/${id}`);
+        const response = await axios.get(
+          `http://localhost:8000/api/garant/internships/${id}`,
+          { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
+        );
         this.internship = response.data;
         this.editForm.status = response.data.status;
       } catch (error) {
@@ -100,9 +103,13 @@ export default {
     async approveByGarant() {
       try {
         const id = this.$route.params.id;
-        await axios.post(`http://localhost:8000/api/garant/internships/${id}/approve`);
+        await axios.post(
+          `http://localhost:8000/api/garant/internships/${id}/approve`,
+          {},
+          { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
+        );
         alert("Prax bola schválená garantom.");
-        this.$router.push("/garant/practices");
+        this.loadDetail();
       } catch (error) {
         console.error(error);
       }
@@ -111,9 +118,13 @@ export default {
     async rejectByGarant() {
       try {
         const id = this.$route.params.id;
-        await axios.post(`http://localhost:8000/api/garant/internships/${id}/reject`);
+        await axios.post(
+          `http://localhost:8000/api/garant/internships/${id}/disapprove`,
+          {},
+          { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
+        );
         alert("Prax bola neschválená garantom.");
-        this.$router.push("/garant/practices");
+        this.loadDetail();
       } catch (error) {
         console.error(error);
       }
@@ -122,9 +133,19 @@ export default {
     async saveEdit() {
       try {
         const id = this.$route.params.id;
-        await axios.put(`http://localhost:8000/api/garant/internships/${id}/status`, {
-          status: this.editForm.status
-        });
+        if (this.editForm.status === 'Obhájená') {
+          await axios.post(
+            `http://localhost:8000/api/garant/internships/${id}/defended`,
+            {},
+            { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
+          );
+        } else if (this.editForm.status === 'Neobhájená') {
+          await axios.post(
+            `http://localhost:8000/api/garant/internships/${id}/not-defended`,
+            {},
+            { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
+          );
+        }
         alert("Stav bol aktualizovaný.");
         this.editMode = false;
         this.loadDetail();
@@ -160,6 +181,7 @@ export default {
 .actions {
   display: flex;
   gap: 20px;
+  margin-top: 15px;
 }
 
 .approve {

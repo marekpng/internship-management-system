@@ -31,6 +31,14 @@
           <h3>Čakajúce</h3>
           <p class="stat-number">{{ pendingCount }}</p>
         </div>
+        <div class="stat-card" @click="goToStatus('potvrdena')" style="cursor: pointer;">
+          <h3>Potvrdené</h3>
+          <p class="stat-number">{{ approvedCount }}</p>
+        </div>
+        <div class="stat-card" @click="goToStatus('zamietnuté')" style="cursor: pointer;">
+          <h3>Zamietnute</h3>
+          <p class="stat-number">{{ rejectedCount }}</p>
+        </div>
         <div class="stat-card" @click="goToStatus('schvalena')" style="cursor: pointer;">
           <h3>Schválené</h3>
           <p class="stat-number">{{ approvedCount }}</p>
@@ -62,51 +70,61 @@ export default {
   data() {
     return {
       garant: null,
-      allCount: -1,
-      pendingCount: -1,
-      approvedCount: -1,
-      rejectedCount: -1,
-      defendedCount: -1,
-      notDefendedCount: -1,
+      allCount: 0,
+      pendingCount: 0,
+      approvedCount: 0,
+      rejectedCount: 0,
+      defendedCount: 0,
+      rejectedCountGarant: 0,
+      approvedCountGarant: 0,
+      notDefendedCount: 0,
     };
   },
 
   mounted() {
     axios.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('access_token')}`;
 
-    axios
-      .get("http://127.0.0.1:8000/api/garant/dashboard")
-      .then((res) => {
-        this.garant = res.data.garant; 
-        if (res.data.stats) {
-          this.allCount  = res.data.stats.rejected  || -1;
-          this.pendingCount   = res.data.stats.pending   || -1;
-          this.approvedCount  = res.data.stats.approved  || -1;
-          this.rejectedCount  = res.data.stats.rejected  || -1;
-          this.defendedCountCount  = res.data.stats.approved  || -1;
-          this.notDefendedCountCount  = res.data.stats.rejected  || -1;
-        }
-      })
-      .catch((err) => {
-        console.error("Nepodarilo sa načítať dáta garanta:", err);
+    axios.get("http://127.0.0.1:8000/api/garant/internships/count/Vytvorená")
+      .then((res) => { 
+        this.pendingCount = res.data.count;
+        this.updateAllCount();
       });
 
-    axios.get("http://127.0.0.1:8000/api/garant/internships/count/Vytvorená")
-      .then((res) => { this.pendingCount = res.data.length || 0; });
+    axios.get("http://127.0.0.1:8000/api/garant/internships/count/Schválená")
+      .then((res) => { 
+        this.approvedCountGarant = res.data.count;
+        this.updateAllCount();
+      });
+
+    axios.get("http://127.0.0.1:8000/api/garant/internships/count/Neschválená")
+      .then((res) => { 
+        this.rejectedCountGarant = res.data.count;
+        this.updateAllCount();
+      });
 
     axios.get("http://127.0.0.1:8000/api/garant/internships/count/Potvrdená")
-      .then((res) => { this.approvedCount = res.data.length || 0; });
+      .then((res) => { 
+        this.approvedCount = res.data.count;
+        this.updateAllCount();
+      });
 
     axios.get("http://127.0.0.1:8000/api/garant/internships/count/Zamietnutá")
-      .then((res) => { this.rejectedCount = res.data.length || 0; });
+      .then((res) => { 
+        this.rejectedCount = res.data.count;
+        this.updateAllCount();
+      });
 
     axios.get("http://127.0.0.1:8000/api/garant/internships/count/Obhájená")
-      .then((res) => { this.defended = res.data.length || 0; });
+      .then((res) => { 
+        this.defendedCount = res.data.count;
+        this.updateAllCount();
+      });
 
     axios.get("http://127.0.0.1:8000/api/garant/internships/count/Neobhájená")
-      .then((res) => { this.notDefendedCount = res.data.length || 0; });
-
-      allCount= pendingCount+approvedCount+rejectedCount+defendedCount+notDefendedCount;
+      .then((res) => { 
+        this.notDefendedCount = res.data.count;
+        this.updateAllCount();
+      });
   },
 
   methods: {
@@ -117,10 +135,19 @@ export default {
     },
     goToStatus(status) {
       this.$router.push(`/garant/practices?status=${encodeURIComponent(status)}`);
+    },
+    updateAllCount() {
+      this.allCount =
+        this.pendingCount +
+        this.approvedCount +
+        this.rejectedCount +
+        this.defendedCount +
+        this.notDefendedCount;
     }
   },
 };
 </script>
+
 
 <style scoped>
 .garant-dashboard {

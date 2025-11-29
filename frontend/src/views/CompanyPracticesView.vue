@@ -71,6 +71,7 @@ export default {
         }
 
         const response = await axios.get(url);
+        console.log("API response:", response.data);
         this.internships = response.data;
       } catch (e) {
         console.error("Error loading internships:", e);

@@ -33,7 +33,7 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
     Route::post('/company/internships/{id}/reject', [CompanyController::class, 'rejectInternship']);
     Route::put('/company/internships/{id}/status', [CompanyController::class, 'updateStatus']);
 });
-// Route::get('/internships/count/{status}', [GarantController::class, 'getCountByStatus']);
+Route::get('/internships/count/{status}', [GarantController::class, 'getCountByStatus']);
 
 Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function () {
 

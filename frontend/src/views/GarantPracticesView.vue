@@ -12,6 +12,8 @@
       <div class="nav-right">
         <button class="nav-btn" @click="$router.push('/garant/practices?status=vsetky')">Všetky</button>
         <button class="nav-btn" @click="$router.push('/garant/practices?status=vytvorena')">Vytvorené</button>
+        <button class="nav-btn" @click="$router.push('/garant/practices?status=potvrdena')">Potvrdené</button>
+        <button class="nav-btn" @click="$router.push('/garant/practices?status=zamietnuta')">Zamietnuté</button>
         <button class="nav-btn" @click="$router.push('/garant/practices?status=schvalena')">Schválené</button>
         <button class="nav-btn" @click="$router.push('/garant/practices?status=neschvalena')">Neschválené</button>
         <button class="nav-btn" @click="$router.push('/garant/practices?status=obhajena')">Obhájené</button>
@@ -33,8 +35,8 @@
         @click="goToDetail(internship.id)"
         class="practice-item"
       >
-        <strong>{{ internship.student.first_name }} {{ internship.student.last_name }}</strong>
-        <div>{{ internship.student.email }}</div>
+        <strong>{{ internship.student?.first_name || "Neznámy študent" }} {{ internship.student?.last_name || "" }}</strong>
+        <div>{{ internship.student?.email || "" }}</div>
         <div>{{ internship.status }} — vytvorená: {{ formatDate(internship.created_at) }}</div>
       </li>
     </ul>
@@ -52,26 +54,46 @@ export default {
       internships: [],
       loading: true,
       status: null,
-      title: "Vytvorené",
+      title: "",
     };
+  },
+
+  computed: {
+    statusMap() {
+      return {
+        vytvorena:   { title: "Vytvorené",    api: "Vytvorená" },
+        potvrdena:   { title: "Potvrdené",    api: "Potvrdená" },
+        zamietnuta:  { title: "Zamietnuté",   api: "Zamietnutá" },
+        schvalena:   { title: "Schválené",    api: "Schválená" },
+        neschvalena: { title: "Neschválené",  api: "Neschválená" },
+        obhajena:    { title: "Obhájené",     api: "Obhájená" },
+        neobhajena:  { title: "Neobhájené",   api: "Neobhájená" },
+        vsetky:      { title: "Všetky",       api: "" },
+      };
+    }
   },
 
   methods: {
     async loadInternships() {
       try {
         this.status = this.$route.query.status || "vytvorena";
+        const map = this.statusMap[this.status] || this.statusMap["vytvorena"];
+        this.title = map.title;
 
-        let url = `http://localhost:8000/api/internships?status=${this.status}`;
+        let url = "http://localhost:8000/api/garant/internships";
+if (this.status !== "vsetky") {
+  url += `/status/${encodeURIComponent(map.api)}`;
+}
 
-        if (this.status === "schvalena") this.title = "Schválené";
-        else if (this.status === "neschvalena") this.title = "Neschválené";
-        else if (this.status === "obhajena") this.title = "Obhajené";
-        else if (this.status === "neobhajena") this.title = "Neobhájené";
-        else if (this.status === "vsetky") this.title = "Všetky";
-        else this.title = "Vytvorené";
+        const response = await axios.get(url, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`
+          }
+        });
 
-        const response = await axios.get(url);
+        console.log("API response:", response.data);
         this.internships = response.data;
+
       } catch (e) {
         console.error("Error loading internships:", e);
       } finally {
@@ -100,6 +122,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 .container {
