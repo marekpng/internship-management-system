@@ -81,7 +81,7 @@ localStorage.setItem('access_token', res.data.access_token)
 localStorage.setItem('user', JSON.stringify(res.data.user))
 
 // Presmerovanie podľa roly
-const role = res.data.user.roles?.[0]
+const role = res.data.user.roles?.[0] || null
 
 setTimeout(() => {
   if (role === 'student') {

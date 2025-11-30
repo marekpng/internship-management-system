@@ -86,7 +86,7 @@ class RegisterController extends Controller
             'company_account_active_state' => false,
         ]);
 
-        $companyRole = Role::where('name', 'Company')->first();
+        $companyRole = Role::where('name', 'company')->first();
         if ($companyRole) {
             $company->roles()->attach($companyRole->id);
         }

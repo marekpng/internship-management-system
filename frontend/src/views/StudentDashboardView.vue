@@ -82,8 +82,15 @@ const goToPracticeForm = () => {
   router.push({ name: 'studentPracticeForm' })
 }
 
+// 🔥 OPRAVENÁ FUNKCIA – už nespôsobuje chybu "invalid left-hand side"
 const goToMyPractice = () => {
-  router.push('/student/my-practice')
+  // ak používaš ROUTE NAME → dáš meno route:
+  if (router.hasRoute('studentMyPractice')) {
+    router.push({ name: 'studentMyPractice' })
+  } else {
+    // fallback podľa tvojej existujúcej štruktúry v routeri
+    router.push('/student/my-practice')
+  }
 }
 </script>
 

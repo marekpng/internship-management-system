@@ -86,7 +86,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('access_token')
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const role = user.role
+  const role = user?.roles?.[0]?.name
 
   // ak stránka vyžaduje login a user nemá token → redirect
   if (to.meta.requiresAuth && !token) {

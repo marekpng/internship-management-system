@@ -12,6 +12,7 @@ use Laravel\Passport\Http\Controllers\TransientTokenController;
 use App\Http\Controllers\InternshipController;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\DocumentController;
 
 
 
@@ -22,6 +23,7 @@ Route::get('/company/activate/{id}', [RegisterController::class, 'activateCompan
 
 Route::middleware(['auth:api', 'role:student'])->group(function () {
     Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
+    Route::post('/internships/{id}/documents/upload', [DocumentController::class, 'uploadStudentDocument']);
 });
 
 // Verejný endpoint pre načítanie všetkých firiem (pre študentov)
@@ -36,6 +38,13 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
     Route::post('/company/internships/{id}/approve', [CompanyController::class, 'approveInternship']);
     Route::post('/company/internships/{id}/reject', [CompanyController::class, 'rejectInternship']);
     Route::put('/company/internships/{id}/status', [CompanyController::class, 'updateStatus']);
+    Route::post('/company/internships/{id}/documents/upload', [DocumentController::class, 'uploadCompanyDocument']);
+
+    // Firma schváli dokument
+    Route::post('/company/documents/{id}/approve', [DocumentController::class, 'approveDocument']);
+
+    // Firma zamietne dokument
+    Route::post('/company/documents/{id}/reject', [DocumentController::class, 'rejectDocument']);
 });
 
 Route::post('/login', [LoginController::class, 'login']);
@@ -61,6 +70,21 @@ Route::get('internships/{id}/agreement/download', [InternshipController::class, 
 
 
 
+/* ============================================================================
+ *    3 ROUTY PRE DOKUMENTY (list / download / delete)
+ * ==========================================================================*/
+
+Route::middleware('auth:api')
+    ->get('/internships/{id}/documents', [DocumentController::class, 'listByInternship']);
+
+Route::middleware('auth:api')
+    ->get('/documents/{id}/download', [DocumentController::class, 'download']);
+
+Route::middleware('auth:api')
+    ->delete('/documents/{id}', [DocumentController::class, 'destroy']);
+
+
+
 Route::get('/test-pdf', function () {
     $dummyData = [
         'internship' => (object)['start_date' => '2025-03-01', 'end_date' => '2025-06-30'],
@@ -80,17 +104,12 @@ Route::get('/test-pdf', function () {
 
 // EXTERNY SYSTEM
 Route::middleware(['auth:api', 'role:external'])->group(function () {
-    //Route::middleware('auth:api')->get('/external/internships/approved/', [InternshipController::class, 'getApprovedInternships']);
     Route::get('/external/internships/approved/', [InternshipController::class, 'getApprovedInternships']);
     Route::post('/external/internships/approved/{id}', [InternshipController::class, 'markAsDefended']);
-
 });
 
 //ADMIN
-
-
 Route::middleware(['auth:api', 'role:admin'])->group(function () {
     Route::get('/admin/users/', [AdminController::class, 'index']);
     Route::put('/admin/users/{id}', [AdminController::class, 'updateRoles']);
 });
-

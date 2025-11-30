@@ -47,7 +47,7 @@ class LoginController extends Controller
                 'user' => [
                     'id' => $user->id,
                     'email' => $user->email,
-                    'roles' => $user->roles->pluck('name'),
+                    'roles' => $user->roles->pluck('name')->toArray(),
                 ],
             ], 200);
         }
@@ -71,7 +71,7 @@ class LoginController extends Controller
                 'contact_person_email' => $user->contact_person_email,
                 'contact_person_phone' => $user->contact_person_phone,
                 'company_account_active_state' => $user->company_account_active_state,
-                'roles' => $user->roles->pluck('name'),
+                'roles' => $user->roles->pluck('name')->toArray(),
             ],
         ]);
     }

@@ -19,6 +19,7 @@
     <h1>Prax v stave: {{ title }}</h1>
 
     <div v-if="loading">Načítavam…</div>
+
     <div v-else-if="internships.length === 0">
       <p>Zatiaľ tu nie sú žiadne praxe v tomto stave.</p>
     </div>
@@ -31,8 +32,19 @@
         class="practice-item"
       >
         <strong>{{ internship.student.first_name }} {{ internship.student.last_name }}</strong>
+
         <div>{{ internship.student.email }}</div>
         <div>{{ internship.status }}: {{ formatDate(internship.created_at) }}</div>
+
+        <!-- 🔥 INFO O DOKUMENTOCH -->
+        <div class="doc-row">
+          <span
+            class="doc-badge"
+            :class="internship.hasDocuments ? 'badge-green' : 'badge-red'"
+          >
+            Dokumenty: {{ internship.hasDocuments ? "Áno" : "Nie" }}
+          </span>
+        </div>
       </li>
     </ul>
   </div>
@@ -72,6 +84,16 @@ export default {
 
         const response = await axios.get(url);
         this.internships = response.data;
+
+        // 🔥 doplnenie dokumentov pre každú prax
+        for (let internship of this.internships) {
+          try {
+            const res = await axios.get(`http://localhost:8000/api/internships/${internship.id}/documents`);
+            internship.hasDocuments = res.data.length > 0;
+          } catch {
+            internship.hasDocuments = false;
+          }
+        }
       } catch (e) {
         console.error("Error loading internships:", e);
       } finally {
@@ -118,11 +140,35 @@ export default {
   border-radius: 6px;
   cursor: pointer;
   transition: background 0.2s;
+  background: white;
 }
 
 .practice-item:hover {
   background: #f5f5f5;
 }
+
+.doc-row {
+  margin-top: 8px;
+}
+
+.doc-badge {
+  padding: 5px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.badge-green {
+  background: #e1f2e5;
+  color: #0b6b37;
+}
+
+.badge-red {
+  background: #ffe4e4;
+  color: #a11b1b;
+}
+
+/* ------ pôvodný dizajn zostáva nezmenený ------ */
 
 .navbar {
   display: flex;
