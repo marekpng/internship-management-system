@@ -154,4 +154,44 @@ public function rejectedInternships(Request $request)
 
         return response()->json(['message' => 'Prax bola zamietnutá.']);
     }
+
+    public function profile(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'id' => $user->id,
+            'email' => $user->email,
+            'company_name' => $user->company_name,
+            'phone' => $user->phone,
+            'street' => $user->street,
+            'house_number' => $user->house_number,
+            'city' => $user->city,
+            'postal_code' => $user->postal_code,
+            'contact_person_name' => $user->contact_person_name,
+            'contact_person_email' => $user->contact_person_email,
+            'contact_person_phone' => $user->contact_person_phone,
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'email' => ['required', 'email'],
+            'phone' => ['nullable', 'string', 'max:255'],
+            'contact_person_name' => ['nullable', 'string', 'max:255'],
+            'contact_person_email' => ['nullable', 'email'],
+            'contact_person_phone' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $user->update($data);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profil bol aktualizovaný.',
+            'company' => $user->fresh(),
+        ]);
+    }
 }

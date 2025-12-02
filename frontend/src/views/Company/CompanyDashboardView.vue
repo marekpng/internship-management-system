@@ -1,4 +1,8 @@
+<script setup>
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
+</script>
 <template>
+  <CompanyNavBar />
   <div class="company-dashboard">
 
     <section class="hero-section">
@@ -13,9 +17,6 @@
             <router-link to="/company/practices" class="btn-primary">
               Zobraziť čakajúce praxe
             </router-link>
-                <button class="btn-secondary" @click="logout">
-                  Odhlásiť sa
-                </button>
           </div>
         </div>
       </div>

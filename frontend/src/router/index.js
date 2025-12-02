@@ -42,19 +42,25 @@ const router = createRouter({
     {
       path: '/company/dashboard',
       name: 'companyDashboard',
-      component: () => import('@/views/CompanyDashboardView.vue'),
+      component: () => import('../views/Company/CompanyDashboardView.vue'),
       meta: { requiresAuth: true }
     },
     {
       path: '/company/practices',
       name: 'companyPractices',
-      component: () => import('@/views/CompanyPracticesView.vue'),
+      component: () => import('../views/Company/CompanyPracticesView.vue'),
       meta: { requiresAuth: true }
-    },
+    }, 
     {
       path: '/company/practices/:id',
       name: 'companyPracticeDetail',
-      component: () => import('@/views/CompanyPracticeDetailView.vue'),
+      component: () => import('../views/Company/CompanyPracticeDetailView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/company/settings',
+      name: 'companySettings',
+      component: () => import('../views/Company/CompanySettings.vue'),
       meta: { requiresAuth: true }
     },
     {
