@@ -75,31 +75,37 @@ export default {
 
   methods: {
     async loadInternships() {
-      try {
-        this.status = this.$route.query.status || "vytvorena";
-        const map = this.statusMap[this.status] || this.statusMap["vytvorena"];
-        this.title = map.title;
+    try {
+      this.status = this.$route.query.status || "vytvorena";
+      const map = this.statusMap[this.status] || this.statusMap["vytvorena"];
+      this.title = map.title;
 
-        let url = "http://localhost:8000/api/garant/internships";
-if (this.status !== "vsetky") {
-  url += `/status/${encodeURIComponent(map.api)}`;
-}
+      let url = "";
 
-        const response = await axios.get(url, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`
-          }
-        });
-
-        console.log("API response:", response.data);
-        this.internships = response.data;
-
-      } catch (e) {
-        console.error("Error loading internships:", e);
-      } finally {
-        this.loading = false;
+      // 🔥 Rozlíšenie medzi "všetky" a ostatnými stavmi
+      if (this.status === "vsetky") {
+        // Načítanie všetkých praxí cez všeobecné API
+        url = "http://localhost:8000/api/internships/myNew";
+      } else {
+        // Filtrovanie podľa stavu cez garant API
+        url = "http://localhost:8000/api/garant/internships/status/" + encodeURIComponent(map.api);
       }
-    },
+
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`
+        }
+      });
+
+      console.log("API response:", response.data);
+      this.internships = response.data;
+
+    } catch (e) {
+      console.error("Error loading internships:", e);
+    } finally {
+      this.loading = false;
+    }
+  },
 
     goToDetail(id) {
       this.$router.push(`/garant/practices/${id}`);

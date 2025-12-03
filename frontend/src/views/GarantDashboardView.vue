@@ -35,17 +35,17 @@
           <h3>Potvrdené</h3>
           <p class="stat-number">{{ approvedCount }}</p>
         </div>
-        <div class="stat-card" @click="goToStatus('zamietnuté')" style="cursor: pointer;">
+        <div class="stat-card" @click="goToStatus('zamietnute')" style="cursor: pointer;">
           <h3>Zamietnute</h3>
           <p class="stat-number">{{ rejectedCount }}</p>
         </div>
         <div class="stat-card" @click="goToStatus('schvalena')" style="cursor: pointer;">
           <h3>Schválené</h3>
-          <p class="stat-number">{{ approvedCount }}</p>
+          <p class="stat-number">{{ approvedCountGarant }}</p>
         </div>
         <div class="stat-card" @click="goToStatus('neschvalena')" style="cursor: pointer;">
           <h3>Neschválené</h3>
-          <p class="stat-number">{{ rejectedCount }}</p>
+          <p class="stat-number">{{ rejectedCountGarant }}</p>
         </div>
         <div class="stat-card" @click="goToStatus('obhajena')" style="cursor: pointer;">
           <h3>Obhájené</h3>
@@ -141,6 +141,8 @@ export default {
         this.pendingCount +
         this.approvedCount +
         this.rejectedCount +
+        this.approvedCountGarant +
+        this.rejectedCountGarant +
         this.defendedCount +
         this.notDefendedCount;
     }

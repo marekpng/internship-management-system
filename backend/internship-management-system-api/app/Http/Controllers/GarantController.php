@@ -18,22 +18,21 @@ class GarantController extends Controller
     /**
      * Filtrovanie podľa stavu
      */
-public function getByStatus(Request $request, $status = null)
-{
-    $allowed = [
-        'Vytvorená', 'Potvrdená', 'Schválená', 'Neschválená', 'Zamietnutá', 'Obhájená', 'Neobhájená',
-    ];
+    public function getByStatus(Request $request, $status = null)
+    {
+        $allowed = [
+            'Vytvorená', 'Potvrdená', 'Schválená', 'Neschválená', 'Zamietnutá', 'Obhájená', 'Neobhájená',
+        ];
 
-    $garantId = $request->user()->id;
+        $garantId = $request->user()->id;
 
-    $query = Internship::where('garant_id', $garantId)
-                   ->with(['student', 'company']);
-if ($status && in_array($status, $allowed)) {
-    $query->where('status', $status);
-}
-return response()->json($query->orderBy('created_at', 'DESC')->get());
-}
-
+        $query = Internship::where('garant_id', $garantId)
+            ->with(['student', 'company']);
+        if ($status && in_array($status, $allowed)) {
+            $query->where('status', $status);
+        }
+        return response()->json($query->orderBy('created_at', 'DESC')->get());
+    }
 
     public function getCountByStatus($status)
     {

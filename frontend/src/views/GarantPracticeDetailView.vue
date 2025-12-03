@@ -14,22 +14,48 @@
       <p><strong>Meno:</strong> {{ internship.student?.first_name || "Neznámy študent" }} {{ internship.student?.last_name || "" }}</p>
       <p><strong>Email:</strong> {{ internship.student?.email || "" }}</p>
 
+      <h2>Firma</h2>
+      <p><strong>Názov:</strong> {{ internship.company?.company_name || internship.company?.first_name || "Neznáma firma" }}</p>
+      <p><strong>Email:</strong> {{ internship.company?.email || "" }}</p>
+
       <h2>Prax</h2>
-      <p><strong>Začiatok:</strong> {{ formatDate(internship.start_date) }}</p>
-      <p><strong>Koniec:</strong> {{ formatDate(internship.end_date) }}</p>
-      <p><strong>Semester:</strong> {{ internship.semester }}</p>
-      <p><strong>Rok:</strong> {{ internship.year }}</p>
-      <p><strong>Stav:</strong> {{ internship.status }}</p>
+      <div v-if="!editMode">
+        <p><strong>Začiatok:</strong> {{ formatDate(internship.start_date) }}</p>
+        <p><strong>Koniec:</strong> {{ formatDate(internship.end_date) }}</p>
+        <p><strong>Semester:</strong> {{ internship.semester }}</p>
+        <p><strong>Rok:</strong> {{ internship.year }}</p>
+        <p><strong>Stav:</strong> {{ internship.status }}</p>
+      </div>
 
-      <template v-if="editMode">
+      <template v-else>
         <hr style="margin: 15px 0;">
-        <h3>Zmeniť stav</h3>
-
+        <h3>Upraviť prax</h3>
         <div class="form-group">
-          <label>Nový stav:</label>
+          <label>Začiatok:</label>
+          <input type="datetime-local" v-model="editForm.start_date">
+        </div>
+        <div class="form-group">
+          <label>Koniec:</label>
+          <input type="datetime-local" v-model="editForm.end_date">
+        </div>
+        <div class="form-group">
+          <label>Semester:</label>
+          <input type="text" v-model="editForm.semester">
+        </div>
+        <div class="form-group">
+          <label>Rok:</label>
+          <input type="number" v-model="editForm.year">
+        </div>
+        <div class="form-group">
+          <label>Stav:</label>
           <select v-model="editForm.status">
-            <option value="Obhájená">Obhájené</option>
-            <option value="Neobhájená">Neobhájené</option>
+            <option value="Vytvorená">Vytvorená</option>
+            <option value="Potvrdená">Potvrdená</option>
+            <option value="Schválená">Schválená</option>
+            <option value="Neschválená">Neschválená</option>
+            <option value="Zamietnutá">Zamietnutá</option>
+            <option value="Obhájená">Obhájená</option>
+            <option value="Neobhájená">Neobhájená</option>
           </select>
         </div>
       </template>
@@ -38,22 +64,27 @@
     <div class="actions">
 
       <!-- Garant môže SCHVÁLIŤ iba ak je prax POTVRDENÁ -->
-      <template v-if="internship.status === 'Potvrdená'">
+      <template v-if="internship.status === 'Potvrdená' && !editMode">
         <button class="approve" @click="approveByGarant">Schváliť prax</button>
         <button class="reject" @click="rejectByGarant">Neschváliť prax</button>
       </template>
 
       <!-- Garant môže editovať len SCHVÁLENÚ prax -->
       <template v-if="internship.status === 'Schválená' && !editMode">
-        <button class="approve" style="background:#0b6b37" @click="editMode = true">Nastaviť obhajobu</button>
+        <button class="approve" style="background:#0b6b37" @click="editMode = true">Upraviť prax / nastaviť obhajobu</button>
       </template>
 
-      <!-- Ukladanie obhajoby -->
+      <!-- Ukladanie editácie -->
       <template v-if="editMode">
         <button class="approve" style="background:#0b6b37" @click="saveEdit">Uložiť</button>
         <button class="reject" @click="cancelEdit">Zrušiť</button>
       </template>
 
+      <!-- Ukladanie obhajoby priamo -->
+      <template v-if="internship.status === 'Schválená' && !editMode">
+        <button class="approve" @click="markDefended">Obhájiť</button>
+        <button class="reject" @click="markNotDefended">Neobhájiť</button>
+      </template>
     </div>
   </div>
 
@@ -74,7 +105,11 @@ export default {
       loading: true,
       editMode: false,
       editForm: {
-        status: ""
+        start_date: "",
+        end_date: "",
+        semester: "",
+        year: null,
+        status: "",
       },
     };
   },
@@ -83,12 +118,18 @@ export default {
     async loadDetail() {
       try {
         const id = this.$route.params.id;
-        const response = await axios.get(
-          `http://localhost:8000/api/garant/internships/${id}`,
-          { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
-        );
+        const response = await axios.get(`http://localhost:8000/api/garant/internships/${id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
         this.internship = response.data;
-        this.editForm.status = response.data.status;
+
+        // Predvyplnenie formulára
+        this.editForm.start_date = this.internship.start_date ? this.internship.start_date.replace(" ", "T") : "";
+        this.editForm.end_date = this.internship.end_date ? this.internship.end_date.replace(" ", "T") : "";
+        this.editForm.semester = this.internship.semester || "";
+        this.editForm.year = this.internship.year || new Date().getFullYear();
+        this.editForm.status = this.internship.status || "Vytvorená";
+
       } catch (error) {
         console.error("Error loading detail:", error);
       } finally {
@@ -97,17 +138,15 @@ export default {
     },
 
     formatDate(date) {
-      return new Date(date).toLocaleDateString("sk-SK");
+      return date ? new Date(date).toLocaleDateString("sk-SK") : "";
     },
 
     async approveByGarant() {
       try {
         const id = this.$route.params.id;
-        await axios.post(
-          `http://localhost:8000/api/garant/internships/${id}/approve`,
-          {},
-          { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
-        );
+        await axios.post(`http://localhost:8000/api/garant/internships/${id}/approve`, {}, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
         alert("Prax bola schválená garantom.");
         this.loadDetail();
       } catch (error) {
@@ -118,12 +157,36 @@ export default {
     async rejectByGarant() {
       try {
         const id = this.$route.params.id;
-        await axios.post(
-          `http://localhost:8000/api/garant/internships/${id}/disapprove`,
-          {},
-          { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
-        );
+        await axios.post(`http://localhost:8000/api/garant/internships/${id}/disapprove`, {}, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
         alert("Prax bola neschválená garantom.");
+        this.loadDetail();
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
+    async markDefended() {
+      try {
+        const id = this.$route.params.id;
+        await axios.post(`http://localhost:8000/api/garant/internships/${id}/defended`, {}, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
+        alert("Prax bola označená ako obhájená.");
+        this.loadDetail();
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
+    async markNotDefended() {
+      try {
+        const id = this.$route.params.id;
+        await axios.post(`http://localhost:8000/api/garant/internships/${id}/not-defended`, {}, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
+        alert("Prax bola označená ako neobhájená.");
         this.loadDetail();
       } catch (error) {
         console.error(error);
@@ -133,20 +196,17 @@ export default {
     async saveEdit() {
       try {
         const id = this.$route.params.id;
-        if (this.editForm.status === 'Obhájená') {
-          await axios.post(
-            `http://localhost:8000/api/garant/internships/${id}/defended`,
-            {},
-            { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
-          );
-        } else if (this.editForm.status === 'Neobhájená') {
-          await axios.post(
-            `http://localhost:8000/api/garant/internships/${id}/not-defended`,
-            {},
-            { headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` } }
-          );
-        }
-        alert("Stav bol aktualizovaný.");
+        const payload = {
+          start_date: this.editForm.start_date,
+          end_date: this.editForm.end_date,
+          semester: this.editForm.semester,
+          year: this.editForm.year,
+          status: this.editForm.status
+        };
+        await axios.put(`http://localhost:8000/api/garant/internships/${id}`, payload, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
+        alert("Prax bola úspešne aktualizovaná.");
         this.editMode = false;
         this.loadDetail();
       } catch (error) {
@@ -214,6 +274,7 @@ export default {
   margin-bottom: 6px;
   font-weight: 600;
 }
+.form-group input,
 .form-group select {
   width: 100%;
   padding: 8px;

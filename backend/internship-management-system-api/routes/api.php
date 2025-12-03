@@ -40,8 +40,8 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
     Route::get('/dashboard', [GarantController::class, 'dashboard']);
 
     // Zoznam praxí podľa stavu
-    Route::get('/internships/status/{status}', [GarantController::class, 'getByStatus']);
-    Route::get('/internships/count/{status}', [GarantController::class, 'getCountByStatus']);
+    Route::get('/internships/status/{status}', [InternshipController::class, 'getByStatus']);
+    Route::get('/internships/count/{status}', [InternshipController::class, 'getCountByStatus']);
 
     // Detail
     Route::get('/internships/{id}', [GarantController::class, 'internshipDetail']);
@@ -53,6 +53,8 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
     // Obhajoby
     Route::post('/internships/{id}/defended', [GarantController::class, 'markDefended']);
     Route::post('/internships/{id}/not-defended', [GarantController::class, 'markNotDefended']);
+
+    Route::put('internships/{id}', [InternshipController::class, 'update']);
 });
 
 Route::post('/login', [LoginController::class, 'login']);
@@ -63,6 +65,8 @@ Route::post('/forgot-password', [LoginController::class, 'forgotPassword']);
 Route::post('/reset-password', [LoginController::class, 'resetPassword']);
 
 Route::middleware('auth:api')->get('/internships/my', [InternshipController::class, 'myInternships']);
+Route::middleware('auth:api')->get('/internships/myNew', [InternshipController::class, 'myInternshipsNew']);
+
 Route::middleware('auth:api')->post('/internships/{id}/status', [InternshipController::class, 'changeStatus']);
 
 Route::get('internships', [InternshipController::class, 'index']);
