@@ -83,6 +83,7 @@ export default {
         }
 
         const response = await axios.get(url);
+        console.log("API response:", response.data);
         this.internships = response.data;
 
         // 🔥 doplnenie dokumentov pre každú prax

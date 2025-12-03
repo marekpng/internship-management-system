@@ -1,20 +1,16 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
-use App\Http\Controllers\Auth\RegisterController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\StudentController;
-use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\Auth\LoginController;
-use Laravel\Passport\Http\Controllers\AccessTokenController;
-use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
-use Laravel\Passport\Http\Controllers\TransientTokenController;
+use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\GarantController;
 use App\Http\Controllers\InternshipController;
+use App\Http\Controllers\StudentController;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\DocumentController;
-
-
 
 Route::post('/register/student', [RegisterController::class, 'registerStudent']);
 Route::post('/register/company', [RegisterController::class, 'registerCompany']);
@@ -46,6 +42,29 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
     // Firma zamietne dokument
     Route::post('/company/documents/{id}/reject', [DocumentController::class, 'rejectDocument']);
 });
+Route::get('/internships/count/{status}', [GarantController::class, 'getCountByStatus']);
+
+Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function () {
+
+    Route::get('/dashboard', [GarantController::class, 'dashboard']);
+
+    // Zoznam praxí podľa stavu
+    Route::get('/internships/status/{status}', [InternshipController::class, 'getByStatus']);
+    Route::get('/internships/count/{status}', [InternshipController::class, 'getCountByStatus']);
+
+    // Detail
+    Route::get('/internships/{id}', [GarantController::class, 'internshipDetail']);
+
+    // Garantove rozhodnutia
+    Route::post('/internships/{id}/approve', [GarantController::class, 'approveInternship']);
+    Route::post('/internships/{id}/disapprove', [GarantController::class, 'disapproveInternship']);
+
+    // Obhajoby
+    Route::post('/internships/{id}/defended', [GarantController::class, 'markDefended']);
+    Route::post('/internships/{id}/not-defended', [GarantController::class, 'markNotDefended']);
+
+    Route::put('internships/{id}', [InternshipController::class, 'update']);
+});
 
 Route::post('/login', [LoginController::class, 'login']);
 Route::middleware('auth:api')->post('/logout', [LoginController::class, 'logout']);
@@ -55,6 +74,8 @@ Route::post('/forgot-password', [LoginController::class, 'forgotPassword']);
 Route::post('/reset-password', [LoginController::class, 'resetPassword']);
 
 Route::middleware('auth:api')->get('/internships/my', [InternshipController::class, 'myInternships']);
+Route::middleware('auth:api')->get('/internships/myNew', [InternshipController::class, 'myInternshipsNew']);
+
 Route::middleware('auth:api')->post('/internships/{id}/status', [InternshipController::class, 'changeStatus']);
 
 Route::get('internships', [InternshipController::class, 'index']);
@@ -87,20 +108,18 @@ Route::middleware('auth:api')
 
 Route::get('/test-pdf', function () {
     $dummyData = [
-        'internship' => (object)['start_date' => '2025-03-01', 'end_date' => '2025-06-30'],
-        'student' => (object)['first_name' => 'Andrej', 'last_name' => 'Kováč', 'email' => 'andrej@example.com'],
-        'company' => (object)['company_name' => 'SoftCorp s.r.o.', 'contact_person_name' => 'Ján Novák', 'contact_person_email' => 'jan@softcorp.sk'],
-        'garant' => (object)['first_name' => 'Peter', 'last_name' => 'Horváth'],
+        'internship' => (object) ['start_date' => '2025-03-01', 'end_date' => '2025-06-30'],
+        'student'    => (object) ['first_name' => 'Andrej', 'last_name' => 'Kováč', 'email' => 'andrej@example.com'],
+        'company'    => (object) ['company_name' => 'SoftCorp s.r.o.', 'contact_person_name' => 'Ján Novák', 'contact_person_email' => 'jan@softcorp.sk'],
+        'garant'     => (object) ['first_name' => 'Peter', 'last_name' => 'Horváth'],
     ];
 
-    $pdf = Pdf::loadView('pdf.agreement', $dummyData);
+    $pdf  = Pdf::loadView('pdf.agreement', $dummyData);
     $path = 'test/test_dohoda.pdf';
     Storage::disk('public')->put($path, $pdf->output());
 
     return response()->json(['message' => 'PDF bolo vytvorené.', 'path' => "/storage/{$path}"]);
 });
-
-
 
 // EXTERNY SYSTEM
 Route::middleware(['auth:api', 'role:external'])->group(function () {

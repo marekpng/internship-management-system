@@ -181,16 +181,50 @@ class InternshipController extends Controller
                 'company_id'         => $internship->company_id,
                 'company_name'       => $internship->company ? ($internship->company->company_name ?? $internship->company->name ?? 'Neznáma firma') : 'Neznáma firma',
                 'student_id'         => $internship->student_id,
-                'student_first_name' => $internship->student ? $internship->student->first_name : 'Nezadané meno',
-                'student_last_name'  => $internship->student ? $internship->student->last_name : 'Nezadané priezvisko',
+                'student_first_name' => $internship->student?->first_name ?? 'Nezadané meno',
+                'student_last_name'  => $internship->student?->last_name ?? 'Nezadané priezvisko',
+                'student_email'      => $internship->student?->email ?? null,
                 'garant_id'          => $internship->garant_id,
-                'garant_first_name'  => $internship->garant ? $internship->garant->first_name : 'Nezadané meno',
-                'garant_last_name'   => $internship->garant ? $internship->garant->last_name : 'Nezadané priezvisko',
+                'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
+                'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
             ];
         });
 
         return response()->json($data);
     }
+
+    public function myInternshipsNew(Request $request)
+{
+    $user = $request->user();
+
+    // Získame všetky stáže, kde je študent, firma alebo garant
+    $internships = Internship::with(['company', 'student', 'garant'])
+        ->where('student_id', $user->id)
+        ->orWhere('company_id', $user->id)
+        ->orWhere('garant_id', $user->id)
+        ->get();
+
+    // Mapujeme dáta na požiadavaný formát
+    $data = $internships->map(function ($internship) {
+        return [
+            'id'                 => $internship->id,
+            'year'               => $internship->year,
+            'semester'           => $internship->semester,
+            'created_at'          => $internship->created_at,
+            'start_date'         => $internship->start_date,
+            'end_date'           => $internship->end_date,
+            'status'             => $internship->status,
+            'company'            => $internship->company ? $internship->company->toArray() : null, // Všetky dáta o firme
+            'student'            => $internship->student ? $internship->student->toArray() : null, // Všetky dáta o študentovi
+            'garant_id'          => $internship->garant_id,
+            'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
+            'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
+        ];
+    });
+
+    return response()->json($data);
+}
+
 
 /**
  * Stiahnuť PDF dohodu pre konkrétnu prax.
@@ -226,6 +260,7 @@ class InternshipController extends Controller
             'Potvrdená',
             'Schválená',
             'Zamietnutá',
+            'Neschválená',
             'Obhájená',
             'Neobhájená',
         ];
@@ -268,7 +303,6 @@ class InternshipController extends Controller
         return $selectedGarantId;
     }
 
-
     //EXTERNY SYSTEM
     public function getApprovedInternships()
     {
@@ -278,23 +312,23 @@ class InternshipController extends Controller
 
         return response()->json([
             'count' => $internships->count(),
-            'data' => $internships
+            'data'  => $internships,
         ]);
     }
     public function markAsDefended($id)
     {
         $internship = Internship::find($id);
 
-        if (!$internship) {
+        if (! $internship) {
             return response()->json([
-                'message' => 'Praxe s daným ID neexistuje.'
+                'message' => 'Praxe s daným ID neexistuje.',
             ], 404);
         }
 
         // Kontrola, či je aktuálne v stave "Schválená"
         if ($internship->status !== 'Schválená') {
             return response()->json([
-                'message' => "Praxe nie je v stave 'Schválená', aktuálny stav je: {$internship->status}"
+                'message' => "Praxe nie je v stave 'Schválená', aktuálny stav je: {$internship->status}",
             ], 400);
         }
 
@@ -303,8 +337,50 @@ class InternshipController extends Controller
         $internship->save();
 
         return response()->json([
-            'message' => 'Stav praxe bol úspešne zmenený na Obhájená.',
-            'internship' => $internship
+            'message'    => 'Stav praxe bol úspešne zmenený na Obhájená.',
+            'internship' => $internship,
+        ]);
+    }
+
+    public function getByStatus(Request $request, $status = null)
+    {
+        $allowed = [
+            'Vytvorená', 'Potvrdená', 'Schválená', 'Neschválená', 'Zamietnutá', 'Obhájená', 'Neobhájená',
+        ];
+
+        $garantId = $request->user()->id;
+
+        $query = Internship::where('garant_id', $garantId)
+            ->with(['student', 'company']);
+
+        if ($status && in_array($status, $allowed)) {
+            $query->where('status', $status);
+        }
+
+        return response()->json($query->orderBy('created_at', 'DESC')->get());
+    }
+
+    public function getCountByStatus($status)
+    {
+        $allowed = [
+            'Vytvorená',
+            'Potvrdená',
+            'Schválená',
+            'Neschválená',
+            'Zamietnutá',
+            'Obhájená',
+            'Neobhájená',
+        ];
+
+        if (! in_array($status, $allowed)) {
+            return response()->json(['error' => 'Neplatný stav'], 400);
+        }
+
+        $count = Internship::where('status', $status)->count();
+
+        return response()->json([
+            'status' => $status,
+            'count'  => $count,
         ]);
     }
 
