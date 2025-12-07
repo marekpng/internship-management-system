@@ -41,6 +41,12 @@ class User extends Authenticatable
         'contact_person_email',
         'contact_person_phone',
         'company_account_active_state',
+
+        // Notifikácie
+        'notify_new_request',
+        'notify_approved',
+        'notify_rejected',
+        'notify_profile_change',
     ];
 
 
@@ -102,6 +108,12 @@ class User extends Authenticatable
             'password' => 'hashed',
             'company_account_active_state' => 'boolean',
             'must_change_password' => 'boolean',
+
+            // Notifikácie
+            'notify_new_request' => 'boolean',
+            'notify_approved' => 'boolean',
+            'notify_rejected' => 'boolean',
+            'notify_profile_change' => 'boolean',
         ];
     }
 }

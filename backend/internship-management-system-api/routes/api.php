@@ -41,6 +41,18 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
 
     // Firma zamietne dokument
     Route::post('/company/documents/{id}/reject', [DocumentController::class, 'rejectDocument']);
+
+    // Firemný profil – načítanie a úprava
+    Route::get('/company/profile', [CompanyController::class, 'profile']);
+    Route::put('/company/profile', [CompanyController::class, 'updateProfile']);
+
+    // Notifikácie – načítanie a úprava
+    Route::get('/company/notifications', [CompanyController::class, 'getNotifications']);
+    Route::put('/company/notifications', [CompanyController::class, 'updateNotifications']);
+
+    // Reálne notifikácie pre zvonček
+    Route::get('/company/user-notifications', [CompanyController::class, 'getUserNotifications']);
+    Route::post('/company/notifications/read/{id}', [CompanyController::class, 'markNotificationRead']);
 });
 Route::get('/internships/count/{status}', [GarantController::class, 'getCountByStatus']);
 

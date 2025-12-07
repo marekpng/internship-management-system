@@ -1,13 +1,11 @@
 <template>
+   <CompanyNavBar />
+
+  <div class="company-wrapper">
+    <!-- pôvodný obsah tvojho company -->
+  </div>
   <div class="container" v-if="internship">
 
-    <!-- HEADER -->
-    <div class="header-bar">
-      <span class="header-title">Firemný portál • Praxe</span>
-      <button class="header-back" @click="$router.push('/company/dashboard')">Domov</button>
-    </div>
-
-    <button class="back-btn" @click="$router.push('/company/dashboard')">← Domov</button>
     <h1>Detail praxe</h1>
 
     <!-- ============================= -->
@@ -131,10 +129,14 @@
 </template>
 
 <script>
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 import axios from "axios";
 
 export default {
   name: "CompanyPracticeDetailView",
+  components: {
+    CompanyNavBar
+  },
 
   data() {
     return {
@@ -334,6 +336,14 @@ export default {
      *   APPROVE / REJECT PRACTICE
      * ============================= */
     async approve() {
+      const confirmed = window.confirm(
+        "Naozaj chcete potvrdiť túto prax?\n\n" +
+        "Potvrdením beriete na vedomie, že študent môže pokračovať podľa plánovaného rozvrhu a " +
+        "údaje budú považované za konečné. Tento krok je nezvratný."
+      );
+
+      if (!confirmed) return;
+
       const id = this.$route.params.id;
       const token = this.getToken();
 
@@ -347,6 +357,14 @@ export default {
     },
 
     async reject() {
+      const confirmed = window.confirm(
+        "Naozaj chcete zamietnuť túto prax?\n\n" +
+        "Zamietnutím bude študent informovaný a prax sa stane neplatnou. " +
+        "Uistite sa, že máte na to dôvod, pretože tento krok je nezvratný."
+      );
+
+      if (!confirmed) return;
+
       const id = this.$route.params.id;
       const token = this.getToken();
 

@@ -1,22 +1,36 @@
 <template>
+  <CompanyNavBar>
+    <template #filters>
+      <div class="filter-bar">
+        <router-link
+          to="/company/practices?status=Vytvorená"
+          class="filter-btn"
+          :class="{ active: $route.query.status === 'Vytvorená' }"
+        >
+          Čakajúce
+        </router-link>
+
+        <router-link
+          to="/company/practices?status=Potvrdená"
+          class="filter-btn"
+          :class="{ active: $route.query.status === 'Potvrdená' }"
+        >
+          Potvrdené
+        </router-link>
+
+        <router-link
+          to="/company/practices?status=Zamietnutá"
+          class="filter-btn"
+          :class="{ active: $route.query.status === 'Zamietnutá' }"
+        >
+          Zamietnuté
+        </router-link>
+      </div>
+    </template>
+  </CompanyNavBar>
+
   <div class="container">
-    <div class="header-bar">
-      <span class="header-title">Firemný portál • Praxe</span>
-      <button class="header-back" @click="$router.push('/company/dashboard')">Domov</button>
-    </div>
 
-    <nav class="navbar">
-      <div class="nav-left">
-        <span class="nav-title">Firemné praxe</span>
-      </div>
-      <div class="nav-right">
-        <button class="nav-btn" @click="$router.push('/company/practices?status=Vytvorená')">Čakajúce</button>
-        <button class="nav-btn" @click="$router.push('/company/practices?status=Potvrdená')">Potvrdené</button>
-        <button class="nav-btn" @click="$router.push('/company/practices?status=Zamietnutá')">Zamietnuté</button>
-      </div>
-    </nav>
-
-    <h1>Prax v stave: {{ title }}</h1>
 
     <div v-if="loading">Načítavam…</div>
 
@@ -51,10 +65,12 @@
 </template>
 
 <script>
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue';
 import axios from "axios";
 
 export default {
   name: "CompanyPracticesView",
+  components: { CompanyNavBar },
 
   data() {
     return {
@@ -126,6 +142,8 @@ export default {
 
 <style scoped>
 .container {
+  max-width: 1250px;
+  margin: 0 auto;
   padding: 20px;
 }
 
