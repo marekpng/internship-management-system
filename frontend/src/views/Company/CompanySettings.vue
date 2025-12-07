@@ -1,86 +1,137 @@
 <template>
   <CompanyNavBar />
   <button class="back-button" @click="$router.back()">← Späť</button>
-  <div class="settings-wrapper">
-    <h1>Firemné nastavenia</h1>
-    <div class="info-bar">
-      <p>Niektoré údaje nie je možné meniť, pretože sú súčasťou firemného záznamu v systéme.</p>
-    </div>
+  <div class="settings-layout">
+    <aside class="settings-sidebar">
+      <h3>Nastavenia</h3>
+      <ul>
+        <li :class="{ active: activeTab === 'data' }" @click="activeTab = 'data'">Údaje firmy</li>
+        <li :class="{ active: activeTab === 'notifications' }" @click="activeTab = 'notifications'">Notifikácie</li>
+      </ul>
+    </aside>
 
-    <div class="notification-bar" v-if="notification">
-      {{ notification }}
-    </div>
-
-    <section class="block">
-      <h2>Firemné údaje (nemožno meniť)</h2>
-
-      <div class="field">
-        <label>Názov firmy</label>
-        <input type="text" :value="company.company_name" disabled />
+    <div class="settings-wrapper">
+      <div class="notification-bar" v-if="notification">
+        {{ notification }}
       </div>
 
-      <div class="field">
-        <label>IČO</label>
-        <input type="text" :value="company.ico" disabled />
+      <div v-if="activeTab === 'data'">
+        <h1>Firemné nastavenia</h1>
+
+        <div class="info-bar">
+          <p>Niektoré údaje nie je možné meniť, pretože sú súčasťou firemného záznamu v systéme.</p>
+        </div>
+
+        <section class="block">
+          <h2>Firemné údaje (nemožno meniť)</h2>
+
+          <div class="field">
+            <label>Názov firmy</label>
+            <input type="text" :value="company.company_name" disabled />
+          </div>
+
+          <div class="field">
+            <label>IČO</label>
+            <input type="text" :value="company.ico" disabled />
+          </div>
+
+          <div class="field">
+            <label>DIČ</label>
+            <input type="text" :value="company.dic" disabled />
+          </div>
+
+          <div class="field">
+            <label>Meno a priezvisko</label>
+            <input type="text" :value="company.contact_person_name" disabled />
+          </div>
+
+          <div class="field">
+            <label>Adresa</label>
+            <input type="text" :value="`${company.street} ${company.house_number}, ${company.postal_code} ${company.city}`" disabled />
+          </div>
+        </section>
+
+        <section class="block">
+          <h2>Editovateľné údaje</h2>
+
+          <div class="field">
+            <label>Email</label>
+            <input v-model="editable.email" type="email" />
+          </div>
+
+          <div class="field">
+            <label>Telefón</label>
+            <input v-model="editable.phone" type="text" />
+          </div>
+
+          <div class="field">
+            <label>Notifikačný email</label>
+            <input v-model="editable.notification_email" type="email" />
+          </div>
+
+          <div class="field">
+            <label>Notifikačné telefónne číslo</label>
+            <input v-model="editable.notification_phone" type="text" />
+          </div>
+
+          <div class="field">
+            <label>Webstránka</label>
+            <input v-model="editable.website" type="text" />
+          </div>
+
+          <button class="btn-save" @click="confirmVisible = true">
+            Uložiť zmeny
+          </button>
+        </section>
+
+        <div v-if="confirmVisible" class="modal-backdrop">
+          <div class="modal">
+            <h3>Ste si istí, že chcete uložiť zmeny?</h3>
+            <p>Tieto údaje sa aktualizujú vo vašom firemnom profile.</p>
+
+            <div class="modal-actions">
+              <button class="btn-cancel" @click="confirmVisible = false">Zrušiť</button>
+              <button class="btn-confirm" @click="saveChanges">Potvrdiť</button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="field">
-        <label>DIČ</label>
-        <input type="text" :value="company.dic" disabled />
-      </div>
+      <div v-if="activeTab === 'notifications'">
+        <h1>Nastavenia notifikácií</h1>
 
-      <div class="field">
-        <label>Meno a priezvisko</label>
-        <input type="text" :value="company.contact_person_name" disabled />
-      </div>
+        <section class="block">
+          <h2>Emailové notifikácie</h2>
 
-      <div class="field">
-        <label>Adresa</label>
-        <input type="text" :value="`${company.street} ${company.house_number}, ${company.postal_code} ${company.city}`" disabled />
-      </div>
-    </section>
+          <div class="field">
+            <label><input type="checkbox" v-model="notifications.notify_new_request" /> Nová žiadosť o prax</label>
+          </div>
 
-    <section class="block">
-      <h2>Editovateľné údaje</h2>
+          <div class="field">
+            <label><input type="checkbox" v-model="notifications.notify_approved" /> Schválenie praxe</label>
+          </div>
 
-      <div class="field">
-        <label>Email</label>
-        <input v-model="editable.email" type="email" />
-      </div>
+          <div class="field">
+            <label><input type="checkbox" v-model="notifications.notify_rejected" /> Zamietnutie praxe</label>
+          </div>
 
-      <div class="field">
-        <label>Telefón</label>
-        <input v-model="editable.phone" type="text" />
-      </div>
+          <div class="field">
+            <label><input type="checkbox" v-model="notifications.notify_profile_change" /> Zmena údajov profilu</label>
+          </div>
 
-      <div class="field">
-        <label>Notifikačný email</label>
-        <input v-model="editable.notification_email" type="email" />
-      </div>
+          <button class="btn-save" @click="notifyConfirmVisible = true">Uložiť notifikácie</button>
+        </section>
 
-      <div class="field">
-        <label>Notifikačné telefónne číslo</label>
-        <input v-model="editable.notification_phone" type="text" />
-      </div>
+        <div v-if="notifyConfirmVisible" class="modal-backdrop">
+          <div class="modal">
+            <h3>Ste si istí, že chcete uložiť zmeny notifikácií?</h3>
+            <p>Toto ovplyvní spôsob, akým budete dostávať emailové upozornenia.</p>
 
-      <div class="field">
-        <label>Webstránka</label>
-        <input v-model="editable.website" type="text" />
-      </div>
-
-      <button class="btn-save" @click="confirmVisible = true">
-        Uložiť zmeny
-      </button>
-    </section>
-
-    <div v-if="confirmVisible" class="modal-backdrop">
-      <div class="modal">
-        <h3>Ste si istí, že chcete uložiť zmeny?</h3>
-        <p>Tieto údaje sa aktualizujú vo vašom firemnom profile.</p>
-
-        <div class="modal-actions">
-          <button class="btn-cancel" @click="confirmVisible = false">Zrušiť</button>
-          <button class="btn-confirm" @click="saveChanges">Potvrdiť</button>
+            <div class="modal-actions">
+              <button class="btn-cancel" @click="notifyConfirmVisible = false">Zrušiť</button>
+              <button class="btn-confirm" @click="confirmNotificationSave">Potvrdiť</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -114,7 +165,17 @@ const editable = ref({
 })
 
 const confirmVisible = ref(false)
+const notifyConfirmVisible = ref(false)
 const notification = ref('')
+
+const activeTab = ref('data')
+
+const notifications = ref({
+  notify_new_request: true,
+  notify_approved: true,
+  notify_rejected: true,
+  notify_profile_change: true
+})
 
 async function loadCompany() {
   const token = localStorage.getItem('access_token')
@@ -129,6 +190,11 @@ async function loadCompany() {
   editable.value.website = response.data.website ?? ''
   editable.value.notification_email = response.data.contact_person_email ?? ''
   editable.value.notification_phone = response.data.contact_person_phone ?? ''
+
+  notifications.value.notify_new_request = response.data.notify_new_request == 1;
+  notifications.value.notify_approved = response.data.notify_approved == 1;
+  notifications.value.notify_rejected = response.data.notify_rejected == 1;
+  notifications.value.notify_profile_change = response.data.notify_profile_change == 1;
 }
 
 async function saveChanges() {
@@ -140,8 +206,8 @@ async function saveChanges() {
       email: editable.value.email,
       phone: editable.value.phone,
       website: editable.value.website,
-      notification_email: editable.value.notification_email,
-      notification_phone: editable.value.notification_phone,
+      contact_person_email: editable.value.notification_email,
+      contact_person_phone: editable.value.notification_phone,
     },
     {
       headers: token ? { Authorization: `Bearer ${token}` } : {}
@@ -154,14 +220,47 @@ async function saveChanges() {
   await loadCompany()
 }
 
+async function saveNotificationSettings() {
+  const token = localStorage.getItem('access_token')
+
+  await axios.put(
+    'http://localhost:8000/api/company/notifications',
+    {
+      notify_new_request: notifications.value.notify_new_request ? 1 : 0,
+      notify_approved: notifications.value.notify_approved ? 1 : 0,
+      notify_rejected: notifications.value.notify_rejected ? 1 : 0,
+      notify_profile_change: notifications.value.notify_profile_change ? 1 : 0,
+    },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+
+  await loadCompany();
+
+  notification.value = 'Notifikácie boli uložené.'
+  setTimeout(() => notification.value = '', 3000)
+}
+
+async function confirmNotificationSave() {
+  try {
+    await saveNotificationSettings()
+  } catch (error) {
+    console.error('Chyba pri ukladaní notifikácií:', error)
+    notification.value = error?.response?.data?.message || 'Nepodarilo sa uložiť notifikácie. Skúste to prosím znova.'
+    setTimeout(() => (notification.value = ''), 3000)
+  } finally {
+    notifyConfirmVisible.value = false
+  }
+}
+
 onMounted(loadCompany)
 </script>
 
 <style scoped>
 .settings-wrapper {
+  flex: 1;
   max-width: 800px;
-  margin: 40px auto;
-  padding: 20px;
+  margin: 0;
+  padding: 10px 20px;
 }
 
 h1 {
@@ -278,5 +377,56 @@ input:disabled {
   border-radius: 6px;
   color: #1d4d2d;
   margin-bottom: 20px;
+}
+
+.settings-layout {
+  display: flex;
+  gap: 30px;
+  max-width: 1100px;
+  margin: 20px auto;
+}
+
+.settings-sidebar {
+  width: 220px;
+  background: white;
+  padding: 20px;
+  border: 1px solid #e6e6e6;
+  border-radius: 8px;
+  height: fit-content;
+}
+
+.settings-sidebar h3 {
+  margin-bottom: 15px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1d4d2d;
+}
+
+.settings-sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.settings-sidebar li {
+  padding: 10px 0;
+  cursor: pointer;
+  font-size: 15px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+}
+
+.settings-sidebar li:last-child {
+  border-bottom: none;
+}
+
+.settings-sidebar li.active {
+  font-weight: 700;
+  color: #1d4d2d;
+}
+
+.field input[type="checkbox"] {
+  margin-right: 10px;
+  transform: scale(1.2);
 }
 </style>

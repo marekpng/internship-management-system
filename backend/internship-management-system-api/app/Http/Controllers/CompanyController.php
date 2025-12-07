@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use App\Models\Notification;
 
-class CompanyController
+class CompanyController extends Controller
 {
     public function dashboard(Request $request)
 {
@@ -55,6 +57,13 @@ class CompanyController
 
         $internship->status = $request->status;
         $internship->save();
+
+        // Create notification for student
+        Notification::create([
+            'user_id' => $internship->student_id,
+            'type' => 'status_update',
+            'message' => 'Stav vašej praxe bol zmenený na: ' . $internship->status,
+        ]);
 
         return response()->json([
             'message' => 'Stav bol úspešne aktualizovaný.',
@@ -143,6 +152,31 @@ public function rejectedInternships(Request $request)
         $internship->status = 'Potvrdená';
         $internship->save();
 
+        $company = $internship->company()->first();
+
+        if ($internship->student && $internship->student->email && $company && $company->notify_approved) {
+            Mail::raw(
+                'Vaša prax bola schválená firmou.',
+                function ($message) use ($internship) {
+                    $message->to($internship->student->email)
+                            ->subject('Prax schválená');
+                }
+            );
+        }
+
+        Notification::create([
+            'user_id' => $internship->student_id,
+            'type' => 'approved',
+            'message' => 'Vaša prax bola schválená firmou ' . ($company->company_name ?? ''),
+        ]);
+
+        // Notify company itself
+        Notification::create([
+            'user_id' => $company->id,
+            'type' => 'approved_company',
+            'message' => 'Schválili ste prax študenta: ' . ($internship->student->name ?? ''),
+        ]);
+
         return response()->json(['message' => 'Prax bola potvrdená.']);
     }
 
@@ -151,6 +185,31 @@ public function rejectedInternships(Request $request)
         $internship = \App\Models\Internship::where('id', $id)->firstOrFail();
         $internship->status = 'Zamietnutá';
         $internship->save();
+
+        $company = $internship->company()->first();
+
+        if ($internship->student && $internship->student->email && $company && $company->notify_rejected) {
+            Mail::raw(
+                'Vaša prax bola zamietnutá firmou.',
+                function ($message) use ($internship) {
+                    $message->to($internship->student->email)
+                           ->subject('Prax zamietnutá');
+                }
+            );
+        }
+
+        Notification::create([
+            'user_id' => $internship->student_id,
+            'type' => 'rejected',
+            'message' => 'Vaša prax bola zamietnutá firmou ' . ($company->company_name ?? ''),
+        ]);
+
+        // Notify company
+        Notification::create([
+            'user_id' => $company->id,
+            'type' => 'rejected_company',
+            'message' => 'Zamietli ste prax študenta: ' . ($internship->student->name ?? ''),
+        ]);
 
         return response()->json(['message' => 'Prax bola zamietnutá.']);
     }
@@ -171,6 +230,10 @@ public function rejectedInternships(Request $request)
             'contact_person_name' => $user->contact_person_name,
             'contact_person_email' => $user->contact_person_email,
             'contact_person_phone' => $user->contact_person_phone,
+            'notify_new_request' => $user->notify_new_request,
+            'notify_approved' => $user->notify_approved,
+            'notify_rejected' => $user->notify_rejected,
+            'notify_profile_change' => $user->notify_profile_change,
         ]);
     }
 
@@ -184,14 +247,107 @@ public function rejectedInternships(Request $request)
             'contact_person_name' => ['nullable', 'string', 'max:255'],
             'contact_person_email' => ['nullable', 'email'],
             'contact_person_phone' => ['nullable', 'string', 'max:255'],
+            'street' => ['nullable', 'string', 'max:255'],
+            'house_number' => ['nullable', 'string', 'max:50'],
+            'city' => ['nullable', 'string', 'max:255'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
         ]);
 
         $user->update($data);
+
+        $user->street = $request->street;
+        $user->house_number = $request->house_number;
+        $user->city = $request->city;
+        $user->postal_code = $request->postal_code;
+        $user->save();
+
+        if ($user->notify_profile_change) {
+            Mail::raw(
+                'Vaše firemné údaje boli úspešne zmenené. Ak ste túto zmenu nevykonali vy, kontaktujte administrátora.',
+                function ($message) use ($user) {
+                    $message->to($user->email)
+                            ->subject('Zmena firemných údajov - Notifikácia');
+                }
+            );
+        }
+
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'profile_change',
+            'message' => 'Úspešne ste aktualizovali firemné údaje.',
+        ]);
 
         return response()->json([
             'status' => 'success',
             'message' => 'Profil bol aktualizovaný.',
             'company' => $user->fresh(),
         ]);
+    }
+
+    public function updateNotificationSettings(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'notify_new_request' => ['required', 'boolean'],
+            'notify_approved' => ['required', 'boolean'],
+            'notify_rejected' => ['required', 'boolean'],
+            'notify_profile_change' => ['required', 'boolean'],
+        ]);
+
+        // Uloženie nastavení
+        $user->notify_new_request = $data['notify_new_request'];
+        $user->notify_approved = $data['notify_approved'];
+        $user->notify_rejected = $data['notify_rejected'];
+        $user->notify_profile_change = $data['notify_profile_change'];
+        $user->save();
+
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'notification_settings',
+            'message' => 'Notifikačné nastavenia boli aktualizované.',
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Notifikačné nastavenia boli uložené.'
+        ]);
+    }
+
+    public function getNotifications(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'notify_new_request' => (bool) $user->notify_new_request,
+            'notify_approved' => (bool) $user->notify_approved,
+            'notify_rejected' => (bool) $user->notify_rejected,
+            'notify_profile_change' => (bool) $user->notify_profile_change,
+        ]);
+    }
+
+    public function updateNotifications(Request $request)
+    {
+        // reuse existing logic so we have a single place for validation & saving
+        return $this->updateNotificationSettings($request);
+    }
+
+    public function getUserNotifications(Request $request)
+    {
+        return Notification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'DESC')
+            ->get();
+    }
+
+    public function markNotificationRead($id, Request $request)
+    {
+        $notification = Notification::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $notification->read = true;
+        $notification->save();
+
+        return response()->json(['status' => 'success']);
     }
 }
