@@ -1,15 +1,28 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\User;
+use App\Models\Document;
 
 class Internship extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['start_date', 'end_date', 'semester', 'status', 'year', 'company_id', 'student_id', 'garant_id'];
+    protected $table = 'internships';
+
+    protected $fillable = [
+        'start_date',
+        'end_date',
+        'semester',
+        'status',
+        'year',
+        'company_id',
+        'student_id',
+        'garant_id'
+    ];
 
     public function company()
     {
@@ -41,5 +54,5 @@ class Internship extends Model
         return $this->documents()->pluck('document_name')->toArray();
     }
 
-    
+
 }
