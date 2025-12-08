@@ -9,3 +9,4 @@ backend/internship-management-system-api/vendor/
 backend/internship-management-system-api/node_modules/
 backend/internship-management-system-api/storage/
 backend/internship-management-system-api/.env
+.idea
