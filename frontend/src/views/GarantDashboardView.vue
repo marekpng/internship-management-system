@@ -20,6 +20,10 @@
         </div>
       </div>
     </section>
+    <RouterLink to="/garant/export" class="menu-item">
+  Export údajov
+</RouterLink>
+
 
     <section class="stats-section">
       <div class="container stats-grid">

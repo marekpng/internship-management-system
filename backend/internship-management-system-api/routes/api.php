@@ -135,7 +135,7 @@ Route::middleware(['auth:api', 'role:admin'])->group(function () {
 
 use App\Http\Controllers\GarantExportController;
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['auth:api'])->group(function () {
     Route::get('/garant/export/preview', [GarantExportController::class, 'preview']);
     Route::get('/garant/export/csv', [GarantExportController::class, 'exportCsv']);
 });

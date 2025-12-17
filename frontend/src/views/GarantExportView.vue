@@ -54,7 +54,9 @@
         </div>
 
         <div class="actions">
-          <button type="submit">Zobraziť náhľad</button>
+          <button type="submit" :disabled="loading">
+            {{ loading ? 'Načítavam…' : 'Zobraziť náhľad' }}
+          </button>
 
           <button
             type="button"
@@ -73,11 +75,11 @@
       <h2>Náhľad údajov</h2>
 
       <p v-if="loading">Načítavam údaje…</p>
-      <p v-if="!loading && rows.length === 0">
+      <p v-else-if="rows.length === 0">
         Žiadne záznamy pre zvolené filtre.
       </p>
 
-      <table v-if="!loading && rows.length > 0">
+      <table v-else>
         <thead>
           <tr>
             <th>Meno študenta</th>
@@ -114,7 +116,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
 // FILTRE – stav
@@ -146,8 +148,14 @@ const statuses = ref([
 
 const studyPrograms = ref([])
 
+function authHeaders() {
+  const token = localStorage.getItem('access_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
 async function loadStudyPrograms() {
-  // ak nemáte API, nechaj prázdne / alebo dopln neskôr
+  // Ak nemáte API, nechaj prázdne / alebo dopln neskôr.
+  // Ideálne neskôr: GET /api/study-programs
   studyPrograms.value = []
 }
 
@@ -156,12 +164,15 @@ async function loadPreview() {
   try {
     const res = await axios.get('/api/garant/export/preview', {
       params: filters.value,
+      headers: authHeaders(),
     })
-    rows.value = res.data.data || []
+    rows.value = res.data?.data || []
   } catch (err) {
+    console.error('Preview error:', err)
     rows.value = []
+  } finally {
+    loading.value = false
   }
-  loading.value = false
 }
 
 async function downloadCsv() {
@@ -170,6 +181,7 @@ async function downloadCsv() {
     const res = await axios.get('/api/garant/export/csv', {
       params: filters.value,
       responseType: 'blob',
+      headers: authHeaders(),
     })
 
     const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' })
@@ -184,9 +196,10 @@ async function downloadCsv() {
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
   } catch (err) {
-    console.error(err)
+    console.error('CSV export error:', err)
+  } finally {
+    downloading.value = false
   }
-  downloading.value = false
 }
 
 onMounted(async () => {
@@ -245,6 +258,12 @@ button,
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
+}
+
+button:disabled,
+.btn-export:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 button {

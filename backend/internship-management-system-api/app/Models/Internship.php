@@ -23,6 +23,11 @@ class Internship extends Model
         'student_id',
         'garant_id'
     ];
+    protected $casts = [
+        'start_date' => 'date:Y-m-d',
+        'end_date' => 'date:Y-m-d',
+    ];
+
 
     public function company()
     {
