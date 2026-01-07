@@ -1,11 +1,11 @@
 <template>
-   <CompanyNavBar />
+  <CompanyNavBar />
 
   <div class="company-wrapper">
     <!-- pôvodný obsah tvojho company -->
   </div>
-  <div class="container" v-if="internship">
 
+  <div class="container" v-if="internship">
     <h1>Detail praxe</h1>
 
     <!-- ============================= -->
@@ -40,21 +40,24 @@
     </div>
 
     <!-- ============================= -->
-    <!-- DOKUMENTY -->
+    <!-- DOKUMENTY (firma len číta / sťahuje) -->
     <!-- ============================= -->
     <div class="card">
       <h2>Dokumenty</h2>
 
       <div v-if="documents.length" class="documents-list">
         <div v-for="doc in documents" :key="doc.document_id" class="doc-item">
-
           <!-- LEFT -->
           <div class="doc-info">
             <div class="doc-name">{{ doc.document_name }}</div>
 
             <div class="doc-meta">
               <span class="doc-badge">{{ translateDocType(doc.type) }}</span>
-              <span class="doc-status" :class="'status-' + doc.company_status">
+              <span
+                v-if="doc.company_status"
+                class="doc-status"
+                :class="'status-' + doc.company_status"
+              >
                 {{ translateCompanyStatus(doc.company_status) }}
               </span>
             </div>
@@ -62,51 +65,20 @@
 
           <!-- RIGHT -->
           <div class="doc-actions">
-            <button class="btn-outline" @click="downloadDocument(doc.document_id)">📥 Stiahnuť</button>
-
-            <button
-              v-if="doc.company_status !== 'approved'"
-              class="btn-approve"
-              @click="approveDocument(doc.document_id)"
-            >✔ Schváliť</button>
-
-            <button
-              v-if="doc.company_status !== 'rejected'"
-              class="btn-reject"
-              @click="rejectDocument(doc.document_id)"
-            >✖ Zamietnuť</button>
+            <button class="btn-outline" @click="downloadDocument(doc.document_id)">
+              📥 Stiahnuť
+            </button>
           </div>
-
         </div>
       </div>
 
       <p v-else class="no-documents">Zatiaľ nie sú nahraté žiadne dokumenty.</p>
 
-      <!-- UPLOAD -->
-      <h3>Pridať dokument</h3>
 
-      <form class="upload-form" @submit.prevent="uploadDocument">
-        <label>Typ dokumentu:</label>
-        <select v-model="uploadForm.document_type" required>
-          <option value="" disabled>Vyber typ...</option>
-          <option value="review">Hodnotenie praxe</option>
-          <option value="agreement_signed">Podpísaná dohoda firmou</option>
-        </select>
-
-        <label>Súbor:</label>
-        <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onFileChange" required />
-
-        <p class="upload-error" v-if="uploadError">{{ uploadError }}</p>
-        <p class="upload-success" v-if="uploadSuccess">{{ uploadSuccess }}</p>
-
-        <button type="submit" class="upload-btn" :disabled="uploadLoading">
-          {{ uploadLoading ? "Nahrávam..." : "Nahrať" }}
-        </button>
-      </form>
     </div>
 
     <!-- ============================= -->
-    <!-- GLOBAL ACTIONS -->
+    <!-- GLOBAL ACTIONS (schvaľovanie praxe – nechávam, lebo to nie sú dokumenty) -->
     <!-- ============================= -->
     <div class="actions">
       <template v-if="internship.status === 'Vytvorená'">
@@ -134,9 +106,7 @@ import axios from "axios";
 
 export default {
   name: "CompanyPracticeDetailView",
-  components: {
-    CompanyNavBar
-  },
+  components: { CompanyNavBar },
 
   data() {
     return {
@@ -145,11 +115,7 @@ export default {
       editMode: false,
       editForm: { status: "" },
 
-      documents: [],
-      uploadForm: { document_type: "", file: null },
-      uploadError: "",
-      uploadSuccess: "",
-      uploadLoading: false
+      documents: []
     };
   },
 
@@ -196,55 +162,6 @@ export default {
     },
 
     /* =============================
-     *   UPLOAD DOCUMENT
-     * ============================= */
-    onFileChange(e) {
-      this.uploadForm.file = e.target.files?.[0] || null;
-    },
-
-    async uploadDocument() {
-      this.uploadError = "";
-      this.uploadSuccess = "";
-
-      if (!this.uploadForm.document_type || !this.uploadForm.file) {
-        this.uploadError = "Vyplň všetky polia.";
-        return;
-      }
-
-      this.uploadLoading = true;
-
-      try {
-        const id = this.$route.params.id;
-        const token = this.getToken();
-
-        const fd = new FormData();
-        fd.append("document_type", this.uploadForm.document_type);
-        fd.append("file", this.uploadForm.file);
-
-        await axios.post(
-          `http://localhost:8000/api/company/internships/${id}/documents/upload`,
-          fd,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data"
-            }
-          }
-        );
-
-        this.uploadSuccess = "Dokument úspešne nahraný.";
-        this.uploadForm.document_type = "";
-        this.uploadForm.file = null;
-
-        await this.loadDocuments();
-      } catch (err) {
-        this.uploadError = err.response?.data?.message || "Chyba pri nahrávaní.";
-      } finally {
-        this.uploadLoading = false;
-      }
-    },
-
-    /* =============================
      *   DOWNLOAD DOCUMENT
      * ============================= */
     async downloadDocument(documentId) {
@@ -278,33 +195,6 @@ export default {
       } catch {
         alert("Sťahovanie zlyhalo.");
       }
-    },
-
-    /* =============================
-     *   APPROVE / REJECT DOCUMENT
-     * ============================= */
-    async approveDocument(id) {
-      const token = this.getToken();
-
-      await axios.post(
-        `http://localhost:8000/api/company/documents/${id}/approve`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      await this.loadDocuments();
-    },
-
-    async rejectDocument(id) {
-      const token = this.getToken();
-
-      await axios.post(
-        `http://localhost:8000/api/company/documents/${id}/reject`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      await this.loadDocuments();
     },
 
     /* =============================
@@ -406,10 +296,7 @@ export default {
 </script>
 
 <style scoped>
-/* celý tvoj pôvodný styling nechávam, nemením nič */
-.container {
-  padding: 20px;
-}
+.container { padding: 20px; }
 .card {
   border: 1px solid #ddd;
   padding: 20px;
@@ -431,19 +318,9 @@ export default {
   border-radius: 10px;
   padding: 12px 15px;
 }
-.doc-info {
-  display: flex;
-  flex-direction: column;
-}
-.doc-name {
-  font-weight: 600;
-  font-size: 15px;
-}
-.doc-meta {
-  margin-top: 4px;
-  display: flex;
-  gap: 8px;
-}
+.doc-info { display: flex; flex-direction: column; }
+.doc-name { font-weight: 600; font-size: 15px; }
+.doc-meta { margin-top: 4px; display: flex; gap: 8px; flex-wrap: wrap; }
 .doc-badge {
   background: #e1f2e5;
   padding: 4px 10px;
@@ -458,27 +335,12 @@ export default {
   font-size: 12px;
   font-weight: 600;
 }
-.status-pending {
-  background: #fff2c2;
-  color: #7a5b00;
-}
-.status-submitted {
-  background: #d7ecff;
-  color: #004c82;
-}
-.status-approved {
-  background: #d7f7dd;
-  color: #0b6b37;
-}
-.status-rejected {
-  background: #ffe0e0;
-  color: #8e0000;
-}
-.doc-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.status-pending { background: #fff2c2; color: #7a5b00; }
+.status-submitted { background: #d7ecff; color: #004c82; }
+.status-approved { background: #d7f7dd; color: #0b6b37; }
+.status-rejected { background: #ffe0e0; color: #8e0000; }
+
+.doc-actions { display: flex; align-items: center; gap: 8px; }
 .btn-outline {
   background: white;
   border: 1px solid #0b6b37;
@@ -487,73 +349,15 @@ export default {
   border-radius: 6px;
   cursor: pointer;
 }
-.btn-approve {
-  background: #3aa76d;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
-}
-.btn-reject {
-  background: #d9534f;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
-}
-.upload-form {
-  display: flex;
-  flex-direction: column;
-}
-.upload-btn {
-  background: #0b6b37;
-  color: white;
-  padding: 10px;
-  border-radius: 6px;
-  margin-top: 10px;
-}
-.upload-error {
-  color: #d9534f;
-}
-.upload-success {
-  color: #0b6b37;
-}
-.actions {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 40px;
-}
-.approve {
-  background: #3aa76d;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 6px;
-}
-.reject {
-  background: #d9534f;
-  color: white;
-  padding: 12px 18px;
-  border-radius: 6px;
-}
-.back-btn {
-  margin-bottom: 15px;
-  border: 1px solid #0b6b37;
-  background: white;
-  color: #0b6b37;
-  padding: 8px 14px;
-  border-radius: 6px;
-}
-.header-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #0b6b37;
-  padding: 12px 20px;
-  color: white;
-  border-radius: 8px;
-}
-.header-back {
-  background: white;
-  color: #0b6b37;
-  padding: 6px 12px;
-  border-radius: 6px;
+
+.actions { display: flex; gap: 15px; margin-bottom: 40px; }
+.approve { background: #3aa76d; color: white; padding: 12px 18px; border-radius: 6px; }
+.reject { background: #d9534f; color: white; padding: 12px 18px; border-radius: 6px; }
+
+.note {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #555;
+  font-style: italic;
 }
 </style>

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('semester', 45);
             $table->string('status', 45);
             $table->integer('year');
-            
+
             // Cudzie kľúče
             $table->foreignId('garant_id')->constrained('users')->onDelete('cascade');
             $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
@@ -33,6 +33,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('internship');
+        Schema::dropIfExists('internships');
     }
 };

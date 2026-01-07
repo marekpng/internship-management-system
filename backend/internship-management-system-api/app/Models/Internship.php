@@ -9,7 +9,24 @@ class Internship extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['start_date', 'end_date', 'semester', 'status', 'year', 'company_id', 'student_id', 'garant_id'];
+    protected $fillable = [
+        'start_date',
+        'end_date',
+        'semester',
+        'status',
+        'year',
+        'company_id',
+        'student_id',
+        'garant_id',
+        'agreement_pdf_path',
+    ];
+
+    // voliteľné (odporúčané) - nech sa ti dátumy správne castujú
+    protected $casts = [
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+        'year' => 'integer',
+    ];
 
     public function company()
     {
@@ -28,7 +45,7 @@ class Internship extends Model
 
     public function documents()
     {
-        return $this->hasMany(Document::class);
+        return $this->hasMany(Document::class, 'internship_id');
     }
 
     public function getStatus()
@@ -40,6 +57,4 @@ class Internship extends Model
     {
         return $this->documents()->pluck('document_name')->toArray();
     }
-
-    
 }

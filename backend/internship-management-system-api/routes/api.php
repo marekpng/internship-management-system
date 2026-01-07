@@ -34,13 +34,6 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
     Route::post('/company/internships/{id}/approve', [CompanyController::class, 'approveInternship']);
     Route::post('/company/internships/{id}/reject', [CompanyController::class, 'rejectInternship']);
     Route::put('/company/internships/{id}/status', [CompanyController::class, 'updateStatus']);
-    Route::post('/company/internships/{id}/documents/upload', [DocumentController::class, 'uploadCompanyDocument']);
-
-    // Firma schváli dokument
-    Route::post('/company/documents/{id}/approve', [DocumentController::class, 'approveDocument']);
-
-    // Firma zamietne dokument
-    Route::post('/company/documents/{id}/reject', [DocumentController::class, 'rejectDocument']);
 
     // Firemný profil – načítanie a úprava
     Route::get('/company/profile', [CompanyController::class, 'profile']);
@@ -76,6 +69,15 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
     Route::post('/internships/{id}/not-defended', [GarantController::class, 'markNotDefended']);
 
     Route::put('internships/{id}', [InternshipController::class, 'update']);
+
+    // Garant nahraje dokument k praxi
+    Route::post('/internships/{id}/documents/upload', [DocumentController::class, 'uploadGarantDocument']);
+
+    // Garant schváli dokument
+    Route::post('/documents/{id}/approve', [DocumentController::class, 'approveDocumentByGarant']);
+
+    // Garant zamietne dokument
+    Route::post('/documents/{id}/reject', [DocumentController::class, 'rejectDocumentByGarant']);
 });
 
 Route::post('/login', [LoginController::class, 'login']);

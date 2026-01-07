@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
-
     /* ========================================================================
      *   ŠTUDENT – UPLOAD DOKUMENTU
      * ======================================================================== */
@@ -27,7 +26,7 @@ class DocumentController extends Controller
             return response()->json(['message' => 'Nemáte oprávnenie nahrať dokument.'], 403);
         }
 
-        // 🔥 Podpísaná dohoda sa nahráva až po "Potvrdená"
+        // Podpísaná dohoda sa nahráva až po "Potvrdená"
         if ($request->document_type === 'signed_agreement' && $internship->status !== 'Potvrdená') {
             return response()->json(['message' => 'Podpísanú zmluvu je možné nahrať až po potvrdení praxe.'], 400);
         }
@@ -52,21 +51,21 @@ class DocumentController extends Controller
         ], 201);
     }
 
-
-
     /* ========================================================================
-     *   FIRMA – UPLOAD DOKUMENTU
+     *   GARANT – UPLOAD DOKUMENTU
      * ======================================================================== */
-    public function uploadCompanyDocument(Request $request, $internshipId)
+    public function uploadGarantDocument(Request $request, $internshipId)
     {
         $request->validate([
-            'document_type' => 'required|in:agreement_signed,review',
+            // nastav si typy podľa toho čo chcete – toto je safe minimum
+            'document_type' => 'required|in:review',
             'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         $internship = Internship::findOrFail($internshipId);
 
-        if ($request->user()->id !== $internship->company_id) {
+        // garant môže nahrávať iba k praxiam, kde je garantom
+        if (auth('api')->id() !== $internship->garant_id) {
             return response()->json(['message' => 'Nemáte oprávnenie nahrať dokument.'], 403);
         }
 
@@ -80,7 +79,8 @@ class DocumentController extends Controller
             'file_path' => $relativePath,
             'type' => $request->document_type,
             'internship_id' => $internshipId,
-            'uploaded_by' => $request->user()->id,
+            'uploaded_by' => auth('api')->id(),
+            // status pole nechávame rovnaké aby UI fungovalo (pending/submitted/approved/rejected)
             'company_status' => 'submitted'
         ]);
 
@@ -90,8 +90,6 @@ class DocumentController extends Controller
         ], 201);
     }
 
-
-
     /* ========================================================================
      *   ZOZNAM DOKUMENTOV
      * ======================================================================== */
@@ -100,8 +98,6 @@ class DocumentController extends Controller
         $documents = Document::where('internship_id', $internshipId)->get();
         return response()->json($documents);
     }
-
-
 
     /* ========================================================================
      *   STIAHNUTIE DOKUMENTU – BEZ REDIRECTOV
@@ -131,57 +127,51 @@ class DocumentController extends Controller
         );
     }
 
-
-
     /* ========================================================================
-     *   FIRMA – SCHVÁLIŤ DOKUMENT
+     *   GARANT – SCHVÁLIŤ DOKUMENT
      * ======================================================================== */
-    public function approveDocument($documentId)
+    public function approveDocumentByGarant($documentId)
     {
         if (!auth('api')->check()) {
             return response()->json(['message' => 'Neautorizovaný prístup'], 401);
         }
 
         $document = Document::findOrFail($documentId);
-
         $internship = Internship::findOrFail($document->internship_id);
 
-        if (auth('api')->id() !== $internship->company_id) {
+        // iba garant danej praxe
+        if (auth('api')->id() !== $internship->garant_id) {
             return response()->json(['message' => 'Nemáte oprávnenie schváliť tento dokument.'], 403);
         }
 
         $document->company_status = 'approved';
         $document->save();
 
-        return response()->json(['message' => 'Dokument bol schválený.']);
+        return response()->json(['message' => 'Dokument bol schválený garantom.']);
     }
 
-
-
     /* ========================================================================
-     *   FIRMA – ZAMIETNUŤ DOKUMENT
+     *   GARANT – ZAMIETNUŤ DOKUMENT
      * ======================================================================== */
-    public function rejectDocument($documentId)
+    public function rejectDocumentByGarant($documentId)
     {
         if (!auth('api')->check()) {
             return response()->json(['message' => 'Neautorizovaný prístup'], 401);
         }
 
         $document = Document::findOrFail($documentId);
-
         $internship = Internship::findOrFail($document->internship_id);
 
-        if (auth('api')->id() !== $internship->company_id) {
+        // iba garant danej praxe
+        if (auth('api')->id() !== $internship->garant_id) {
             return response()->json(['message' => 'Nemáte oprávnenie zamietnuť tento dokument.'], 403);
         }
 
         $document->company_status = 'rejected';
         $document->save();
 
-        return response()->json(['message' => 'Dokument bol zamietnutý.']);
+        return response()->json(['message' => 'Dokument bol zamietnutý garantom.']);
     }
-
-
 
     /* ========================================================================
      *   DETAIL
@@ -190,8 +180,6 @@ class DocumentController extends Controller
     {
         return response()->json(Document::findOrFail($id));
     }
-
-
 
     /* ========================================================================
      *   ZMAZANIE

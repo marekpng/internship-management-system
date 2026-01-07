@@ -61,9 +61,9 @@ class InternshipController extends Controller
         // Kontrola duplicity praxe pre rovnaký rok a semester
         if (
             Internship::where('student_id', $validated['student_id'])
-            ->where('year', $validated['year'])
-            ->where('semester', $validated['semester'])
-            ->exists()
+                ->where('year', $validated['year'])
+                ->where('semester', $validated['semester'])
+                ->exists()
         ) {
             return response()->json(['error' => 'Študent už má vytvorenú prax pre tento rok a semester.'], 400);
         }
@@ -81,10 +81,10 @@ class InternshipController extends Controller
                 'year'       => $validated['year'] ?? null,
                 'company_id' => $validated['company_id'] ?? null,
                 'student_id' => $validated['student_id'] ?? null,
-                'garant_id'  => $garantId, // Garant sa priradí priamo sem
+                'garant_id'  => $garantId,
             ]);
 
-            // Vytvorenie priečinka a generovanie PDF dohody
+            // (Nechávam tvoju logiku: pri vytvorení sa pokúsi vygenerovať PDF)
             Storage::disk('public')->makeDirectory('internships/agreements');
 
             try {
@@ -102,9 +102,13 @@ class InternshipController extends Controller
                 $pdfPath = "internships/agreements/internship_{$internship->id}.pdf";
                 Storage::disk('public')->put($pdfPath, $pdf->output());
 
-                // Uloženie cesty k PDF
-                $internship->update(['agreement_pdf_path' => $pdfPath]);
-
+                // Uloženie cesty k PDF (ak stĺpec existuje v DB)
+                try {
+                    $internship->update(['agreement_pdf_path' => $pdfPath]);
+                } catch (\Throwable $e) {
+                    // ak nemáš stĺpec v DB, tak len ignorujeme
+                    \Log::warning('agreement_pdf_path sa nepodarilo uložiť (možno chýba stĺpec): ' . $e->getMessage());
+                }
             } catch (\Exception $e) {
                 \Log::error('Chyba pri generovaní PDF dohody: ' . $e->getMessage());
             }
@@ -129,13 +133,11 @@ class InternshipController extends Controller
     {
         $internship = Internship::findOrFail($id);
 
-        // validujeme len polia, ktoré sa majú aktualizovať
         $validated = $request->validate([
             'start_date' => 'required|date',
             'end_date'   => 'required|date',
         ]);
 
-        // aktualizujeme len začiatok a koniec praxe
         $internship->update([
             'start_date' => $validated['start_date'],
             'end_date'   => $validated['end_date'],
@@ -194,52 +196,64 @@ class InternshipController extends Controller
     }
 
     public function myInternshipsNew(Request $request)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    // Získame všetky stáže, kde je študent, firma alebo garant
-    $internships = Internship::with(['company', 'student', 'garant'])
-        ->where('student_id', $user->id)
-        ->orWhere('company_id', $user->id)
-        ->orWhere('garant_id', $user->id)
-        ->get();
+        $internships = Internship::with(['company', 'student', 'garant'])
+            ->where('student_id', $user->id)
+            ->orWhere('company_id', $user->id)
+            ->orWhere('garant_id', $user->id)
+            ->get();
 
-    // Mapujeme dáta na požiadavaný formát
-    $data = $internships->map(function ($internship) {
-        return [
-            'id'                 => $internship->id,
-            'year'               => $internship->year,
-            'semester'           => $internship->semester,
-            'created_at'          => $internship->created_at,
-            'start_date'         => $internship->start_date,
-            'end_date'           => $internship->end_date,
-            'status'             => $internship->status,
-            'company'            => $internship->company ? $internship->company->toArray() : null, // Všetky dáta o firme
-            'student'            => $internship->student ? $internship->student->toArray() : null, // Všetky dáta o študentovi
-            'garant_id'          => $internship->garant_id,
-            'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
-            'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
-        ];
-    });
+        $data = $internships->map(function ($internship) {
+            return [
+                'id'                 => $internship->id,
+                'year'               => $internship->year,
+                'semester'           => $internship->semester,
+                'created_at'         => $internship->created_at,
+                'start_date'         => $internship->start_date,
+                'end_date'           => $internship->end_date,
+                'status'             => $internship->status,
+                'company'            => $internship->company ? $internship->company->toArray() : null,
+                'student'            => $internship->student ? $internship->student->toArray() : null,
+                'garant_id'          => $internship->garant_id,
+                'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
+                'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
+            ];
+        });
 
-    return response()->json($data);
-}
+        return response()->json($data);
+    }
 
-
-/**
- * Stiahnuť PDF dohodu pre konkrétnu prax.
- */
+    /**
+     * Stiahnuť PDF dohodu pre konkrétnu prax.
+     * NOVÉ: Ak PDF neexistuje (staré praxe / čistý git pull), tak ho vygenerujeme a uložíme.
+     */
     public function downloadAgreement($id)
     {
-        $internship = Internship::findOrFail($id);
+        $internship = Internship::with(['student', 'company', 'garant'])->findOrFail($id);
 
-        // Skontroluj, či má prax uloženú cestu k PDF
+        // Path z DB (ak existuje) alebo fallback
         $pdfPath = $internship->agreement_pdf_path ?? "internships/agreements/internship_{$id}.pdf";
 
-        if (! \Storage::disk('public')->exists($pdfPath)) {
-            return response()->json([
-                'error' => 'PDF dohoda pre túto prax neexistuje.',
-            ], 404);
+        // Ak neexistuje, tak ho vygeneruj (aby download fungoval vždy)
+        if (!Storage::disk('public')->exists($pdfPath)) {
+            try {
+                $pdfPath = $this->generateAgreementPdf($internship);
+
+                // Skús uložiť path aj do DB (ak je stĺpec)
+                try {
+                    $internship->update(['agreement_pdf_path' => $pdfPath]);
+                } catch (\Throwable $e) {
+                    \Log::warning('agreement_pdf_path sa nepodarilo uložiť (možno chýba stĺpec): ' . $e->getMessage());
+                }
+            } catch (\Throwable $e) {
+                \Log::error('Nepodarilo sa vygenerovať PDF dohodu pri download: ' . $e->getMessage());
+
+                return response()->json([
+                    'error' => 'PDF dohoda pre túto prax neexistuje a nepodarilo sa ju vygenerovať.',
+                ], 500);
+            }
         }
 
         // Stiahnutie PDF súboru
@@ -250,9 +264,34 @@ class InternshipController extends Controller
         );
     }
 
-/**
- * Zmeniť stav stáže.
- */
+    /**
+     * Helper: vygeneruje PDF dohodu a uloží ju na public disk.
+     * Vracia relatívny path v rámci storage/public.
+     */
+    private function generateAgreementPdf(Internship $internship): string
+    {
+        Storage::disk('public')->makeDirectory('internships/agreements');
+
+        $student = $internship->student;
+        $company = $internship->company;
+        $garant  = $internship->garant ?? (object) ['first_name' => 'N/A', 'last_name' => ''];
+
+        $pdf = Pdf::loadView('pdf.agreement', [
+            'internship' => $internship,
+            'student'    => $student,
+            'company'    => $company,
+            'garant'     => $garant,
+        ]);
+
+        $pdfPath = "internships/agreements/internship_{$internship->id}.pdf";
+        Storage::disk('public')->put($pdfPath, $pdf->output());
+
+        return $pdfPath;
+    }
+
+    /**
+     * Zmeniť stav stáže.
+     */
     public function changeStatus($id, Request $request)
     {
         $validStatuses = [
@@ -265,15 +304,12 @@ class InternshipController extends Controller
             'Neobhájená',
         ];
 
-        // Validácia požiadavky: stav musí byť jedným z povolených
         $validated = $request->validate([
             'status' => 'required|string|in:' . implode(',', $validStatuses),
         ]);
 
-        // Nájdeme stáž podľa ID
         $internship = Internship::findOrFail($id);
 
-        // Aktualizujeme stav
         $internship->status = $validated['status'];
         $internship->save();
 
@@ -285,18 +321,15 @@ class InternshipController extends Controller
 
     private function assignGarantToInternship()
     {
-        // Získaj všetkých garantov (užívateľov s roľou "garant")
         $garants = User::whereHas('roles', function ($query) {
             $query->where('name', 'garant');
         })->get();
 
-        // Získaj počet priradených stáží pre každého garanta
         $garantCounts = [];
         foreach ($garants as $garant) {
             $garantCounts[$garant->id] = Internship::where('garant_id', $garant->id)->count();
         }
 
-        // Nájdi garanta s najnižším počtom priradených stáží
         $minInternships   = min($garantCounts);
         $selectedGarantId = array_search($minInternships, $garantCounts);
 
@@ -315,24 +348,23 @@ class InternshipController extends Controller
             'data'  => $internships,
         ]);
     }
+
     public function markAsDefended($id)
     {
         $internship = Internship::find($id);
 
-        if (! $internship) {
+        if (!$internship) {
             return response()->json([
                 'message' => 'Praxe s daným ID neexistuje.',
             ], 404);
         }
 
-        // Kontrola, či je aktuálne v stave "Schválená"
         if ($internship->status !== 'Schválená') {
             return response()->json([
                 'message' => "Praxe nie je v stave 'Schválená', aktuálny stav je: {$internship->status}",
             ], 400);
         }
 
-        // Zmena stavu
         $internship->status = 'Obhájená';
         $internship->save();
 
@@ -372,7 +404,7 @@ class InternshipController extends Controller
             'Neobhájená',
         ];
 
-        if (! in_array($status, $allowed)) {
+        if (!in_array($status, $allowed)) {
             return response()->json(['error' => 'Neplatný stav'], 400);
         }
 
@@ -383,5 +415,4 @@ class InternshipController extends Controller
             'count'  => $count,
         ]);
     }
-
 }
