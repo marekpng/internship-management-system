@@ -1,47 +1,118 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Models\Notification;
+use App\Models\Internship;
+use App\Models\User;
 
 class CompanyController extends Controller
 {
+    /**
+     * Vytvorí notifikácie pri zmene stavu praxe vykonanej firmou.
+     *
+     * Pravidlá (podľa zadania):
+     * - Firma POTVRDÍ prax (stav: Potvrdená)  -> notifikovať študenta aj garanta.
+     * - Firma ZAMIETNE prax (stav: Zamietnutá) -> notifikovať iba študenta.
+     * - Pri inom stave (napr. Vytvorená) notifikáciu nevytvárame.
+     *
+     * Poznámka: kontrolujeme aj pôvodný stav, aby nevznikali duplicitné notifikácie,
+     * keď frontend pošle rovnaký stav opakovane.
+     */
+    private function notifyAfterCompanyStatusChange(Internship $internship, string $oldStatus, string $newStatus): void
+    {
+        // Ak sa stav reálne nezmenil, nič nerobíme.
+        if ($oldStatus === $newStatus) {
+            return;
+        }
+
+        $company = $internship->company()->first();
+        $companyName = $company?->company_name ?? 'firma';
+
+        // 1) Potvrdená -> študent + garant
+        if ($newStatus === 'Potvrdená') {
+            // Študent (rešpektujeme jeho nastavenie notify_approved, ak existuje)
+            $student = User::find($internship->student_id);
+            if ($student && (bool) ($student->notify_approved ?? true)) {
+                Notification::create([
+                    'user_id'  => $internship->student_id,
+                    'type'     => 'internship_status',
+                    'message'  => 'Firma ' . $companyName . ' potvrdila vašu prax (stav: Potvrdená).',
+                    'read'     => false,
+                ]);
+            }
+
+            // Garant (rešpektujeme jeho nastavenie notify_new_request – v projekte ho už používaš ako „chcem dostávať upozornenia“)
+            if (!empty($internship->garant_id)) {
+                $garant = User::find($internship->garant_id);
+                if ($garant && (bool) ($garant->notify_new_request ?? true)) {
+                    Notification::create([
+                        'user_id' => $internship->garant_id,
+                        'type'    => 'internship_status',
+                        'message' => 'Firma ' . $companyName . ' potvrdila prax študenta. Prax čaká na vaše schválenie.',
+                        'read'    => false,
+                    ]);
+                }
+            }
+
+            return;
+        }
+
+        // 2) Zamietnutá -> iba študent
+        if ($newStatus === 'Zamietnutá') {
+            $student = User::find($internship->student_id);
+            if ($student && (bool) ($student->notify_rejected ?? true)) {
+                Notification::create([
+                    'user_id' => $internship->student_id,
+                    'type'    => 'internship_status',
+                    'message' => 'Firma ' . $companyName . ' zamietla vašu prax (stav: Zamietnutá).',
+                    'read'    => false,
+                ]);
+            }
+
+            return;
+        }
+
+        // Iné stavy (napr. Vytvorená) -> bez notifikácie
+    }
+
     public function dashboard(Request $request)
-{
-    $user = $request->user();
-    $companyId = $user->id;
+    {
+        $user = $request->user();
+        $companyId = $user->id;
 
-    // Načítanie štatistík
-    $pending = \App\Models\Internship::where('company_id', $companyId)
-        ->where('status', 'Vytvorená')
-        ->count();
+        // Načítanie štatistík
+        $pending = Internship::where('company_id', $companyId)
+            ->where('status', 'Vytvorená')
+            ->count();
 
-    $approved = \App\Models\Internship::where('company_id', $companyId)
-        ->where('status', 'Potvrdená')
-        ->count();
+        $approved = Internship::where('company_id', $companyId)
+            ->where('status', 'Potvrdená')
+            ->count();
 
-    $rejected = \App\Models\Internship::where('company_id', $companyId)
-        ->where('status', 'Zamietnutá')
-        ->count();
+        $rejected = Internship::where('company_id', $companyId)
+            ->where('status', 'Zamietnutá')
+            ->count();
 
-    return response()->json([
-        'status' => 'success',
-        'message' => 'Vitaj, firma! Prístup k dashboardu je povolený.',
-        'company' => [
-            'id' => $user->id,
-            'email' => $user->email,
-            'company_name' => $user->company_name,
-            'contact_person_name' => $user->contact_person_name,
-            'role' => $user->role,
-        ],
-        'stats' => [
-            'pending' => $pending,
-            'approved' => $approved,
-            'rejected' => $rejected
-        ]
-    ]);
-}
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Vitaj, firma! Prístup k dashboardu je povolený.',
+            'company' => [
+                'id' => $user->id,
+                'email' => $user->email,
+                'company_name' => $user->company_name,
+                'contact_person_name' => $user->contact_person_name,
+                'role' => $user->role,
+            ],
+            'stats' => [
+                'pending' => $pending,
+                'approved' => $approved,
+                'rejected' => $rejected
+            ]
+        ]);
+    }
 
     public function updateStatus($id, Request $request)
     {
@@ -51,19 +122,26 @@ class CompanyController extends Controller
             'status' => 'required|in:Vytvorená,Potvrdená,Zamietnutá'
         ]);
 
-        $internship = \App\Models\Internship::where('id', $id)
+        $internship = Internship::where('id', $id)
             ->where('company_id', $companyId)
             ->firstOrFail();
 
-        $internship->status = $request->status;
+        $oldStatus = $internship->status;
+        $newStatus = $request->status;
+
+        // Ak sa nič nemení, vrátime odpoveď bez vytvárania notifikácií.
+        if ($oldStatus === $newStatus) {
+            return response()->json([
+                'message' => 'Stav ostal nezmenený.',
+                'internship' => $internship
+            ]);
+        }
+
+        $internship->status = $newStatus;
         $internship->save();
 
-        // Create notification for student
-        Notification::create([
-            'user_id' => $internship->student_id,
-            'type' => 'status_update',
-            'message' => 'Stav vašej praxe bol zmenený na: ' . $internship->status,
-        ]);
+        // Notifikácie podľa pravidiel zo zadania (Potvrdená -> študent + garant, Zamietnutá -> študent)
+        $this->notifyAfterCompanyStatusChange($internship, $oldStatus, $newStatus);
 
         return response()->json([
             'message' => 'Stav bol úspešne aktualizovaný.',
@@ -76,7 +154,7 @@ class CompanyController extends Controller
         $companyId = $request->user()->id;
         $status = $request->query('status');
 
-        return \App\Models\Internship::where('company_id', $companyId)
+        return Internship::where('company_id', $companyId)
             ->when($status, fn($q) => $q->where('status', $status))
             ->with(['student'])
             ->orderBy('created_at', 'DESC')
@@ -84,21 +162,20 @@ class CompanyController extends Controller
     }
 
     public function list()
-{
-    // Vráti všetkých používateľov, ktorí majú company_name vyplnené
-    $companies = \App\Models\User::whereNotNull('company_name')
-        ->select('id', 'company_name', 'email')
-        ->get();
+    {
+        // Vráti všetkých používateľov, ktorí majú company_name vyplnené
+        $companies = User::whereNotNull('company_name')
+            ->select('id', 'company_name', 'email')
+            ->get();
 
-    return response()->json($companies);
-}
-
+        return response()->json($companies);
+    }
 
     public function pendingInternships(Request $request)
     {
         $companyId = $request->user()->id;
 
-        $internships = \App\Models\Internship::where('company_id', $companyId)
+        $internships = Internship::where('company_id', $companyId)
             ->where('status', 'Vytvorená')
             ->with(['student'])
             ->orderBy('created_at', 'DESC')
@@ -109,36 +186,36 @@ class CompanyController extends Controller
 
     public function createdInternships(Request $request)
     {
-        return \App\Models\Internship::where('company_id', $request->user()->id)
+        return Internship::where('company_id', $request->user()->id)
             ->where('status', 'Vytvorená')
             ->with(['student'])
             ->orderBy('created_at', 'DESC')
             ->get();
     }
 
-public function approvedInternships(Request $request)
-{
-    return \App\Models\Internship::where('company_id', $request->user()->id)
-        ->where('status', 'Potvrdená')
-        ->with(['student'])
-        ->orderBy('created_at', 'DESC')
-        ->get();
-}
+    public function approvedInternships(Request $request)
+    {
+        return Internship::where('company_id', $request->user()->id)
+            ->where('status', 'Potvrdená')
+            ->with(['student'])
+            ->orderBy('created_at', 'DESC')
+            ->get();
+    }
 
-public function rejectedInternships(Request $request)
-{
-    return \App\Models\Internship::where('company_id', $request->user()->id)
-        ->where('status', 'Zamietnutá')
-        ->with(['student'])
-        ->orderBy('created_at', 'DESC')
-        ->get();
-}
+    public function rejectedInternships(Request $request)
+    {
+        return Internship::where('company_id', $request->user()->id)
+            ->where('status', 'Zamietnutá')
+            ->with(['student'])
+            ->orderBy('created_at', 'DESC')
+            ->get();
+    }
 
     public function internshipDetail($id, Request $request)
     {
         $companyId = $request->user()->id;
 
-        $internship = \App\Models\Internship::where('id', $id)
+        $internship = Internship::where('id', $id)
             ->where('company_id', $companyId)
             ->with(['student', 'company'])
             ->firstOrFail();
@@ -148,12 +225,18 @@ public function rejectedInternships(Request $request)
 
     public function approveInternship($id, Request $request)
     {
-        $internship = \App\Models\Internship::where('id', $id)->firstOrFail();
+        $internship = Internship::where('id', $id)->firstOrFail();
+
+        $oldStatus = $internship->status;
         $internship->status = 'Potvrdená';
         $internship->save();
 
+        // Notifikácie podľa pravidiel zo zadania
+        $this->notifyAfterCompanyStatusChange($internship, $oldStatus, 'Potvrdená');
+
         $company = $internship->company()->first();
 
+        // Vytvorenie notifikácií pre študenta a garanta podľa ich individuálnych nastavení.
         if ($internship->student && $internship->student->email && $company && $company->notify_approved) {
             Mail::raw(
                 'Vaša prax bola schválená firmou.',
@@ -164,30 +247,23 @@ public function rejectedInternships(Request $request)
             );
         }
 
-        Notification::create([
-            'user_id' => $internship->student_id,
-            'type' => 'approved',
-            'message' => 'Vaša prax bola schválená firmou ' . ($company->company_name ?? ''),
-        ]);
-
-        // Notify company itself
-        Notification::create([
-            'user_id' => $company->id,
-            'type' => 'approved_company',
-            'message' => 'Schválili ste prax študenta: ' . ($internship->student->name ?? ''),
-        ]);
-
         return response()->json(['message' => 'Prax bola potvrdená.']);
     }
 
     public function rejectInternship($id, Request $request)
     {
-        $internship = \App\Models\Internship::where('id', $id)->firstOrFail();
+        $internship = Internship::where('id', $id)->firstOrFail();
+
+        $oldStatus = $internship->status;
         $internship->status = 'Zamietnutá';
         $internship->save();
 
+        // Notifikácie podľa pravidiel zo zadania
+        $this->notifyAfterCompanyStatusChange($internship, $oldStatus, 'Zamietnutá');
+
         $company = $internship->company()->first();
 
+        // Vytvorenie notifikácie pre študenta na základe jeho notifikačných preferencií.
         if ($internship->student && $internship->student->email && $company && $company->notify_rejected) {
             Mail::raw(
                 'Vaša prax bola zamietnutá firmou.',
@@ -197,19 +273,6 @@ public function rejectedInternships(Request $request)
                 }
             );
         }
-
-        Notification::create([
-            'user_id' => $internship->student_id,
-            'type' => 'rejected',
-            'message' => 'Vaša prax bola zamietnutá firmou ' . ($company->company_name ?? ''),
-        ]);
-
-        // Notify company
-        Notification::create([
-            'user_id' => $company->id,
-            'type' => 'rejected_company',
-            'message' => 'Zamietli ste prax študenta: ' . ($internship->student->name ?? ''),
-        ]);
 
         return response()->json(['message' => 'Prax bola zamietnutá.']);
     }

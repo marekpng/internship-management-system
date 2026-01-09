@@ -13,10 +13,14 @@
           🔔
           <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
 
-          <div v-if="showNotifications" class="notifications-panel dropdown">
+          <!--
+            Dôležité: Kliky v dropdown paneli musia zastaviť bublanie (stop),
+            inak sa panel pri kliknutí na obsah zavrie/otvorí a vyzerá to, že notifikácie "nezobrazí".
+          -->
+          <div v-if="showNotifications" class="notifications-panel dropdown" @click.stop>
             <div class="notif-header">
               Notifikácie
-              <button class="close-btn" @click="toggleNotifications">✖</button>
+              <button class="close-btn" @click.stop="toggleNotifications">✖</button>
             </div>
 
             <div v-if="notifications.length === 0" class="notif-empty">
@@ -33,7 +37,7 @@
               <button
                 v-if="!notif.read"
                 class="confirm-btn"
-                @click="markAsRead(notif.id)"
+                @click.stop="markAsRead(notif.id)"
               >
                 ✔
               </button>
@@ -67,7 +71,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import axios from 'axios'
 
 const router = useRouter()
@@ -113,6 +117,9 @@ const notificationsReadUrlPrefix = computed(() => {
 
 const showNotifications = ref(false)
 const notifications = ref([])
+
+// Interval pre periodické načítanie notifikácií (napr. aby sa badge aktualizoval aj bez otvorenia panelu)
+let notificationsTimer = null
 
 async function fetchNotifications() {
   const url = notificationsListUrl.value
@@ -186,6 +193,19 @@ onMounted(() => {
   // Načítame notifikácie iba ak je používateľ prihlásený
   if (isAuthed.value) {
     fetchNotifications()
+
+    // Každých 25s obnovíme notifikácie (ľahké polling riešenie s nízkou záťažou)
+    notificationsTimer = setInterval(() => {
+      // Neotvárame panel, len obnovujeme dáta
+      fetchNotifications()
+    }, 25000)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (notificationsTimer) {
+    clearInterval(notificationsTimer)
+    notificationsTimer = null
   }
 })
 </script>

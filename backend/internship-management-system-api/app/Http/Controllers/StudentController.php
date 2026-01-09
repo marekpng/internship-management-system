@@ -1,7 +1,10 @@
 <?php
 
-namespace app\Http\Controllers;
+namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
+use App\Models\Notification;
+
 class StudentController
 {
     public function dashboard(Request $request)
@@ -19,5 +22,30 @@ class StudentController
                 'role' => $user->role,
             ],
         ]);
+    }
+
+    /**
+     * Zoznam notifikácií pre prihláseného študenta
+     */
+    public function getUserNotifications(Request $request)
+    {
+        return Notification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'DESC')
+            ->get();
+    }
+
+    /**
+     * Označenie notifikácie ako prečítanej (iba vlastnej)
+     */
+    public function markNotificationRead($id, Request $request)
+    {
+        $notification = Notification::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $notification->read = true;
+        $notification->save();
+
+        return response()->json(['status' => 'success']);
     }
 }

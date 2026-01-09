@@ -20,6 +20,10 @@ Route::get('/company/activate/{id}', [RegisterController::class, 'activateCompan
 Route::middleware(['auth:api', 'role:student'])->group(function () {
     Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
     Route::post('/internships/{id}/documents/upload', [DocumentController::class, 'uploadStudentDocument']);
+
+    // Reálne notifikácie pre zvonček (študent)
+    Route::get('/student/user-notifications', [StudentController::class, 'getUserNotifications']);
+    Route::post('/student/notifications/read/{id}', [StudentController::class, 'markNotificationRead']);
 });
 
 // Verejný endpoint pre načítanie všetkých firiem (pre študentov)
@@ -76,6 +80,10 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
     Route::post('/internships/{id}/not-defended', [GarantController::class, 'markNotDefended']);
 
     Route::put('internships/{id}', [InternshipController::class, 'update']);
+
+    // Reálne notifikácie pre zvonček (garant)
+    Route::get('/user-notifications', [GarantController::class, 'getUserNotifications']);
+    Route::post('/notifications/read/{id}', [GarantController::class, 'markNotificationRead']);
 });
 
 Route::post('/login', [LoginController::class, 'login']);

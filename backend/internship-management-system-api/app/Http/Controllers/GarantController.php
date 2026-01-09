@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Internship;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 
 class GarantController extends Controller
@@ -132,5 +133,31 @@ class GarantController extends Controller
         $internship->save();
 
         return response()->json(['message' => 'Prax bola označená ako neobhájená.']);
+    }
+
+    /**
+     * Zoznam notifikácií pre prihláseného garanta
+     * Načítava iba notifikácie patriace aktuálnemu userovi
+     */
+    public function getUserNotifications(Request $request)
+    {
+        return Notification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'DESC')
+            ->get();
+    }
+
+    /**
+     * Označenie notifikácie ako prečítanej (iba vlastnej)
+     */
+    public function markNotificationRead($id, Request $request)
+    {
+        $notification = Notification::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $notification->read = true;
+        $notification->save();
+
+        return response()->json(['status' => 'success']);
     }
 }
