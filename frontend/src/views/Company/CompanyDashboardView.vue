@@ -40,10 +40,15 @@ import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
     </section>
 
   </div>
+  <div class="footer-only">
+    <FooterComponent />
+  </div>
 </template>
 
 <script>
 import axios from 'axios'
+import '@/assets/basic.css'
+import FooterComponent from '@/components/FooterComponent.vue'
 
 export default {
   name: "CompanyDashboardView",
@@ -157,7 +162,7 @@ export default {
   background: white;
   padding: 24px;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   text-align: center;
 }
 

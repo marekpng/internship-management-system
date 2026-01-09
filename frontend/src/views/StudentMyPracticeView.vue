@@ -1,201 +1,181 @@
 <template>
-  <div class="overlay">
-    <div class="practice-container">
-      <!-- HEADER -->
-      <div class="header-row">
-        <div class="back-button" @click="goBack">← Späť</div>
-        <h2>Moja prax</h2>
-      </div>
+  <div class="page-wrapper">
+    <div class="content">
+      <div class="overlay">
+        <div class="practice-container">
+          <!-- HEADER -->
+          <div class="header-row">
+            <div class="back-button" @click="goBack">← Späť</div>
+            <h2>Moja prax</h2>
+          </div>
 
-      <!-- LOADING -->
-      <div v-if="loading" class="loading">
-        Načítavam údaje o praxi...
-      </div>
+          <!-- LOADING -->
+          <div v-if="loading" class="loading">
+            Načítavam údaje o praxi...
+          </div>
 
-      <!-- CONTENT -->
-      <div v-else-if="practices.length">
-        <div v-for="p in practices" :key="p.id" class="practice-card">
-          <!-- ==================================== -->
-          <!-- =========== EDIT MODE =============== -->
-          <!-- ==================================== -->
-          <template v-if="editingPracticeId === p.id">
-            <form @submit.prevent="submitEdit(p.id)" class="edit-form">
-              <p><strong>Firma:</strong> {{ p.company_name }}</p>
+          <!-- CONTENT -->
+          <div v-else-if="practices.length">
+            <div v-for="p in practices" :key="p.id" class="practice-card">
+              <!-- ==================================== -->
+              <!-- =========== EDIT MODE =============== -->
+              <!-- ==================================== -->
+              <template v-if="editingPracticeId === p.id">
+                <form @submit.prevent="submitEdit(p.id)" class="edit-form">
+                  <p><strong>Firma:</strong> {{ p.company_name }}</p>
 
-              <label>Rok</label>
-              <input type="number" v-model.number="editForm.year" disabled />
+                  <label>Rok</label>
+                  <input type="number" v-model.number="editForm.year" disabled />
 
-              <label>Semester</label>
-              <input type="text" v-model="editForm.semester" disabled />
+                  <label>Semester</label>
+                  <input type="text" v-model="editForm.semester" disabled />
 
-              <label>Začiatok praxe</label>
-              <input type="date" v-model="editForm.start_date" required />
+                  <label>Začiatok praxe</label>
+                  <input type="date" v-model="editForm.start_date" required />
 
-              <label>Koniec praxe</label>
-              <input type="date" v-model="editForm.end_date" required />
+                  <label>Koniec praxe</label>
+                  <input type="date" v-model="editForm.end_date" required />
 
-              <div class="button-row">
-                <button type="submit">Uložiť</button>
-                <button type="button" class="btn-outline" @click="cancelEditing">
-                  Zrušiť
-                </button>
-              </div>
-            </form>
-          </template>
-
-          <!-- ==================================== -->
-          <!-- =========== VIEW MODE ============== -->
-          <!-- ==================================== -->
-          <template v-else>
-            <!-- STATUS -->
-            <div class="status-box">
-              {{ p.status }}
-            </div>
-
-            <!-- BASIC INFO -->
-            <div class="info-section">
-              <p><strong>Firma:</strong> {{ p.company_name }}</p>
-              <p><strong>Rok:</strong> {{ p.year }}</p>
-              <p><strong>Semester:</strong> {{ p.semester }}</p>
-              <p><strong>Začiatok praxe:</strong> {{ formatDate(p.start_date) }}</p>
-              <p><strong>Koniec praxe:</strong> {{ formatDate(p.end_date) }}</p>
-              <p>
-                <strong>Študent:</strong>
-                {{ p.student_first_name }} {{ p.student_last_name }}
-              </p>
-              <p>
-                <strong>Garant:</strong>
-                {{ p.garant_first_name }} {{ p.garant_last_name }}
-              </p>
-            </div>
-
-            <!-- ========================= -->
-            <!-- ====== DOKUMENTY ========= -->
-            <!-- ========================= -->
-            <div class="documents-section">
-              <h3>Dokumenty</h3>
-
-              <div class="documents-list">
-                <!-- ŠPECIÁLNY DOKUMENT – DOHODA -->
-                <div class="doc-item special-doc">
-                  <div class="doc-main">
-                    <div class="doc-name">Dohoda o vykonávaní odbornej praxe</div>
-                    <div class="doc-meta">
-                      <span class="doc-badge special-badge">Systémový dokument</span>
-                    </div>
+                  <div class="button-row">
+                    <button type="submit">Uložiť</button>
+                    <button type="button" class="btn-outline" @click="cancelEditing">
+                      Zrušiť
+                    </button>
                   </div>
+                </form>
+              </template>
 
-                  <button
-                    type="button"
-                    class="btn-outline"
-                    @click="downloadAgreement(p.id)"
-                  >
-                    📥 Stiahnuť
-                  </button>
+              <!-- ==================================== -->
+              <!-- =========== VIEW MODE ============== -->
+              <!-- ==================================== -->
+              <template v-else>
+                <!-- STATUS -->
+                <div class="status-box">
+                  {{ p.status }}
                 </div>
 
-                <!-- POUŽÍVATEĽSKÉ DOKUMENTY -->
-                <template v-if="documents[p.id]?.length">
-                  <div
-                    v-for="doc in documents[p.id]"
-                    :key="doc.document_id"
-                    class="doc-item"
-                  >
-                    <div class="doc-main">
-                      <div class="doc-name">{{ doc.document_name }}</div>
-                      <div class="doc-meta">
-                        <span class="doc-badge">
-                          {{ translateDocType(doc.type) }}
-                        </span>
-                        <span
-                          v-if="doc.company_status"
-                          class="doc-badge status-badge"
-                        >
-                          {{ translateCompanyStatus(doc.company_status) }}
-                        </span>
+                <!-- BASIC INFO -->
+                <div class="info-section">
+                  <p><strong>Firma:</strong> {{ p.company_name }}</p>
+                  <p><strong>Rok:</strong> {{ p.year }}</p>
+                  <p><strong>Semester:</strong> {{ p.semester }}</p>
+                  <p><strong>Začiatok praxe:</strong> {{ formatDate(p.start_date) }}</p>
+                  <p><strong>Koniec praxe:</strong> {{ formatDate(p.end_date) }}</p>
+                  <p>
+                    <strong>Študent:</strong>
+                    {{ p.student_first_name }} {{ p.student_last_name }}
+                  </p>
+                  <p>
+                    <strong>Garant:</strong>
+                    {{ p.garant_first_name }} {{ p.garant_last_name }}
+                  </p>
+                </div>
+
+                <!-- ========================= -->
+                <!-- ====== DOKUMENTY ========= -->
+                <!-- ========================= -->
+                <div class="documents-section">
+                  <h3>Dokumenty</h3>
+
+                  <div class="documents-list">
+                    <!-- ŠPECIÁLNY DOKUMENT – DOHODA -->
+                    <div class="doc-item special-doc">
+                      <div class="doc-main">
+                        <div class="doc-name">Dohoda o vykonávaní odbornej praxe</div>
+                        <div class="doc-meta">
+                          <span class="doc-badge special-badge">Systémový dokument</span>
+                        </div>
+                      </div>
+
+                      <button type="button" class="btn-outline" @click="downloadAgreement(p.id)">
+                        📥 Stiahnuť
+                      </button>
+                    </div>
+
+                    <!-- POUŽÍVATEĽSKÉ DOKUMENTY -->
+                    <template v-if="documents[p.id]?.length">
+                      <div v-for="doc in documents[p.id]" :key="doc.document_id" class="doc-item">
+                        <div class="doc-main">
+                          <div class="doc-name">{{ doc.document_name }}</div>
+                          <div class="doc-meta">
+                            <span class="doc-badge">
+                              {{ translateDocType(doc.type) }}
+                            </span>
+                            <span v-if="doc.company_status" class="doc-badge status-badge">
+                              {{ translateCompanyStatus(doc.company_status) }}
+                            </span>
+                          </div>
+                        </div>
+
+                        <button class="btn-outline" type="button" @click="downloadDocument(doc.document_id)">
+                          📥 Stiahnuť
+                        </button>
+                      </div>
+                    </template>
+
+                    <p v-else class="no-documents no-documents-inline">
+                      Zatiaľ neboli nahraté žiadne dokumenty.
+                    </p>
+                  </div>
+
+                  <!-- UPLOAD FORM -->
+                  <form class="doc-upload-form" @submit.prevent="uploadDocument(p.id)">
+                    <div class="upload-row">
+                      <div class="upload-field">
+                        <label>Typ dokumentu</label>
+                        <select v-model="uploadForms[p.id].document_type" required>
+                          <option disabled value="">Vyber typ dokumentu</option>
+                          <option value="report">Správa z praxe</option>
+                          <option value="signed_agreement">Podpísaná dohoda</option>
+                        </select>
+                      </div>
+
+                      <div class="upload-field">
+                        <label>Súbor</label>
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onFileChange($event, p.id)"
+                          required />
                       </div>
                     </div>
 
-                    <button
-                      class="btn-outline"
-                      type="button"
-                      @click="downloadDocument(doc.document_id)"
-                    >
-                      📥 Stiahnuť
+                    <p class="doc-error" v-if="uploadErrors[p.id]">
+                      {{ uploadErrors[p.id] }}
+                    </p>
+                    <p class="doc-success" v-if="uploadSuccess[p.id]">
+                      {{ uploadSuccess[p.id] }}
+                    </p>
+
+                    <button class="doc-upload-btn" type="submit" :disabled="uploadLoading[p.id]">
+                      {{ uploadLoading[p.id] ? "Nahrávam..." : "Nahrať dokument" }}
                     </button>
-                  </div>
-                </template>
-
-                <p
-                  v-else
-                  class="no-documents no-documents-inline"
-                >
-                  Zatiaľ neboli nahraté žiadne dokumenty.
-                </p>
-              </div>
-
-              <!-- UPLOAD FORM -->
-              <form class="doc-upload-form" @submit.prevent="uploadDocument(p.id)">
-                <div class="upload-row">
-                  <div class="upload-field">
-                    <label>Typ dokumentu</label>
-                    <select v-model="uploadForms[p.id].document_type" required>
-                      <option disabled value="">Vyber typ dokumentu</option>
-                      <option value="report">Správa z praxe</option>
-                      <option value="signed_agreement">Podpísaná dohoda</option>
-                    </select>
-                  </div>
-
-                  <div class="upload-field">
-                    <label>Súbor</label>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      @change="onFileChange($event, p.id)"
-                      required
-                    />
-                  </div>
+                  </form>
                 </div>
 
-                <p class="doc-error" v-if="uploadErrors[p.id]">
-                  {{ uploadErrors[p.id] }}
-                </p>
-                <p class="doc-success" v-if="uploadSuccess[p.id]">
-                  {{ uploadSuccess[p.id] }}
-                </p>
-
-                <button
-                  class="doc-upload-btn"
-                  type="submit"
-                  :disabled="uploadLoading[p.id]"
-                >
-                  {{ uploadLoading[p.id] ? "Nahrávam..." : "Nahrať dokument" }}
-                </button>
-              </form>
+                <!-- ACTION BUTTONS -->
+                <div class="button-row">
+                  <button type="button" @click="startEditing(p)" class="btn-outline">
+                    Upraviť prax
+                  </button>
+                </div>
+              </template>
             </div>
+          </div>
 
-            <!-- ACTION BUTTONS -->
-            <div class="button-row">
-              <button
-                type="button"
-                @click="startEditing(p)"
-                class="btn-outline"
-              >
-                Upraviť prax
-              </button>
-            </div>
-          </template>
+          <div v-else class="no-practice">
+            Žiadna prax zatiaľ nebola vytvorená.
+          </div>
         </div>
       </div>
-
-      <div v-else class="no-practice">
-        Žiadna prax zatiaľ nebola vytvorená.
-      </div>
+    </div>
+    <div class="footer-only">
+      <FooterComponent />
     </div>
   </div>
+
 </template>
 
 <script setup>
+import '@/assets/basic.css'
+import FooterComponent from '@/components/FooterComponent.vue'
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
@@ -411,20 +391,20 @@ const downloadDocument = (docId) =>
   );
 
 const translateDocType = (t) =>
-  ({
-    report: "Správa z praxe",
-    signed_agreement: "Podpísaná dohoda",
-    agreement_signed: "Dohoda podpísaná firmou",
-    review: "Hodnotenie / posudok",
-  }[t] || t);
+({
+  report: "Správa z praxe",
+  signed_agreement: "Podpísaná dohoda",
+  agreement_signed: "Dohoda podpísaná firmou",
+  review: "Hodnotenie / posudok",
+}[t] || t);
 
 const translateCompanyStatus = (s) =>
-  ({
-    pending: "Čaká na spracovanie",
-    submitted: "Odoslané",
-    approved: "Schválené",
-    rejected: "Zamietnuté",
-  }[s] || s);
+({
+  pending: "Čaká na spracovanie",
+  submitted: "Odoslané",
+  approved: "Schválené",
+  rejected: "Zamietnuté",
+}[s] || s);
 
 onMounted(loadPractices);
 </script>

@@ -129,17 +129,20 @@ class InternshipController extends Controller
     {
         $internship = Internship::findOrFail($id);
 
-        // validujeme len polia, ktoré sa majú aktualizovať
+        // Validácia všetkých polí, ktoré môžu byť aktualizované
         $validated = $request->validate([
-            'start_date' => 'required|date',
-            'end_date'   => 'required|date',
+            'start_date' => 'sometimes|required|date',
+            'end_date'   => 'sometimes|required|date',
+            'semester'   => 'sometimes|required|in:Zimný,Letný',                                                         // Validácia semesteru
+            'status'     => 'sometimes|required|in:Vytvorená,Potvrdená,Schválená,Zamietnutá,Obhájená,Neobhájená', // Validácia statusu
+            'year'       => 'sometimes|required|integer',
+            'company_id' => 'sometimes|required|exists:users,id',
+            'student_id' => 'sometimes|required|exists:users,id',
+            'garant_id'  => 'sometimes|required|exists:users,id',
         ]);
 
-        // aktualizujeme len začiatok a koniec praxe
-        $internship->update([
-            'start_date' => $validated['start_date'],
-            'end_date'   => $validated['end_date'],
-        ]);
+        // Aktualizujeme len polia, ktoré boli odoslané v požiadavke
+        $internship->update($validated);
 
         return response()->json([
             'message'    => 'Prax bola úspešne aktualizovaná.',
@@ -194,37 +197,36 @@ class InternshipController extends Controller
     }
 
     public function myInternshipsNew(Request $request)
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    // Získame všetky stáže, kde je študent, firma alebo garant
-    $internships = Internship::with(['company', 'student', 'garant'])
-        ->where('student_id', $user->id)
-        ->orWhere('company_id', $user->id)
-        ->orWhere('garant_id', $user->id)
-        ->get();
+        // Získame všetky stáže, kde je študent, firma alebo garant
+        $internships = Internship::with(['company', 'student', 'garant'])
+            ->where('student_id', $user->id)
+            ->orWhere('company_id', $user->id)
+            ->orWhere('garant_id', $user->id)
+            ->get();
 
-    // Mapujeme dáta na požiadavaný formát
-    $data = $internships->map(function ($internship) {
-        return [
-            'id'                 => $internship->id,
-            'year'               => $internship->year,
-            'semester'           => $internship->semester,
-            'created_at'          => $internship->created_at,
-            'start_date'         => $internship->start_date,
-            'end_date'           => $internship->end_date,
-            'status'             => $internship->status,
-            'company'            => $internship->company ? $internship->company->toArray() : null, // Všetky dáta o firme
-            'student'            => $internship->student ? $internship->student->toArray() : null, // Všetky dáta o študentovi
-            'garant_id'          => $internship->garant_id,
-            'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
-            'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
-        ];
-    });
+        // Mapujeme dáta na požiadavaný formát
+        $data = $internships->map(function ($internship) {
+            return [
+                'id'                => $internship->id,
+                'year'              => $internship->year,
+                'semester'          => $internship->semester,
+                'created_at'        => $internship->created_at,
+                'start_date'        => $internship->start_date,
+                'end_date'          => $internship->end_date,
+                'status'            => $internship->status,
+                'company'           => $internship->company ? $internship->company->toArray() : null, // Všetky dáta o firme
+                'student'           => $internship->student ? $internship->student->toArray() : null, // Všetky dáta o študentovi
+                'garant_id'         => $internship->garant_id,
+                'garant_first_name' => $internship->garant?->first_name ?? 'Nezadané meno',
+                'garant_last_name'  => $internship->garant?->last_name ?? 'Nezadané priezvisko',
+            ];
+        });
 
-    return response()->json($data);
-}
-
+        return response()->json($data);
+    }
 
 /**
  * Stiahnuť PDF dohodu pre konkrétnu prax.

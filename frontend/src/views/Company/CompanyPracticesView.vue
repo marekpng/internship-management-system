@@ -1,68 +1,66 @@
 <template>
-  <CompanyNavBar>
-    <template #filters>
-      <div class="filter-bar">
-        <router-link
-          to="/company/practices?status=Vytvorená"
-          class="filter-btn"
-          :class="{ active: $route.query.status === 'Vytvorená' }"
-        >
-          Čakajúce
-        </router-link>
+  <div class="page-wrapper">
+    <div class="content">
+      <CompanyNavBar>
+        <template #filters>
+          <div class="filter-bar">
+            <router-link to="/company/practices?status=Vytvorená" class="filter-btn"
+              :class="{ active: $route.query.status === 'Vytvorená' }">
+              Čakajúce
+            </router-link>
 
-        <router-link
-          to="/company/practices?status=Potvrdená"
-          class="filter-btn"
-          :class="{ active: $route.query.status === 'Potvrdená' }"
-        >
-          Potvrdené
-        </router-link>
+            <router-link to="/company/practices?status=Potvrdená" class="filter-btn"
+              :class="{ active: $route.query.status === 'Potvrdená' }">
+              Potvrdené
+            </router-link>
 
-        <router-link
-          to="/company/practices?status=Zamietnutá"
-          class="filter-btn"
-          :class="{ active: $route.query.status === 'Zamietnutá' }"
-        >
-          Zamietnuté
-        </router-link>
-      </div>
-    </template>
-  </CompanyNavBar>
+            <router-link to="/company/practices?status=Zamietnutá" class="filter-btn"
+              :class="{ active: $route.query.status === 'Zamietnutá' }">
+              Zamietnuté
+            </router-link>
+          </div>
+        </template>
+      </CompanyNavBar>
 
-  <div class="container">
+      <div class="container">
 
 
-    <div v-if="loading">Načítavam…</div>
+        <div v-if="loading">Načítavam…</div>
 
-    <div v-else-if="internships.length === 0">
-      <p>Zatiaľ tu nie sú žiadne praxe v tomto stave.</p>
-    </div>
-
-    <ul v-else class="practice-list">
-      <li
-        v-for="internship in internships"
-        :key="internship.id"
-        @click="goToDetail(internship.id)"
-        class="practice-item"
-      >
-        <strong>{{ internship.student.first_name }} {{ internship.student.last_name }}</strong>
-
-        <div>{{ internship.student.email }}</div>
-        <div>{{ internship.status }}: {{ formatDate(internship.created_at) }}</div>
-
-        <!-- 🔥 INFO O DOKUMENTOCH -->
-        <div class="doc-row">
-          <span
-            class="doc-badge"
-            :class="internship.hasDocuments ? 'badge-green' : 'badge-red'"
-          >
-            Dokumenty: {{ internship.hasDocuments ? "Áno" : "Nie" }}
-          </span>
+        <div v-else-if="internships.length === 0">
+          <p>Zatiaľ tu nie sú žiadne praxe v tomto stave.</p>
         </div>
-      </li>
-    </ul>
+
+        <ul v-else class="practice-list">
+          <li v-for="internship in internships" :key="internship.id" @click="goToDetail(internship.id)"
+            class="practice-item">
+            <strong>{{ internship.student.first_name }} {{ internship.student.last_name }}</strong>
+
+            <div>{{ internship.student.email }}</div>
+            <div>{{ internship.status }}: {{ formatDate(internship.created_at) }}</div>
+
+            <!-- 🔥 INFO O DOKUMENTOCH -->
+            <div class="doc-row">
+              <span class="doc-badge" :class="internship.hasDocuments ? 'badge-green' : 'badge-red'">
+                Dokumenty: {{ internship.hasDocuments ? "Áno" : "Nie" }}
+              </span>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-only">
+    <FooterComponent />
   </div>
 </template>
+
+
+<script setup>
+import '@/assets/basic.css'
+import FooterComponent from '@/components/FooterComponent.vue'
+</script>
 
 <script>
 import CompanyNavBar from '@/components/icons/CompanyNavBar.vue';
@@ -196,7 +194,7 @@ export default {
   background: #ffffff;
   padding: 14px 20px;
   border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
   margin-bottom: 25px;
 }
 

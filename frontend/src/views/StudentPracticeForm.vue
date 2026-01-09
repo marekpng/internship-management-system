@@ -1,76 +1,65 @@
 <template>
-  <div class="practice-form">
-    <div class="back-button" @click="goBack">← Späť</div>
-    <h2>Vytvorenie nového záznamu praxe</h2>
+  <div class="page-wrapper">
+    <div class="content">
+      <div class="practice-form">
+        <div class="back-button" @click="goBack">← Späť</div>
+        <h2>Vytvorenie nového záznamu praxe</h2>
 
-    <form @submit.prevent="submitForm">
-      <!-- Výber firmy -->
-      <label for="company">Firma</label>
-      <input
-        id="company"
-        v-model="companySearch"
-        type="text"
-        placeholder="Vyhľadaj firmu podľa názvu..."
-        @input="filterCompanies"
-        @change="selectCompany"
-        list="companyList"
-        required
-      />
-      <datalist id="companyList">
-        <option
-          v-for="company in filteredCompanies"
-          :key="company.id"
-          :value="company.company_name || company.name"
-        />
-      </datalist>
+        <form @submit.prevent="submitForm">
+          <!-- Výber firmy -->
+          <label for="company">Firma</label>
+          <input id="company" v-model="companySearch" type="text" placeholder="Vyhľadaj firmu podľa názvu..."
+            @input="filterCompanies" @change="selectCompany" list="companyList" required />
+          <datalist id="companyList">
+            <option v-for="company in filteredCompanies" :key="company.id"
+              :value="company.company_name || company.name" />
+          </datalist>
 
-      <!-- Rok a semester -->
-      <label for="year">Rok</label>
-      <input id="year" v-model="year" type="number" readonly />
+          <!-- Rok a semester -->
+          <label for="year">Rok</label>
+          <input id="year" v-model="year" type="number" readonly />
 
-      <label for="semester">Semester</label>
-      <select id="semester" v-model="semester" required>
-        <option value="">Vyber semester</option>
-        <option value="zimný">Zimný</option>
-        <option value="letný">Letný</option>
-      </select>
+          <label for="semester">Semester</label>
+          <select id="semester" v-model="semester" required>
+            <option value="">Vyber semester</option>
+            <option value="zimný">Zimný</option>
+            <option value="letný">Letný</option>
+          </select>
 
-      <!-- Dátumy praxe -->
-      <label for="start_date">Začiatok praxe</label>
-      <input
-        id="start_date"
-        v-model="start_date"
-        type="date"
-        required
-        @change="setYearFromStartDate"
-      />
+          <!-- Dátumy praxe -->
+          <label for="start_date">Začiatok praxe</label>
+          <input id="start_date" v-model="start_date" type="date" required @change="setYearFromStartDate" />
 
-      <label for="end_date">Koniec praxe</label>
-      <input
-        id="end_date"
-        v-model="end_date"
-        type="date"
-        required
-      />
+          <label for="end_date">Koniec praxe</label>
+          <input id="end_date" v-model="end_date" type="date" required />
 
-      <!-- Odoslanie -->
-      <button type="submit">Uložiť prax</button>
-    </form>
+          <!-- Odoslanie -->
+          <button type="submit">Uložiť prax</button>
+        </form>
 
-    <!-- Správy o stave -->
-    <p v-if="successMessage" class="success">{{ successMessage }}</p>
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+        <!-- Správy o stave -->
+        <p v-if="successMessage" class="success">{{ successMessage }}</p>
+        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
 
-    <!-- 🔽 Nové tlačidlo na stiahnutie PDF dohody -->
-    <div v-if="pdfDownloadLink" class="pdf-download">
-      <button class="download-btn" @click="downloadPdf">
-        📄 Stiahnuť dohodu o praxi
-      </button>
+        <!-- 🔽 Nové tlačidlo na stiahnutie PDF dohody -->
+        <div v-if="pdfDownloadLink" class="pdf-download">
+          <button class="download-btn" @click="downloadPdf">
+            📄 Stiahnuť dohodu o praxi
+          </button>
+        </div>
+      </div>
     </div>
+  </div>
+
+
+  <div class="footer-only">
+    <FooterComponent />
   </div>
 </template>
 
 <script setup>
+import '@/assets/basic.css'
+import FooterComponent from '@/components/FooterComponent.vue'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
@@ -171,7 +160,7 @@ const submitForm = async () => {
 
     successMessage.value = 'Prax bola úspešne vytvorená!'
     errorMessage.value = ''
-    
+
     // 🔽 Po vytvorení si uložíme link na PDF dohodu (napr. ID novej praxe)
     const internshipId = response.data?.internship?.id
     if (internshipId) {
@@ -203,10 +192,16 @@ const downloadPdf = () => {
   background: #fff;
   padding: 24px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
-.success { color: green; }
-.error { color: red; }
+
+.success {
+  color: green;
+}
+
+.error {
+  color: red;
+}
 
 .back-button {
   cursor: pointer;

@@ -1,4 +1,6 @@
 <template>
+    <div class="page-wrapper">
+    <div class="content">
   <div class="container" v-if="internship">
     <div class="header-bar">
       <span class="header-title">Garant • Praxe</span>
@@ -40,7 +42,10 @@
         </div>
         <div class="form-group">
           <label>Semester:</label>
-          <input type="text" v-model="editForm.semester">
+          <select v-model="editForm.semester">
+            <option value="Zimný">Zimný</option>
+            <option value="Letný">Letný</option>
+          </select>
         </div>
         <div class="form-group">
           <label>Rok:</label>
@@ -70,7 +75,7 @@
       </template>
 
       <!-- Garant môže editovať len SCHVÁLENÚ prax -->
-      <template v-if="internship.status === 'Schválená' && !editMode">
+      <template v-if="!editMode">
         <button class="approve" style="background:#0b6b37" @click="editMode = true">Upraviť prax / nastaviť obhajobu</button>
       </template>
 
@@ -91,7 +96,19 @@
   <div v-else class="loading">
     Načítavam detail…
   </div>
+    </div>
+  </div>
+
+    <div class="footer-only">
+    <FooterComponent />
+  </div>
 </template>
+
+
+<script setup>
+import '@/assets/basic.css'
+import FooterComponent from '@/components/FooterComponent.vue'
+</script>
 
 <script>
 import axios from "axios";
@@ -203,7 +220,7 @@ export default {
           year: this.editForm.year,
           status: this.editForm.status
         };
-        await axios.put(`http://localhost:8000/api/garant/internships/${id}`, payload, {
+        await axios.put(`http://localhost:8000/api/garant/internships/update/${id}`, payload, {
           headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
         });
         alert("Prax bola úspešne aktualizovaná.");

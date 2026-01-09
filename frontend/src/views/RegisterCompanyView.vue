@@ -1,55 +1,55 @@
 <template>
-   <div class="landing">
-  <HeaderComponent />
-  <div class="page">
-    <h1>Registrácia firmy</h1>
+  <div class="landing">
+    <HeaderComponent />
+    <div class="page">
+      <h1>Registrácia firmy</h1>
 
-    <form class="form" @submit.prevent="submit">
-      <label>
-        Názov firmy *
-        <input v-model.trim="form.company_name" required />
-      </label>
-
-      <label>
-        Adresa firmy
-        <input v-model.trim="form.company_address" />
-      </label>
-
-      <div class="grid">
+      <form class="form" @submit.prevent="submit">
         <label>
-          Kontaktná osoba *
-          <input v-model.trim="form.contact_person_name" required />
+          Názov firmy *
+          <input v-model.trim="form.company_name" required />
         </label>
+
         <label>
-          Kontaktný email *
-          <input type="email" v-model.trim="form.contact_person_email" required />
+          Adresa firmy
+          <input v-model.trim="form.company_address" />
         </label>
-      </div>
 
-      <label>
-        Telefón
-        <input v-model.trim="form.contact_person_phone" />
-      </label>
+        <div class="grid">
+          <label>
+            Kontaktná osoba *
+            <input v-model.trim="form.contact_person_name" required />
+          </label>
+          <label>
+            Kontaktný email *
+            <input type="email" v-model.trim="form.contact_person_email" required />
+          </label>
+        </div>
 
-      <div class="grid">
         <label>
-          Heslo *
-          <input type="password" v-model.trim="form.password" required />
+          Telefón
+          <input v-model.trim="form.contact_person_phone" />
         </label>
-        <label>
-          Potvrdenie hesla *
-          <input type="password" v-model.trim="form.password_confirmation" required />
-        </label>
-      </div>
 
-      <div v-if="error" class="error">{{ error }}</div>
-      <div v-if="success" class="success">{{ success }}</div>
+        <div class="grid">
+          <label>
+            Heslo *
+            <input type="password" v-model.trim="form.password" required />
+          </label>
+          <label>
+            Potvrdenie hesla *
+            <input type="password" v-model.trim="form.password_confirmation" required />
+          </label>
+        </div>
 
-      <button class="btn" :disabled="loading" type="submit">
-        {{ loading ? 'Posielam...' : 'Odoslať registráciu' }}
-      </button>
-    </form>
-  </div>
+        <div v-if="error" class="error">{{ error }}</div>
+        <div v-if="success" class="success">{{ success }}</div>
+
+        <button class="btn" :disabled="loading" type="submit">
+          {{ loading ? 'Posielam...' : 'Odoslať registráciu' }}
+        </button>
+      </form>
+    </div>
     <FooterComponent />
   </div>
 </template>
@@ -133,49 +133,58 @@ async function submit() {
   padding: 24px;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .08);
 }
+
 h1 {
   margin: 0 0 16px;
-  color:#0a7b3e;
+  color: #0a7b3e;
 }
+
 .form {
   display: grid;
   gap: 16px;
 }
+
 .grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(2, minmax(0,1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
+
 label {
   display: grid;
   gap: 6px;
   font-weight: 600;
 }
+
 input {
   padding: 10px 12px;
-  border:1px solid #d0d7de;
+  border: 1px solid #d0d7de;
   border-radius: 8px;
 }
+
 .btn {
   width: fit-content;
   padding: 10px 16px;
   border-radius: 8px;
-  background:#0a7b3e;
-  color:#fff;
-  border:0;
-  cursor:pointer;
+  background: #0a7b3e;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
 }
+
 .error {
   color: #b00020;
   font-weight: 600;
 }
+
 .success {
   color: #0a7b3e;
   font-weight: 600;
 }
-@media (max-width: 600px){
+
+@media (max-width: 600px) {
   .grid {
     grid-template-columns: 1fr;
   }

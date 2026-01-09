@@ -75,7 +75,7 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
     Route::post('/internships/{id}/defended', [GarantController::class, 'markDefended']);
     Route::post('/internships/{id}/not-defended', [GarantController::class, 'markNotDefended']);
 
-    Route::put('internships/{id}', [InternshipController::class, 'update']);
+    Route::put('internships/update/{id}', [InternshipController::class, 'update']);
 });
 
 Route::post('/login', [LoginController::class, 'login']);

@@ -8,7 +8,7 @@
 
       <nav class="actions">
         <div class="notification-wrapper" @click="toggleNotifications">
-          🔔
+          <i class="fa-solid fa-bell"></i>
           <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
 
           <div v-if="showNotifications" class="notifications-panel dropdown">
@@ -38,12 +38,14 @@
             </div>
           </div>
         </div>
+        
         <router-link to="/company/settings" class="nav-btn">
-          ⚙️ Nastavenia
+          <i class="fas fa-cog"></i> Nastavenia
         </router-link>
 
+
         <button class="nav-btn logout" @click="logout">
-          ⏻ Odhlásiť sa
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Odhlásiť sa 
         </button>
       </nav>
     </div>

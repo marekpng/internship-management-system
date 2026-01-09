@@ -36,9 +36,14 @@
       </div>
     </div>
   </div>
+  <div class="footer-only">
+    <FooterComponent />
+  </div>
 </template>
 
 <script setup>
+import '@/assets/basic.css'
+import FooterComponent from '@/components/FooterComponent.vue'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 

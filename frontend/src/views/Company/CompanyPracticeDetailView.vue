@@ -1,136 +1,147 @@
 <template>
-   <CompanyNavBar />
+  <div class="page-wrapper">
+    <div class="content">
+      <CompanyNavBar />
 
-  <div class="company-wrapper">
-    <!-- pôvodný obsah tvojho company -->
-  </div>
-  <div class="container" v-if="internship">
+      <div class="company-wrapper">
+        <!-- pôvodný obsah tvojho company -->
+      </div>
+      <div class="container" v-if="internship">
 
-    <h1>Detail praxe</h1>
+        <h1>Detail praxe</h1>
 
-    <!-- ============================= -->
-    <!-- ŠTUDENT + PRAX -->
-    <!-- ============================= -->
-    <div class="card">
-      <h2>Študent</h2>
-      <p><strong>Meno:</strong> {{ internship.student.first_name }} {{ internship.student.last_name }}</p>
-      <p><strong>Email:</strong> {{ internship.student.email }}</p>
+        <!-- ============================= -->
+        <!-- ŠTUDENT + PRAX -->
+        <!-- ============================= -->
+        <div class="card">
+          <h2>Študent</h2>
+          <p><strong>Meno:</strong> {{ internship.student.first_name }} {{ internship.student.last_name }}</p>
+          <p><strong>Email:</strong> {{ internship.student.email }}</p>
 
-      <h2>Prax</h2>
+          <h2>Prax</h2>
 
-      <template v-if="!editMode">
-        <p><strong>Začiatok:</strong> {{ formatDate(internship.start_date) }}</p>
-        <p><strong>Koniec:</strong> {{ formatDate(internship.end_date) }}</p>
-        <p><strong>Semester:</strong> {{ internship.semester }}</p>
-        <p><strong>Rok:</strong> {{ internship.year }}</p>
-        <p><strong>Stav praxe:</strong> {{ internship.status }}</p>
-      </template>
+          <template v-if="!editMode">
+            <p><strong>Začiatok:</strong> {{ formatDate(internship.start_date) }}</p>
+            <p><strong>Koniec:</strong> {{ formatDate(internship.end_date) }}</p>
+            <p><strong>Semester:</strong> {{ internship.semester }}</p>
+            <p><strong>Rok:</strong> {{ internship.year }}</p>
+            <p><strong>Stav praxe:</strong> {{ internship.status }}</p>
+          </template>
 
-      <template v-else>
-        <h3>Upraviť údaje</h3>
-        <div class="form-group">
-          <label>Stav praxe:</label>
-          <select v-model="editForm.status">
-            <option value="Vytvorená">Vytvorená</option>
-            <option value="Potvrdená">Potvrdená</option>
-            <option value="Zamietnutá">Zamietnutá</option>
-          </select>
+          <template v-else>
+            <h3>Upraviť údaje</h3>
+            <div class="form-group">
+              <label>Stav praxe:</label>
+              <select v-model="editForm.status">
+                <option value="Vytvorená">Vytvorená</option>
+                <option value="Potvrdená">Potvrdená</option>
+                <option value="Zamietnutá">Zamietnutá</option>
+              </select>
+            </div>
+          </template>
         </div>
-      </template>
-    </div>
 
-    <!-- ============================= -->
-    <!-- DOKUMENTY -->
-    <!-- ============================= -->
-    <div class="card">
-      <h2>Dokumenty</h2>
+        <!-- ============================= -->
+        <!-- DOKUMENTY -->
+        <!-- ============================= -->
+        <div class="card">
+          <h2>Dokumenty</h2>
 
-      <div v-if="documents.length" class="documents-list">
-        <div v-for="doc in documents" :key="doc.document_id" class="doc-item">
+          <div v-if="documents.length" class="documents-list">
+            <div v-for="doc in documents" :key="doc.document_id" class="doc-item">
 
-          <!-- LEFT -->
-          <div class="doc-info">
-            <div class="doc-name">{{ doc.document_name }}</div>
+              <!-- LEFT -->
+              <div class="doc-info">
+                <div class="doc-name">{{ doc.document_name }}</div>
 
-            <div class="doc-meta">
-              <span class="doc-badge">{{ translateDocType(doc.type) }}</span>
-              <span class="doc-status" :class="'status-' + doc.company_status">
-                {{ translateCompanyStatus(doc.company_status) }}
-              </span>
+                <div class="doc-meta">
+                  <span class="doc-badge">{{ translateDocType(doc.type) }}</span>
+                  <span class="doc-status" :class="'status-' + doc.company_status">
+                    {{ translateCompanyStatus(doc.company_status) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- RIGHT -->
+              <div class="doc-actions">
+                <button class="btn-outline" @click="downloadDocument(doc.document_id)">📥 Stiahnuť</button>
+
+                <button v-if="doc.company_status !== 'approved'" class="btn-approve"
+                  @click="approveDocument(doc.document_id)">✔
+                  Schváliť</button>
+
+                <button v-if="doc.company_status !== 'rejected'" class="btn-reject"
+                  @click="rejectDocument(doc.document_id)">✖
+                  Zamietnuť</button>
+              </div>
+
             </div>
           </div>
 
-          <!-- RIGHT -->
-          <div class="doc-actions">
-            <button class="btn-outline" @click="downloadDocument(doc.document_id)">📥 Stiahnuť</button>
+          <p v-else class="no-documents">Zatiaľ nie sú nahraté žiadne dokumenty.</p>
 
-            <button
-              v-if="doc.company_status !== 'approved'"
-              class="btn-approve"
-              @click="approveDocument(doc.document_id)"
-            >✔ Schváliť</button>
+          <!-- UPLOAD -->
+          <h3>Pridať dokument</h3>
 
-            <button
-              v-if="doc.company_status !== 'rejected'"
-              class="btn-reject"
-              @click="rejectDocument(doc.document_id)"
-            >✖ Zamietnuť</button>
-          </div>
+          <form class="upload-form" @submit.prevent="uploadDocument">
+            <label>Typ dokumentu:</label>
+            <select v-model="uploadForm.document_type" required>
+              <option value="" disabled>Vyber typ...</option>
+              <option value="review">Hodnotenie praxe</option>
+              <option value="agreement_signed">Podpísaná dohoda firmou</option>
+            </select>
 
+            <label>Súbor:</label>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onFileChange" required />
+
+            <p class="upload-error" v-if="uploadError">{{ uploadError }}</p>
+            <p class="upload-success" v-if="uploadSuccess">{{ uploadSuccess }}</p>
+
+            <button type="submit" class="upload-btn" :disabled="uploadLoading">
+              {{ uploadLoading ? "Nahrávam..." : "Nahrať" }}
+            </button>
+          </form>
+        </div>
+
+        <!-- ============================= -->
+        <!-- GLOBAL ACTIONS -->
+        <!-- ============================= -->
+        <div class="actions">
+          <template v-if="internship.status === 'Vytvorená'">
+            <button class="approve" @click="approve">Potvrdiť</button>
+            <button class="reject" @click="reject">Zamietnuť</button>
+          </template>
+
+          <template v-if="!editMode && (internship.status === 'Potvrdená' || internship.status === 'Zamietnutá')">
+            <button class="approve" style="background:#0b6b37" @click="editMode = true">Editovať prax</button>
+          </template>
+
+          <template v-if="editMode">
+            <button class="approve" style="background:#0b6b37" @click="saveEdit">Uložiť zmeny</button>
+            <button class="reject" @click="cancelEdit">Zrušiť</button>
+          </template>
         </div>
       </div>
 
-      <p v-else class="no-documents">Zatiaľ nie sú nahraté žiadne dokumenty.</p>
-
-      <!-- UPLOAD -->
-      <h3>Pridať dokument</h3>
-
-      <form class="upload-form" @submit.prevent="uploadDocument">
-        <label>Typ dokumentu:</label>
-        <select v-model="uploadForm.document_type" required>
-          <option value="" disabled>Vyber typ...</option>
-          <option value="review">Hodnotenie praxe</option>
-          <option value="agreement_signed">Podpísaná dohoda firmou</option>
-        </select>
-
-        <label>Súbor:</label>
-        <input type="file" accept=".pdf,.jpg,.jpeg,.png" @change="onFileChange" required />
-
-        <p class="upload-error" v-if="uploadError">{{ uploadError }}</p>
-        <p class="upload-success" v-if="uploadSuccess">{{ uploadSuccess }}</p>
-
-        <button type="submit" class="upload-btn" :disabled="uploadLoading">
-          {{ uploadLoading ? "Nahrávam..." : "Nahrať" }}
-        </button>
-      </form>
-    </div>
-
-    <!-- ============================= -->
-    <!-- GLOBAL ACTIONS -->
-    <!-- ============================= -->
-    <div class="actions">
-      <template v-if="internship.status === 'Vytvorená'">
-        <button class="approve" @click="approve">Potvrdiť</button>
-        <button class="reject" @click="reject">Zamietnuť</button>
-      </template>
-
-      <template v-if="!editMode && (internship.status === 'Potvrdená' || internship.status === 'Zamietnutá')">
-        <button class="approve" style="background:#0b6b37" @click="editMode = true">Editovať prax</button>
-      </template>
-
-      <template v-if="editMode">
-        <button class="approve" style="background:#0b6b37" @click="saveEdit">Uložiť zmeny</button>
-        <button class="reject" @click="cancelEdit">Zrušiť</button>
-      </template>
+      <div v-else class="loading">Načítavam detail…</div>
     </div>
   </div>
-
-  <div v-else class="loading">Načítavam detail…</div>
+  <div class="footer-only">
+    <FooterComponent />
+  </div>
 </template>
+
+
+<script setup>
+import '@/assets/basic.css'
+import FooterComponent from '@/components/FooterComponent.vue'
+</script>
 
 <script>
 import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 import axios from "axios";
+
+
 
 export default {
   name: "CompanyPracticeDetailView",
@@ -410,6 +421,7 @@ export default {
 .container {
   padding: 20px;
 }
+
 .card {
   border: 1px solid #ddd;
   padding: 20px;
@@ -417,12 +429,14 @@ export default {
   margin-bottom: 25px;
   background: white;
 }
+
 .documents-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
   margin: 10px 0;
 }
+
 .doc-item {
   display: flex;
   justify-content: space-between;
@@ -431,19 +445,23 @@ export default {
   border-radius: 10px;
   padding: 12px 15px;
 }
+
 .doc-info {
   display: flex;
   flex-direction: column;
 }
+
 .doc-name {
   font-weight: 600;
   font-size: 15px;
 }
+
 .doc-meta {
   margin-top: 4px;
   display: flex;
   gap: 8px;
 }
+
 .doc-badge {
   background: #e1f2e5;
   padding: 4px 10px;
@@ -452,33 +470,40 @@ export default {
   color: #0b6b37;
   font-weight: 600;
 }
+
 .doc-status {
   padding: 4px 10px;
   border-radius: 8px;
   font-size: 12px;
   font-weight: 600;
 }
+
 .status-pending {
   background: #fff2c2;
   color: #7a5b00;
 }
+
 .status-submitted {
   background: #d7ecff;
   color: #004c82;
 }
+
 .status-approved {
   background: #d7f7dd;
   color: #0b6b37;
 }
+
 .status-rejected {
   background: #ffe0e0;
   color: #8e0000;
 }
+
 .doc-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
 .btn-outline {
   background: white;
   border: 1px solid #0b6b37;
@@ -487,22 +512,26 @@ export default {
   border-radius: 6px;
   cursor: pointer;
 }
+
 .btn-approve {
   background: #3aa76d;
   color: white;
   padding: 6px 10px;
   border-radius: 6px;
 }
+
 .btn-reject {
   background: #d9534f;
   color: white;
   padding: 6px 10px;
   border-radius: 6px;
 }
+
 .upload-form {
   display: flex;
   flex-direction: column;
 }
+
 .upload-btn {
   background: #0b6b37;
   color: white;
@@ -510,29 +539,35 @@ export default {
   border-radius: 6px;
   margin-top: 10px;
 }
+
 .upload-error {
   color: #d9534f;
 }
+
 .upload-success {
   color: #0b6b37;
 }
+
 .actions {
   display: flex;
   gap: 15px;
   margin-bottom: 40px;
 }
+
 .approve {
   background: #3aa76d;
   color: white;
   padding: 12px 18px;
   border-radius: 6px;
 }
+
 .reject {
   background: #d9534f;
   color: white;
   padding: 12px 18px;
   border-radius: 6px;
 }
+
 .back-btn {
   margin-bottom: 15px;
   border: 1px solid #0b6b37;
@@ -541,6 +576,7 @@ export default {
   padding: 8px 14px;
   border-radius: 6px;
 }
+
 .header-bar {
   display: flex;
   justify-content: space-between;
@@ -550,6 +586,7 @@ export default {
   color: white;
   border-radius: 8px;
 }
+
 .header-back {
   background: white;
   color: #0b6b37;
