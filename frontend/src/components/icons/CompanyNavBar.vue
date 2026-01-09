@@ -1,13 +1,15 @@
 <template>
   <header class="company-topbar">
     <div class="container row">
-      <router-link to="/company/dashboard" class="brand">
+      <!-- Link vľavo musí smerovať podľa roly, inak garanta/študenta presmeruje na firmu -->
+      <router-link :to="homePath" class="brand">
         <div class="brand-badge">FPV</div>
         Praxový systém
       </router-link>
 
       <nav class="actions">
-        <div class="notification-wrapper" @click="toggleNotifications">
+        <!-- Notifikácie: endpoint sa vyberie podľa roly (company/garant/student) -->
+        <div v-if="isAuthed" class="notification-wrapper" @click="toggleNotifications">
           🔔
           <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
 
@@ -38,7 +40,15 @@
             </div>
           </div>
         </div>
-        <router-link to="/company/settings" class="nav-btn">
+
+        <!-- Nastavenia: každá rola má svoj cieľ (firma/garant) alebo profil (študent) -->
+        <router-link v-if="role === 'company'" to="/company/settings" class="nav-btn">
+          ⚙️ Nastavenia
+        </router-link>
+        <router-link v-else-if="role === 'garant'" to="/garant/settings" class="nav-btn">
+          ⚙️ Nastavenia
+        </router-link>
+        <router-link v-else to="/profile" class="nav-btn">
           ⚙️ Nastavenia
         </router-link>
 
@@ -47,34 +57,87 @@
         </button>
       </nav>
     </div>
-  
+
+    <!-- Slot pre filtre (napr. Company/Garant stránky). Keď nie je použitý, nič sa nezobrazí. -->
     <div class="filter-container">
       <slot name="filters"></slot>
     </div>
-
   </header>
 </template>
 
 <script setup>
 import { useRouter } from 'vue-router'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
-import { onMounted } from 'vue'
 
 const router = useRouter()
+
+// Domovská stránka podľa roly (roles môže byť ["company"] alebo [{ name: "company" }])
+const homePath = computed(() => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const rawRole = user?.roles?.[0]
+  const role = typeof rawRole === 'string' ? rawRole : rawRole?.name
+
+  if (role === 'student') return '/student/dashboard'
+  if (role === 'garant') return '/garant/dashboard'
+  if (role === 'company') return '/company/dashboard'
+  return '/'
+})
+
+// Rola používateľa (kvôli tomu, aby sa company-only prvky nezobrazovali garantovi/študentovi)
+const role = computed(() => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  const rawRole = user?.roles?.[0]
+  return typeof rawRole === 'string' ? rawRole : rawRole?.name
+})
+
+// Jednoduchá kontrola, či je používateľ prihlásený
+const isAuthed = computed(() => {
+  return !!localStorage.getItem('access_token')
+})
+
+// URL pre notifikácie podľa roly
+const notificationsListUrl = computed(() => {
+  if (role.value === 'company') return 'http://127.0.0.1:8000/api/company/user-notifications'
+  if (role.value === 'garant') return 'http://127.0.0.1:8000/api/garant/user-notifications'
+  if (role.value === 'student') return 'http://127.0.0.1:8000/api/student/user-notifications'
+  return null
+})
+
+const notificationsReadUrlPrefix = computed(() => {
+  if (role.value === 'company') return 'http://127.0.0.1:8000/api/company/notifications/read/'
+  if (role.value === 'garant') return 'http://127.0.0.1:8000/api/garant/notifications/read/'
+  if (role.value === 'student') return 'http://127.0.0.1:8000/api/student/notifications/read/'
+  return null
+})
 
 const showNotifications = ref(false)
 const notifications = ref([])
 
 async function fetchNotifications() {
+  const url = notificationsListUrl.value
+  if (!url) {
+    notifications.value = []
+    return
+  }
+
   try {
-    const res = await axios.get('http://127.0.0.1:8000/api/company/user-notifications', {
+    const res = await axios.get(url, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem('access_token')}`
       }
     })
-    notifications.value = res.data
+
+    // Očakávame pole notifikácií
+    notifications.value = Array.isArray(res.data) ? res.data : []
   } catch (err) {
+    // Ak backend pre danú rolu ešte nie je hotový, nech UI nepadá
+    const status = err?.response?.status
+    if (status === 404) {
+      notifications.value = []
+      return
+    }
+
     console.error('Nepodarilo sa načítať notifikácie:', err)
   }
 }
@@ -93,9 +156,12 @@ function toggleNotifications() {
 }
 
 async function markAsRead(id) {
+  const prefix = notificationsReadUrlPrefix.value
+  if (!prefix) return
+
   try {
     await axios.post(
-      `http://127.0.0.1:8000/api/company/notifications/read/${id}`,
+      `${prefix}${id}`,
       {},
       {
         headers: {
@@ -117,7 +183,10 @@ function logout() {
 }
 
 onMounted(() => {
-  fetchNotifications()
+  // Načítame notifikácie iba ak je používateľ prihlásený
+  if (isAuthed.value) {
+    fetchNotifications()
+  }
 })
 </script>
 
@@ -227,16 +296,17 @@ onMounted(() => {
   border-color: #1d4d2d;
 }
 
-  .notification-wrapper {
-    position: relative;
-    cursor: pointer;
-    font-size: 20px;
-    padding: 6px 10px;
-    border-radius: 6px;
-  }
-  .notification-wrapper:hover {
-    background: #f3f3f3;
-  }
+.notification-wrapper {
+  position: relative;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.notification-wrapper:hover {
+  background: #f3f3f3;
+}
 
 .badge {
   background: red;
@@ -249,23 +319,20 @@ onMounted(() => {
   right: -10px;
 }
 
-  .notifications-panel {
-    position: absolute;
-    top: 36px;
-    right: 0;
-    width: 280px;
-    background: white;
-    border: 1px solid #e6e6e6;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
-    border-radius: 10px;
-    padding: 12px;
-    z-index: 9999;
-    max-height: 320px;
-    overflow-y: auto;
-  }
-  .notification-wrapper {
-    position: relative;
-  }
+.notifications-panel {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  width: 280px;
+  background: white;
+  border: 1px solid #e6e6e6;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  border-radius: 10px;
+  padding: 12px;
+  z-index: 9999;
+  max-height: 320px;
+  overflow-y: auto;
+}
 
 .notif-header {
   display: flex;
@@ -281,13 +348,13 @@ onMounted(() => {
   font-size: 16px;
 }
 
-  .notif-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 6px;
-    border-bottom: 1px solid #f2f2f2;
-  }
+.notif-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 6px;
+  border-bottom: 1px solid #f2f2f2;
+}
 
 .confirm-btn {
   background: #1d4d2d;

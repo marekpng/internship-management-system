@@ -1,4 +1,7 @@
 <template>
+  <!-- Navbar (notifikácie + nastavenia + odhlásenie) -->
+  <CompanyNavBar />
+
   <div class="practice-form">
     <div class="back-button" @click="goBack">← Späť</div>
     <h2>Vytvorenie nového záznamu praxe</h2>
@@ -74,6 +77,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 
 const router = useRouter()
 const goBack = () => router.back()
@@ -202,6 +206,7 @@ const downloadPdf = () => {
   margin: 0 auto;
   background: #fff;
   padding: 24px;
+  padding-top: 94px; /* rezerva pre sticky navbar */
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }

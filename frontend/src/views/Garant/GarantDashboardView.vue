@@ -1,4 +1,5 @@
 <template>
+  <CompanyNavBar />
   <div class="garant-dashboard">
 
     <section class="hero-section">
@@ -13,9 +14,7 @@
             <router-link to="/garant/practices" class="btn-primary">
               Zobraziť všetky praxe
             </router-link>
-            <button class="btn-secondary" @click="logout">
-              Odhlásiť sa
-            </button>
+          
           </div>
         </div>
       </div>
@@ -35,7 +34,7 @@
           <h3>Potvrdené</h3>
           <p class="stat-number">{{ approvedCount }}</p>
         </div>
-        <div class="stat-card" @click="goToStatus('zamietnute')" style="cursor: pointer;">
+        <div class="stat-card" @click="goToStatus('zamietnuta')" style="cursor: pointer;">
           <h3>Zamietnute</h3>
           <p class="stat-number">{{ rejectedCount }}</p>
         </div>
@@ -63,9 +62,11 @@
 
 <script>
 import axios from 'axios'
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 
 export default {
   name: "GarantDashboardView",
+  components: { CompanyNavBar },
 
   data() {
     return {

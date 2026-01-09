@@ -1,17 +1,8 @@
 <template>
   <div class="overlay">
     <div class="container">
-      <!-- Vrchný panel -->
-      <div class="top-bar">
-        <div class="logo">
-          <img src="@/assets/logo-fpv.png" alt="Logo FPV" />
-          <div class="logo-text">Praxový systém</div>
-        </div>
-        <div class="user-actions">
-          <div class="user-name">{{ userName }}</div>
-          <button class="logout-button" @click="logout">Odhlásiť sa</button>
-        </div>
-      </div>
+      <!-- Navbar (spoločný pre roly: notifikácie + nastavenia + odhlásenie) -->
+      <CompanyNavBar />
 
       <!-- sekcie dashboardu -->
       <div class="section">
@@ -41,6 +32,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 
 const router = useRouter()
 const userName = ref('')
@@ -73,7 +65,7 @@ onMounted(() => {
 
 // odhlásenie
 const logout = () => {
-  localStorage.removeItem('token')
+  localStorage.removeItem('access_token')
   localStorage.removeItem('user')
   router.push({ name: 'login' })
 }
@@ -99,8 +91,5 @@ const goToMyPractice = () => {
 .clickable {
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-.clickable:hover {
-  background-color: #f9f9f9;
 }
 </style>
