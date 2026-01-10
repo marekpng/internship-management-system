@@ -64,6 +64,14 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
 
     Route::get('/dashboard', [GarantController::class, 'dashboard']);
 
+    // Profil garanta – načítanie a úprava (pre stránku Nastavenia)
+    Route::get('/profile', [GarantController::class, 'profile']);
+    Route::put('/profile', [GarantController::class, 'updateProfile']);
+
+    // Notifikácie – nastavenia (emailové preferencie)
+    Route::get('/notifications', [GarantController::class, 'getNotifications']);
+    Route::put('/notifications', [GarantController::class, 'updateNotifications']);
+
     // Zoznam praxí podľa stavu
     Route::get('/internships/status/{status}', [InternshipController::class, 'getByStatus']);
     Route::get('/internships/count/{status}', [InternshipController::class, 'getCountByStatus']);

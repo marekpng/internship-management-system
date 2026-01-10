@@ -44,16 +44,27 @@ class CompanyController extends Controller
                 ]);
             }
 
-            // Garant (rešpektujeme jeho nastavenie notify_new_request – v projekte ho už používaš ako „chcem dostávať upozornenia“)
-            if (!empty($internship->garant_id)) {
-                $garant = User::find($internship->garant_id);
+            $garantId = (int) ($internship->garant_id ?? 0);
+            if ($garantId > 0 && $garantId !== (int) $internship->student_id) {
+                $garant = User::find($garantId);
+
                 if ($garant && (bool) ($garant->notify_new_request ?? true)) {
                     Notification::create([
-                        'user_id' => $internship->garant_id,
+                        'user_id' => $garantId,
                         'type'    => 'internship_status',
                         'message' => 'Firma ' . $companyName . ' potvrdila prax študenta. Prax čaká na vaše schválenie.',
                         'read'    => false,
                     ]);
+
+                    if (!empty($garant->email)) {
+                        Mail::raw(
+                            'Firma ' . $companyName . ' potvrdila prax študenta. Prax čaká na vaše schválenie.',
+                            function ($message) use ($garant) {
+                                $message->to($garant->email)
+                                        ->subject('Nová prax na schválenie');
+                            }
+                        );
+                    }
                 }
             }
 

@@ -6,7 +6,8 @@
       <div class="container hero-content">
         <div>
           <span class="chip">Garant portál</span>
-          <h1>Vitajte, {{ garant?.first_name, garant?.last_name }}</h1>
+          <h1>Vitajte, {{ first_name }} {{ last_name }}</h1>
+          <p v-if="!first_name && !last_name" class="lead" style="margin-top: 6px; opacity: 0.9;">Vitajte</p>
           <p class="lead">
             Spravujte a kontrolujte všetky študentské praxe na vašej fakulte.
           </p>
@@ -79,10 +80,16 @@ export default {
       rejectedCountGarant: 0,
       approvedCountGarant: 0,
       notDefendedCount: 0,
+      first_name: '',
+      last_name: '',
     };
   },
 
   mounted() {
+    const lsUser = JSON.parse(localStorage.getItem('user') || '{}');
+    this.first_name = lsUser.first_name || '';
+    this.last_name = lsUser.last_name || '';
+
     axios.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('access_token')}`;
 
     axios.get("http://127.0.0.1:8000/api/garant/internships/count/Vytvorená")

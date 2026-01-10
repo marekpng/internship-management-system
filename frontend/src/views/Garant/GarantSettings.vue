@@ -1,11 +1,12 @@
 <template>
   <CompanyNavBar />
   <button class="back-button" @click="$router.back()">← Späť</button>
+
   <div class="settings-layout">
     <aside class="settings-sidebar">
       <h3>Nastavenia</h3>
       <ul>
-        <li :class="{ active: activeTab === 'data' }" @click="activeTab = 'data'">Údaje firmy</li>
+        <li :class="{ active: activeTab === 'data' }" @click="activeTab = 'data'">Údaje garanta</li>
         <li :class="{ active: activeTab === 'notifications' }" @click="activeTab = 'notifications'">Notifikácie</li>
       </ul>
     </aside>
@@ -15,39 +16,25 @@
         {{ notification }}
       </div>
 
+      <!-- TAB: Profil -->
       <div v-if="activeTab === 'data'">
-        <h1>Firemné nastavenia</h1>
+        <h1>Nastavenia garanta</h1>
 
         <div class="info-bar">
-          <p>Niektoré údaje nie je možné meniť, pretože sú súčasťou firemného záznamu v systéme.</p>
+          <p>Niektoré údaje nie je možné meniť, pretože sú súčasťou vášho používateľského profilu v systéme.</p>
         </div>
 
         <section class="block">
-          <h2>Firemné údaje (nemožno meniť)</h2>
+          <h2>Údaje profilu (nemožno meniť)</h2>
 
           <div class="field">
-            <label>Názov firmy</label>
-            <input type="text" :value="company.company_name" disabled />
+            <label>Meno</label>
+            <input type="text" :value="garant?.first_name || ''" disabled />
           </div>
 
           <div class="field">
-            <label>IČO</label>
-            <input type="text" :value="company.ico" disabled />
-          </div>
-
-          <div class="field">
-            <label>DIČ</label>
-            <input type="text" :value="company.dic" disabled />
-          </div>
-
-          <div class="field">
-            <label>Meno a priezvisko</label>
-            <input type="text" :value="company.contact_person_name" disabled />
-          </div>
-
-          <div class="field">
-            <label>Adresa</label>
-            <input type="text" :value="`${company.street} ${company.house_number}, ${company.postal_code} ${company.city}`" disabled />
+            <label>Priezvisko</label>
+            <input type="text" :value="garant?.last_name || ''" disabled />
           </div>
         </section>
 
@@ -55,39 +42,28 @@
           <h2>Editovateľné údaje</h2>
 
           <div class="field">
-            <label>Email</label>
-            <input v-model="editable.email" type="email" />
+            <label>Email (nemožno zmeniť)</label>
+            <input :value="garant?.email || ''" type="email" disabled />
+            <small class="hint">Email je viazaný na prihlásenie. Ak ho potrebujete zmeniť, kontaktujte administrátora.</small>
           </div>
 
           <div class="field">
             <label>Telefón</label>
-            <input v-model="editable.phone" type="text" />
+            <input v-model="editable.phone" type="text" placeholder="telefón" />
           </div>
 
           <div class="field">
-            <label>Notifikačný email</label>
-            <input v-model="editable.notification_email" type="email" />
+            <label>Alternatívny email</label>
+            <input v-model="editable.alternative_email" type="email" placeholder="alternatívny email" />
           </div>
 
-          <div class="field">
-            <label>Notifikačné telefónne číslo</label>
-            <input v-model="editable.notification_phone" type="text" />
-          </div>
-
-          <div class="field">
-            <label>Webstránka</label>
-            <input v-model="editable.website" type="text" />
-          </div>
-
-          <button class="btn-save" @click="confirmVisible = true">
-            Uložiť zmeny
-          </button>
+          <button class="btn-save" @click="confirmVisible = true">Uložiť zmeny</button>
         </section>
 
         <div v-if="confirmVisible" class="modal-backdrop">
           <div class="modal">
             <h3>Ste si istí, že chcete uložiť zmeny?</h3>
-            <p>Tieto údaje sa aktualizujú vo vašom firemnom profile.</p>
+            <p>Tieto údaje sa aktualizujú vo vašom profile.</p>
 
             <div class="modal-actions">
               <button class="btn-cancel" @click="confirmVisible = false">Zrušiť</button>
@@ -97,6 +73,7 @@
         </div>
       </div>
 
+      <!-- TAB: Notifikácie -->
       <div v-if="activeTab === 'notifications'">
         <h1>Nastavenia notifikácií</h1>
 
@@ -139,29 +116,26 @@
 </template>
 
 <script setup>
-import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 
-const company = ref({
-  company_name: '',
-  street: '',
-  house_number: '',
-  city: '',
-  postal_code: '',
+const API_BASE = 'http://localhost:8000/api'
+const token = localStorage.getItem('access_token')
+const authHeaders = () => (token ? { Authorization: `Bearer ${token}` } : {})
+
+const garant = ref({
+  id: null,
+  first_name: '',
+  last_name: '',
   email: '',
   phone: '',
-  contact_person_name: '',
-  contact_person_email: '',
-  contact_person_phone: ''
+  alternative_email: ''
 })
 
 const editable = ref({
-  email: '',
   phone: '',
-  website: '',
-  notification_email: '',
-  notification_phone: ''
+  alternative_email: ''
 })
 
 const confirmVisible = ref(false)
@@ -177,82 +151,145 @@ const notifications = ref({
   notify_profile_change: true
 })
 
-async function loadCompany() {
-  const token = localStorage.getItem('access_token')
-  const response = await axios.get('http://localhost:8000/api/company/profile', {
-    headers: token ? { Authorization: `Bearer ${token}` } : {}
-  })
+async function loadGarant() {
+  // DB je zdroj pravdy. Fallback = localStorage.
+  const lsUser = JSON.parse(localStorage.getItem('user') || '{}')
 
-  company.value = response.data
-
-  editable.value.email = response.data.email
-  editable.value.phone = response.data.phone
-  editable.value.website = response.data.website ?? ''
-  editable.value.notification_email = response.data.contact_person_email ?? ''
-  editable.value.notification_phone = response.data.contact_person_phone ?? ''
-
-  notifications.value.notify_new_request = response.data.notify_new_request == 1;
-  notifications.value.notify_approved = response.data.notify_approved == 1;
-  notifications.value.notify_rejected = response.data.notify_rejected == 1;
-  notifications.value.notify_profile_change = response.data.notify_profile_change == 1;
-}
-
-async function saveChanges() {
-  const token = localStorage.getItem('access_token')
-
-  await axios.put(
-    'http://localhost:8000/api/company/profile',
-    {
-      email: editable.value.email,
-      phone: editable.value.phone,
-      website: editable.value.website,
-      contact_person_email: editable.value.notification_email,
-      contact_person_phone: editable.value.notification_phone,
-    },
-    {
-      headers: token ? { Authorization: `Bearer ${token}` } : {}
+  // Predvyplň z localStorage aby UI nebolo prázdne
+  if (lsUser && lsUser.id) {
+    garant.value = {
+      ...garant.value,
+      id: lsUser.id,
+      email: lsUser.email ?? '',
+      first_name: lsUser.first_name ?? '',
+      last_name: lsUser.last_name ?? '',
+      phone: lsUser.phone ?? '',
+      alternative_email: lsUser.alternative_email ?? ''
     }
-  )
 
-  confirmVisible.value = false
-  notification.value = 'Zmeny boli úspešne uložené.'
-  setTimeout(() => notification.value = '', 3000)
-  await loadCompany()
-}
+    editable.value.phone = garant.value.phone || ''
+    editable.value.alternative_email = garant.value.alternative_email || ''
 
-async function saveNotificationSettings() {
-  const token = localStorage.getItem('access_token')
+    if (typeof lsUser.notify_new_request !== 'undefined') notifications.value.notify_new_request = lsUser.notify_new_request == 1 || lsUser.notify_new_request === true
+    if (typeof lsUser.notify_approved !== 'undefined') notifications.value.notify_approved = lsUser.notify_approved == 1 || lsUser.notify_approved === true
+    if (typeof lsUser.notify_rejected !== 'undefined') notifications.value.notify_rejected = lsUser.notify_rejected == 1 || lsUser.notify_rejected === true
+    if (typeof lsUser.notify_profile_change !== 'undefined') notifications.value.notify_profile_change = lsUser.notify_profile_change == 1 || lsUser.notify_profile_change === true
+  }
 
-  await axios.put(
-    'http://localhost:8000/api/company/notifications',
-    {
-      notify_new_request: notifications.value.notify_new_request ? 1 : 0,
-      notify_approved: notifications.value.notify_approved ? 1 : 0,
-      notify_rejected: notifications.value.notify_rejected ? 1 : 0,
-      notify_profile_change: notifications.value.notify_profile_change ? 1 : 0,
-    },
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-
-  await loadCompany();
-
-  notification.value = 'Notifikácie boli uložené.'
-  setTimeout(() => notification.value = '', 3000)
-}
-
-async function confirmNotificationSave() {
   try {
-    await saveNotificationSettings()
-  } catch (error) {
-    console.error('Chyba pri ukladaní notifikácií:', error)
-    notification.value = error?.response?.data?.message || 'Nepodarilo sa uložiť notifikácie. Skúste to prosím znova.'
+    // Profil
+    const res = await axios.get(`${API_BASE}/garant/profile`, { headers: authHeaders() })
+    const p = res.data || {}
+
+    garant.value = {
+      ...garant.value,
+      id: p.id ?? garant.value.id,
+      email: p.email ?? garant.value.email,
+      first_name: p.first_name ?? garant.value.first_name,
+      last_name: p.last_name ?? garant.value.last_name,
+      phone: p.phone ?? garant.value.phone,
+      alternative_email: p.alternative_email ?? garant.value.alternative_email
+    }
+
+    editable.value.phone = garant.value.phone || ''
+    editable.value.alternative_email = garant.value.alternative_email || ''
+
+    // Notifikačné nastavenia
+    const nres = await axios.get(`${API_BASE}/garant/notifications`, { headers: authHeaders() })
+    const n = nres.data || {}
+
+    if (typeof n.notify_new_request !== 'undefined') notifications.value.notify_new_request = !!n.notify_new_request
+    if (typeof n.notify_approved !== 'undefined') notifications.value.notify_approved = !!n.notify_approved
+    if (typeof n.notify_rejected !== 'undefined') notifications.value.notify_rejected = !!n.notify_rejected
+    if (typeof n.notify_profile_change !== 'undefined') notifications.value.notify_profile_change = !!n.notify_profile_change
+
+    // Sync do localStorage
+    const updatedLs = {
+      ...(lsUser || {}),
+      id: garant.value.id,
+      email: garant.value.email,
+      first_name: garant.value.first_name,
+      last_name: garant.value.last_name,
+      phone: garant.value.phone,
+      alternative_email: garant.value.alternative_email,
+      notify_new_request: notifications.value.notify_new_request,
+      notify_approved: notifications.value.notify_approved,
+      notify_rejected: notifications.value.notify_rejected,
+      notify_profile_change: notifications.value.notify_profile_change
+    }
+    localStorage.setItem('user', JSON.stringify(updatedLs))
+
+    notification.value = ''
+  } catch (e) {
+    console.error('loadGarant failed:', e)
+    notification.value = 'Nepodarilo sa načítať údaje z backendu. Používam localStorage.'
     setTimeout(() => (notification.value = ''), 3000)
-  } finally {
-    notifyConfirmVisible.value = false
   }
 }
 
-onMounted(loadCompany)
+async function saveChanges() {
+  try {
+    const payload = {
+      phone: editable.value.phone,
+      alternative_email: editable.value.alternative_email
+    }
+
+    const res = await axios.put(`${API_BASE}/garant/profile`, payload, { headers: authHeaders() })
+    const p = res.data?.user || res.data || {}
+
+    const current = JSON.parse(localStorage.getItem('user') || '{}')
+    const updated = {
+      ...current,
+      phone: p.phone ?? payload.phone,
+      alternative_email: p.alternative_email ?? payload.alternative_email
+    }
+    localStorage.setItem('user', JSON.stringify(updated))
+
+    confirmVisible.value = false
+    notification.value = 'Zmeny boli uložené.'
+    setTimeout(() => (notification.value = ''), 2500)
+
+    await loadGarant()
+  } catch (e) {
+    console.error('saveChanges failed:', e)
+    confirmVisible.value = false
+    notification.value = 'Uloženie zlyhalo. Skontroluj backend endpoint /api/garant/profile.'
+    setTimeout(() => (notification.value = ''), 3500)
+  }
+}
+
+async function saveNotificationSettings() {
+  try {
+    const payload = {
+      notify_new_request: !!notifications.value.notify_new_request,
+      notify_approved: !!notifications.value.notify_approved,
+      notify_rejected: !!notifications.value.notify_rejected,
+      notify_profile_change: !!notifications.value.notify_profile_change
+    }
+
+    await axios.put(`${API_BASE}/garant/notifications`, payload, { headers: authHeaders() })
+
+    const current = JSON.parse(localStorage.getItem('user') || '{}')
+    localStorage.setItem('user', JSON.stringify({ ...current, ...payload }))
+
+    notification.value = 'Notifikačné nastavenia boli uložené.'
+    setTimeout(() => (notification.value = ''), 2500)
+
+    await loadGarant()
+  } catch (e) {
+    console.error('saveNotificationSettings failed:', e)
+    notification.value = 'Uloženie notifikácií zlyhalo. Skontroluj backend endpoint /api/garant/notifications.'
+    setTimeout(() => (notification.value = ''), 3500)
+  }
+}
+
+function confirmNotificationSave() {
+  saveNotificationSettings().finally(() => {
+    notifyConfirmVisible.value = false
+  })
+}
+
+onMounted(loadGarant)
 </script>
 
 <style scoped>
@@ -295,6 +332,12 @@ input {
 
 input:disabled {
   background: #f1f1f1;
+  color: #666;
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 12px;
   color: #666;
 }
 
@@ -351,7 +394,8 @@ input:disabled {
   padding: 8px 14px;
   border-radius: 6px;
 }
- .info-bar {
+
+.info-bar {
   background: #f7f7f7;
   border: 1px solid #e5e5e5;
   padding: 12px 16px;
