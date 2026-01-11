@@ -1,0 +1,13 @@
+Získanie všetkých schválených praxí
+GET: /api/external/internships/approved/
+HLAVICKA: 
+Authorization: Bearer <TOKEN>
+
+
+Schválenie konkrétnej praxe podľa ID
+POST: /api/external/internships/approved/{id}
+
+HLAVICKA: 
+Authorization: Bearer <TOKEN>
+Accept: application/json
+Content-type: application/json

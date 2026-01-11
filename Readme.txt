@@ -93,3 +93,12 @@ VITE_APP_NAME="${APP_NAME}"
 #  Client Secret ........................................................................................... asdf123123
 PASSPORT_PERSONAL_ACCESS_CLIENT_ID=asdf123123
 PASSPORT_PERSONAL_ACCESS_CLIENT_SECRET=asdf123123
+
+
+INTEGRACIA EXTERNEHO SYSTEMU:
+
+EXTERNAL system - prikaz pre vygenerovanie tokenu:
+php artisan external:token
+
+
+
