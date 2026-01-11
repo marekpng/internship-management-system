@@ -100,7 +100,7 @@ class CompanyController extends Controller
             ->count();
 
         $approved = Internship::where('company_id', $companyId)
-            ->where('status', 'Potvrdená')
+            ->whereIn('status', ['Potvrdená', 'Schválená', 'Obhájená', 'Neobhájená'])
             ->count();
 
         $rejected = Internship::where('company_id', $companyId)
@@ -207,7 +207,7 @@ class CompanyController extends Controller
     public function approvedInternships(Request $request)
     {
         return Internship::where('company_id', $request->user()->id)
-            ->where('status', 'Potvrdená')
+            ->whereIn('status', ['Potvrdená', 'Schválená', 'Obhájená', 'Neobhájená'])
             ->with(['student'])
             ->orderBy('created_at', 'DESC')
             ->get();
@@ -220,6 +220,64 @@ class CompanyController extends Controller
             ->with(['student'])
             ->orderBy('created_at', 'DESC')
             ->get();
+    }
+
+    /**
+     * História praxí firmy.
+     *
+     * Pre firmy potrebujeme vidieť aj praxe, ktoré už nie sú len Vytvorená/Potvrdená/Zamietnutá
+     * (napr. po rozhodnutí garanta alebo po obhajobe).
+     *
+     * Voliteľné filtre cez query parametre:
+     * - status: presný status (string)
+     * - student_id: id študenta (int)
+     * - year: rok podľa created_at (int)
+     * - semester: "zimny" | "letny" (podľa mesiaca created_at)
+     */
+    public function historyInternships(Request $request)
+    {
+        $companyId = $request->user()->id;
+
+        $q = Internship::where('company_id', $companyId)
+            ->with(['student'])
+            ->orderBy('created_at', 'DESC');
+
+        // Filter: status
+        if ($request->filled('status')) {
+            $q->where('status', $request->query('status'));
+        }
+
+        // Filter: student
+        if ($request->filled('student_id')) {
+            $q->where('student_id', (int) $request->query('student_id'));
+        }
+
+        // Filter: year (použi stĺpec `year`, ktorý už máš v DB)
+        if ($request->filled('year')) {
+            $q->where('year', (int) $request->query('year'));
+        }
+
+        // Filter: semester
+        // Používame priamo stĺpec `semester` z DB (máš tam hodnoty ako: Zimný/Letný alebo Winter/Summer).
+        // Dôvod: v DB už semester existuje a nemusí korelovať iba s mesiacom start_date.
+        if ($request->filled('semester')) {
+            $semesterRaw = trim((string) $request->query('semester'));
+            $semester = mb_strtolower($semesterRaw);
+
+            $winterAliases = ['zimny', 'zimný', 'winter', 'zima'];
+            $summerAliases = ['letny', 'Letný', 'summer', 'leto'];
+
+            if (in_array($semester, $winterAliases, true)) {
+                $q->whereIn('semester', ['Zimný', 'Winter', 'zimný', 'winter']);
+            } elseif (in_array($semester, $summerAliases, true)) {
+                $q->whereIn('semester', ['Letný', 'Summer', 'letný', 'summer']);
+            } else {
+                // Ak príde priamo hodnota z DB (napr. "Letný"), skúsime ju filtrovať priamo.
+                $q->where('semester', $semesterRaw);
+            }
+        }
+
+        return response()->json($q->get());
     }
 
     public function internshipDetail($id, Request $request)
@@ -247,8 +305,8 @@ class CompanyController extends Controller
 
         $company = $internship->company()->first();
 
-        // Vytvorenie notifikácií pre študenta a garanta podľa ich individuálnych nastavení.
-        if ($internship->student && $internship->student->email && $company && $company->notify_approved) {
+        // Email študentovi iba ak to má povolené v nastaveniach (notify_approved)
+        if ($internship->student && !empty($internship->student->email) && (bool) ($internship->student->notify_approved ?? true)) {
             Mail::raw(
                 'Vaša prax bola schválená firmou.',
                 function ($message) use ($internship) {
@@ -274,8 +332,8 @@ class CompanyController extends Controller
 
         $company = $internship->company()->first();
 
-        // Vytvorenie notifikácie pre študenta na základe jeho notifikačných preferencií.
-        if ($internship->student && $internship->student->email && $company && $company->notify_rejected) {
+        // Email študentovi iba ak to má povolené v nastaveniach (notify_rejected)
+        if ($internship->student && !empty($internship->student->email) && (bool) ($internship->student->notify_rejected ?? true)) {
             Mail::raw(
                 'Vaša prax bola zamietnutá firmou.',
                 function ($message) use ($internship) {
