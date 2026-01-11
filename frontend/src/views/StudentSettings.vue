@@ -6,20 +6,58 @@
     <aside class="settings-sidebar">
       <h3>Nastavenia</h3>
       <ul>
-        <li :class="{ active: activeTab === 'data' }" @click="activeTab = 'data'">Údaje garanta</li>
+        <li :class="{ active: activeTab === 'data' }" @click="activeTab = 'data'">Údaje študenta</li>
         <li :class="{ active: activeTab === 'notifications' }" @click="activeTab = 'notifications'">Notifikácie</li>
         <li :class="{ active: activeTab === 'password' }" @click="activeTab = 'password'">Zmena hesla</li>
       </ul>
     </aside>
 
     <div class="settings-wrapper">
-      <div class="notification-bar" v-if="notification">
-        {{ notification }}
+      <div class="notification-bar" v-if="notification" :class="notificationType">
+        <span>{{ notification }}</span>
+        <button class="notification-close" @click="clearNotification">✕</button>
+      </div>
+      <!-- TAB: Zmena hesla -->
+      <div v-if="activeTab === 'password'">
+        <h1>Zmena hesla</h1>
+
+        <section class="block">
+          <h2>Bezpečnosť účtu</h2>
+
+          <div class="field">
+            <label>Aktuálne heslo</label>
+            <input v-model="passwordForm.current_password" type="password" autocomplete="current-password" />
+          </div>
+
+          <div class="field">
+            <label>Nové heslo</label>
+            <input v-model="passwordForm.password" type="password" autocomplete="new-password" />
+          </div>
+
+          <div class="field">
+            <label>Nové heslo (znova)</label>
+            <input v-model="passwordForm.password_confirmation" type="password" autocomplete="new-password" />
+          </div>
+
+          <button class="btn-save" @click="passwordConfirmVisible = true">Zmeniť heslo</button>
+        </section>
+
+        <div v-if="passwordConfirmVisible" class="modal-backdrop">
+          <div class="modal">
+            <h3>Ste si istí, že chcete zmeniť heslo?</h3>
+            <p>Po uložení sa budete prihlasovať novým heslom.</p>
+
+            <div class="modal-actions">
+              <button class="btn-cancel" @click="passwordConfirmVisible = false">Zrušiť</button>
+              <button class="btn-confirm" @click="changePassword">Potvrdiť</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- TAB: Profil -->
       <div v-if="activeTab === 'data'">
-        <h1>Nastavenia garanta</h1>
+        <h1>Nastavenia študenta</h1>
 
         <div class="info-bar">
           <p>Niektoré údaje nie je možné meniť, pretože sú súčasťou vášho používateľského profilu v systéme.</p>
@@ -30,12 +68,12 @@
 
           <div class="field">
             <label>Meno</label>
-            <input type="text" :value="garant?.first_name || ''" disabled />
+            <input type="text" :value="student?.first_name || ''" disabled />
           </div>
 
           <div class="field">
             <label>Priezvisko</label>
-            <input type="text" :value="garant?.last_name || ''" disabled />
+            <input type="text" :value="student?.last_name || ''" disabled />
           </div>
         </section>
 
@@ -44,7 +82,7 @@
 
           <div class="field">
             <label>Email (nemožno zmeniť)</label>
-            <input :value="garant?.email || ''" type="email" disabled />
+            <input :value="student?.email || ''" type="email" disabled />
             <small class="hint">Email je viazaný na prihlásenie. Ak ho potrebujete zmeniť, kontaktujte administrátora.</small>
           </div>
 
@@ -113,44 +151,6 @@
         </div>
       </div>
 
-      <!-- TAB: Zmena hesla -->
-      <div v-if="activeTab === 'password'">
-        <h1>Zmena hesla</h1>
-
-        <section class="block">
-          <h2>Zmena hesla</h2>
-
-          <div class="field">
-            <label>Aktuálne heslo</label>
-            <input v-model="passwordForm.current_password" type="password" autocomplete="current-password" placeholder="aktuálne heslo" />
-          </div>
-
-          <div class="field">
-            <label>Nové heslo</label>
-            <input v-model="passwordForm.new_password" type="password" autocomplete="new-password" placeholder="nové heslo" />
-          </div>
-
-          <div class="field">
-            <label>Potvrdenie nového hesla</label>
-            <input v-model="passwordForm.new_password_confirmation" type="password" autocomplete="new-password" placeholder="zopakujte nové heslo" />
-            <small class="hint">Heslo musí spĺňať požiadavky systému..</small>
-          </div>
-
-          <button class="btn-save" @click="passwordConfirmVisible = true">Zmeniť heslo</button>
-        </section>
-
-        <div v-if="passwordConfirmVisible" class="modal-backdrop">
-          <div class="modal">
-            <h3>Ste si istí, že chcete zmeniť heslo?</h3>
-            <p>Po zmene hesla sa budete vedieť prihlásiť už len novým heslom.</p>
-
-            <div class="modal-actions">
-              <button class="btn-cancel" @click="passwordConfirmVisible = false">Zrušiť</button>
-              <button class="btn-confirm" @click="confirmPasswordChange">Potvrdiť</button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -161,10 +161,14 @@ import axios from 'axios'
 import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 
 const API_BASE = 'http://localhost:8000/api'
-const token = localStorage.getItem('access_token')
-const authHeaders = () => (token ? { Authorization: `Bearer ${token}` } : {})
 
-const garant = ref({
+// Headers vždy berieme z localStorage (aby to fungovalo aj po re-login)
+const authHeaders = () => {
+  const token = localStorage.getItem('access_token')
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+const student = ref({
   id: null,
   first_name: '',
   last_name: '',
@@ -181,8 +185,26 @@ const editable = ref({
 const confirmVisible = ref(false)
 const notifyConfirmVisible = ref(false)
 const notification = ref('')
+const notificationType = ref('info') // info | success | error
+
+function setNotification(message, type = 'info') {
+  notification.value = message
+  notificationType.value = type
+}
+
+function clearNotification() {
+  notification.value = ''
+  notificationType.value = 'info'
+}
 
 const activeTab = ref('data')
+
+const passwordConfirmVisible = ref(false)
+const passwordForm = ref({
+  current_password: '',
+  password: '',
+  password_confirmation: ''
+})
 
 const notifications = ref({
   notify_new_request: true,
@@ -191,21 +213,13 @@ const notifications = ref({
   notify_profile_change: true
 })
 
-const passwordConfirmVisible = ref(false)
-const passwordForm = ref({
-  current_password: '',
-  new_password: '',
-  new_password_confirmation: ''
-})
-
-async function loadGarant() {
-  // DB je zdroj pravdy. Fallback = localStorage.
+async function loadStudent() {
+  // 1) Fallback z localStorage, aby UI nebolo prázdne hneď po načítaní
   const lsUser = JSON.parse(localStorage.getItem('user') || '{}')
 
-  // Predvyplň z localStorage aby UI nebolo prázdne
   if (lsUser && lsUser.id) {
-    garant.value = {
-      ...garant.value,
+    student.value = {
+      ...student.value,
       id: lsUser.id,
       email: lsUser.email ?? '',
       first_name: lsUser.first_name ?? '',
@@ -214,8 +228,8 @@ async function loadGarant() {
       alternative_email: lsUser.alternative_email ?? ''
     }
 
-    editable.value.phone = garant.value.phone || ''
-    editable.value.alternative_email = garant.value.alternative_email || ''
+    editable.value.phone = student.value.phone || ''
+    editable.value.alternative_email = student.value.alternative_email || ''
 
     if (typeof lsUser.notify_new_request !== 'undefined') notifications.value.notify_new_request = lsUser.notify_new_request == 1 || lsUser.notify_new_request === true
     if (typeof lsUser.notify_approved !== 'undefined') notifications.value.notify_approved = lsUser.notify_approved == 1 || lsUser.notify_approved === true
@@ -223,26 +237,25 @@ async function loadGarant() {
     if (typeof lsUser.notify_profile_change !== 'undefined') notifications.value.notify_profile_change = lsUser.notify_profile_change == 1 || lsUser.notify_profile_change === true
   }
 
+  // 2) Ak existuje backend endpoint, je to zdroj pravdy
   try {
-    // Profil
-    const res = await axios.get(`${API_BASE}/garant/profile`, { headers: authHeaders() })
+    const res = await axios.get(`${API_BASE}/student/profile`, { headers: authHeaders() })
     const p = res.data || {}
 
-    garant.value = {
-      ...garant.value,
-      id: p.id ?? garant.value.id,
-      email: p.email ?? garant.value.email,
-      first_name: p.first_name ?? garant.value.first_name,
-      last_name: p.last_name ?? garant.value.last_name,
-      phone: p.phone ?? garant.value.phone,
-      alternative_email: p.alternative_email ?? garant.value.alternative_email
+    student.value = {
+      ...student.value,
+      id: p.id ?? student.value.id,
+      email: p.email ?? student.value.email,
+      first_name: p.first_name ?? student.value.first_name,
+      last_name: p.last_name ?? student.value.last_name,
+      phone: p.phone ?? student.value.phone,
+      alternative_email: p.alternative_email ?? student.value.alternative_email
     }
 
-    editable.value.phone = garant.value.phone || ''
-    editable.value.alternative_email = garant.value.alternative_email || ''
+    editable.value.phone = student.value.phone || ''
+    editable.value.alternative_email = student.value.alternative_email || ''
 
-    // Notifikačné nastavenia
-    const nres = await axios.get(`${API_BASE}/garant/notifications`, { headers: authHeaders() })
+    const nres = await axios.get(`${API_BASE}/student/notifications`, { headers: authHeaders() })
     const n = nres.data || {}
 
     if (typeof n.notify_new_request !== 'undefined') notifications.value.notify_new_request = !!n.notify_new_request
@@ -250,15 +263,15 @@ async function loadGarant() {
     if (typeof n.notify_rejected !== 'undefined') notifications.value.notify_rejected = !!n.notify_rejected
     if (typeof n.notify_profile_change !== 'undefined') notifications.value.notify_profile_change = !!n.notify_profile_change
 
-    // Sync do localStorage
+    // 3) Sync do localStorage, aby navbar a iné view mali rovnaké dáta
     const updatedLs = {
       ...(lsUser || {}),
-      id: garant.value.id,
-      email: garant.value.email,
-      first_name: garant.value.first_name,
-      last_name: garant.value.last_name,
-      phone: garant.value.phone,
-      alternative_email: garant.value.alternative_email,
+      id: student.value.id,
+      email: student.value.email,
+      first_name: student.value.first_name,
+      last_name: student.value.last_name,
+      phone: student.value.phone,
+      alternative_email: student.value.alternative_email,
       notify_new_request: notifications.value.notify_new_request,
       notify_approved: notifications.value.notify_approved,
       notify_rejected: notifications.value.notify_rejected,
@@ -266,11 +279,10 @@ async function loadGarant() {
     }
     localStorage.setItem('user', JSON.stringify(updatedLs))
 
-    notification.value = ''
+    clearNotification()
   } catch (e) {
-    console.error('loadGarant failed:', e)
-    notification.value = 'Nepodarilo sa načítať údaje z backendu. Používam localStorage.'
-    setTimeout(() => (notification.value = ''), 3000)
+    console.error('loadStudent failed:', e)
+    setNotification('Nepodarilo sa načítať údaje z backendu. Používam localStorage.', 'error')
   }
 }
 
@@ -281,7 +293,7 @@ async function saveChanges() {
       alternative_email: editable.value.alternative_email
     }
 
-    const res = await axios.put(`${API_BASE}/garant/profile`, payload, { headers: authHeaders() })
+    const res = await axios.put(`${API_BASE}/student/profile`, payload, { headers: authHeaders() })
     const p = res.data?.user || res.data || {}
 
     const current = JSON.parse(localStorage.getItem('user') || '{}')
@@ -292,16 +304,20 @@ async function saveChanges() {
     }
     localStorage.setItem('user', JSON.stringify(updated))
 
-    confirmVisible.value = false
-    notification.value = 'Zmeny boli uložené.'
-    setTimeout(() => (notification.value = ''), 2500)
+    // Update UI immediately
+    student.value.phone = updated.phone
+    student.value.alternative_email = updated.alternative_email
+    editable.value.phone = student.value.phone || ''
+    editable.value.alternative_email = student.value.alternative_email || ''
 
-    await loadGarant()
+    confirmVisible.value = false
+    setNotification('Údaje boli úspešne zmenené.', 'success')
+
+    await loadStudent()
   } catch (e) {
     console.error('saveChanges failed:', e)
     confirmVisible.value = false
-    notification.value = 'Uloženie zlyhalo. Skontroluj backend endpoint /api/garant/profile.'
-    setTimeout(() => (notification.value = ''), 3500)
+    setNotification('Uloženie zlyhalo. Skontroluj backend endpoint /api/student/profile.', 'error')
   }
 }
 
@@ -314,19 +330,53 @@ async function saveNotificationSettings() {
       notify_profile_change: !!notifications.value.notify_profile_change
     }
 
-    await axios.put(`${API_BASE}/garant/notifications`, payload, { headers: authHeaders() })
+    await axios.put(`${API_BASE}/student/notifications`, payload, { headers: authHeaders() })
 
     const current = JSON.parse(localStorage.getItem('user') || '{}')
     localStorage.setItem('user', JSON.stringify({ ...current, ...payload }))
 
-    notification.value = 'Notifikačné nastavenia boli uložené.'
-    setTimeout(() => (notification.value = ''), 2500)
+    setNotification('Notifikačné nastavenia boli uložené.', 'success')
 
-    await loadGarant()
+    await loadStudent()
   } catch (e) {
     console.error('saveNotificationSettings failed:', e)
-    notification.value = 'Uloženie notifikácií zlyhalo. Skontroluj backend endpoint /api/garant/notifications.'
-    setTimeout(() => (notification.value = ''), 3500)
+    setNotification('Uloženie notifikácií zlyhalo. Skontroluj backend endpoint /api/student/notifications.', 'error')
+  }
+}
+async function changePassword() {
+  try {
+    // Jednoduchá validácia na FE, aby sme hneď chytili preklepy.
+    if (!passwordForm.value.current_password || !passwordForm.value.password) {
+      setNotification('Vyplň aktuálne aj nové heslo.', 'error')
+      passwordConfirmVisible.value = false
+      return
+    }
+    if (passwordForm.value.password !== passwordForm.value.password_confirmation) {
+      setNotification('Nové heslá sa nezhodujú.', 'error')
+      passwordConfirmVisible.value = false
+      return
+    }
+
+    // Predpoklad: máš API endpoint na zmenu hesla.
+    // Ak používaš iný endpoint, zmeň URL na správnu.
+    await axios.post(`${API_BASE}/change-password`, {
+      current_password: passwordForm.value.current_password,
+      password: passwordForm.value.password,
+      password_confirmation: passwordForm.value.password_confirmation
+    }, { headers: authHeaders() })
+
+    passwordForm.value.current_password = ''
+    passwordForm.value.password = ''
+    passwordForm.value.password_confirmation = ''
+
+    setNotification('Heslo bolo úspešne zmenené.', 'success')
+  } catch (e) {
+    console.error('changePassword failed:', e)
+    // Ak backend vracia validácie, ukáž prvú zmysluplnú.
+    const msg = e?.response?.data?.message || 'Zmena hesla zlyhala. Skontroluj backend endpoint /api/change-password.'
+    setNotification(msg, 'error')
+  } finally {
+    passwordConfirmVisible.value = false
   }
 }
 
@@ -336,45 +386,7 @@ function confirmNotificationSave() {
   })
 }
 
-async function changePassword() {
-  // Poznámka: endpoint uprav podľa backend route (napr. /api/change-password alebo /api/auth/change-password)
-  // Tu používame najjednoduchšiu variantu.
-  const payload = {
-    current_password: passwordForm.value.current_password,
-    new_password: passwordForm.value.new_password,
-    new_password_confirmation: passwordForm.value.new_password_confirmation
-  }
-
-  try {
-    await axios.post(`${API_BASE}/change-password`, payload, { headers: authHeaders() })
-
-    notification.value = 'Heslo bolo úspešne zmenené.'
-    setTimeout(() => (notification.value = ''), 2500)
-
-    // Vyčistenie formulára
-    passwordForm.value.current_password = ''
-    passwordForm.value.new_password = ''
-    passwordForm.value.new_password_confirmation = ''
-  } catch (e) {
-    console.error('changePassword failed:', e)
-
-    // Ak backend vracia validačné chyby, ukážeme aspoň zmysluplnú hlášku
-    const msg = e?.response?.data?.message
-      || e?.response?.data?.error
-      || 'Zmena hesla zlyhala. Skontroluj endpoint /api/change-password (alebo jeho názov v backende).'
-
-    notification.value = msg
-    setTimeout(() => (notification.value = ''), 4000)
-  }
-}
-
-function confirmPasswordChange() {
-  changePassword().finally(() => {
-    passwordConfirmVisible.value = false
-  })
-}
-
-onMounted(loadGarant)
+onMounted(loadStudent)
 </script>
 
 <style scoped>
@@ -445,7 +457,7 @@ input:disabled {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.35);
+  background: rgba(0, 0, 0, 0.35);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -500,12 +512,44 @@ input:disabled {
 }
 
 .notification-bar {
-  background: #e8f7ee;
-  border: 1px solid #1d4d2d;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
   padding: 10px 16px;
   border-radius: 6px;
-  color: #1d4d2d;
   margin-bottom: 20px;
+}
+
+.notification-bar.info {
+  background: #eef5ff;
+  border: 1px solid #1d4d2d;
+  color: #1d4d2d;
+}
+
+.notification-bar.success {
+  background: #e8f7ee;
+  border: 1px solid #1d4d2d;
+  color: #1d4d2d;
+}
+
+.notification-bar.error {
+  background: #ffecec;
+  border: 1px solid #b42318;
+  color: #b42318;
+}
+
+.notification-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.notification-close:hover {
+  background: rgba(0,0,0,0.06);
 }
 
 .settings-layout {
@@ -554,7 +598,7 @@ input:disabled {
   color: #1d4d2d;
 }
 
-.field input[type="checkbox"] {
+.field input[type='checkbox'] {
   margin-right: 10px;
   transform: scale(1.2);
 }

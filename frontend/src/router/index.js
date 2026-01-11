@@ -40,6 +40,12 @@ const router = createRouter({
       component: () => import('@/views/StudentMyPracticeView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/student/settings',
+      name: 'studentSettings',
+      component: () => import('@/views/StudentSettings.vue'),
+      meta: { requiresAuth: true }
+    },
     { path: '/change-password', name: 'changePassword', component: ChangePasswordView },
     { path: '/profile', name: 'profile', component: ProfileView, meta: { requiresAuth: true } },
     {

@@ -19,6 +19,15 @@ Route::get('/company/activate/{id}', [RegisterController::class, 'activateCompan
 
 Route::middleware(['auth:api', 'role:student'])->group(function () {
     Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
+
+    // Profil študenta – načítanie a úprava (pre stránku Nastavenia)
+    Route::get('/student/profile', [StudentController::class, 'profile']);
+    Route::put('/student/profile', [StudentController::class, 'updateProfile']);
+
+    // Notifikácie – nastavenia (emailové preferencie)
+    Route::get('/student/notifications', [StudentController::class, 'getNotifications']);
+    Route::put('/student/notifications', [StudentController::class, 'updateNotifications']);
+
     Route::post('/internships/{id}/documents/upload', [DocumentController::class, 'uploadStudentDocument']);
 
     // Reálne notifikácie pre zvonček (študent)

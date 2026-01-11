@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\ResetPasswordMail;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -116,14 +117,22 @@ public function changePassword(Request $request)
     // Logovanie požiadavky prichádzajúcej na server
     Log::info('Zmena hesla - prichádzajúci request:', [
         'email' => $request->email,
-        'token' => $request->bearerToken(),
+        'has_token' => (bool) $request->bearerToken(),
     ]);
 
     $request->validate([
         'current_password' => 'required|string',
-        'new_password' => 'required|string|min:8|confirmed', // musí byť "new_password_confirmation" v requeste
-        'email' => 'nullable|email' //  doplnené pre prípad, že používateľ nie je prihlásený
+
+        // Frontend môže posielať buď new_password/new_password_confirmation alebo password/password_confirmation.
+        'new_password' => 'required_without:password|string|min:8|confirmed',
+        'password' => 'required_without:new_password|string|min:8|confirmed',
+
+        // Doplnené pre prípad, že používateľ nie je prihlásený (force password change)
+        'email' => 'nullable|email',
     ]);
+
+    // Normalizácia: zober nové heslo z jedného z podporovaných polí
+    $newPassword = $request->input('new_password') ?? $request->input('password');
 
     // Získame aktuálneho používateľa z tokenu
     $user = $request->user();
@@ -170,9 +179,34 @@ public function changePassword(Request $request)
     }
 
     // Zmena hesla a reset flagu po úspešnej zmene
-    $user->password = Hash::make($request->new_password);
+    $user->password = Hash::make($newPassword);
     $user->must_change_password = false; // 🔹 reset flagu po úspešnej zmene
     $user->save();
+
+    // In-app notifikácia o zmene hesla
+    Notification::create([
+        'user_id' => $user->id,
+        'type' => 'password_change',
+        'message' => 'Vaše heslo bolo úspešne zmenené.',
+    ]);
+
+    // Emailová notifikácia o zmene hesla (podľa nastavenia používateľa)
+    if ((bool) $user->notify_profile_change) {
+        try {
+            Mail::raw(
+                'Bolo zmenené heslo k vášmu účtu. Ak ste túto zmenu nevykonali vy, okamžite kontaktujte administrátora.',
+                function ($message) use ($user) {
+                    $message->to($user->email)
+                        ->subject('Zmena hesla - Notifikácia');
+                }
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Email notifikácia o zmene hesla sa nepodarila odoslať.', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
 
     Log::info('Heslo bolo úspešne zmenené.', ['user_id' => $user->id]);
 

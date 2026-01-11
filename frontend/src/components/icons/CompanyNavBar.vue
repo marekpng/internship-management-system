@@ -52,6 +52,9 @@
         <router-link v-else-if="role === 'garant'" to="/garant/settings" class="nav-btn">
           ⚙️ Nastavenia
         </router-link>
+        <router-link v-else-if="role === 'student'" to="/student/settings" class="nav-btn">
+          ⚙️ Nastavenia
+        </router-link>
         <router-link v-else to="/profile" class="nav-btn">
           ⚙️ Nastavenia
         </router-link>
