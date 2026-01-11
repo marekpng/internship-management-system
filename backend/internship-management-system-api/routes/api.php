@@ -138,4 +138,5 @@ use App\Http\Controllers\GarantExportController;
 Route::middleware(['auth:api'])->group(function () {
     Route::get('/garant/export/preview', [GarantExportController::class, 'preview']);
     Route::get('/garant/export/csv', [GarantExportController::class, 'exportCsv']);
+    Route::get('/garant/export/study-fields', [GarantExportController::class, 'studyFields']);
 });

@@ -2,7 +2,7 @@
   <div class="page">
     <h1 class="page-title">Export údajov o praxi</h1>
 
-    <!-- KARTA S FILTRAMI -->
+    <!-- FILTER -->
     <div class="card">
       <form class="filters" @submit.prevent="loadPreview">
         <div class="field">
@@ -26,15 +26,11 @@
         </div>
 
         <div class="field">
-          <label>Študijný program</label>
-          <select v-model="filters.study_program_id">
+          <label>Študijný odbor</label>
+          <select v-model="filters.study_field">
             <option value="">Všetky</option>
-            <option
-              v-for="program in studyPrograms"
-              :key="program.id"
-              :value="program.id"
-            >
-              {{ program.name }}
+            <option v-for="field in studyFields" :key="field" :value="field">
+              {{ field }}
             </option>
           </select>
         </div>
@@ -48,7 +44,7 @@
                 :value="status.value"
                 v-model="filters.status"
               />
-              {{ status.label }}
+              <span>{{ status.label }}</span>
             </label>
           </div>
         </div>
@@ -70,7 +66,7 @@
       </form>
     </div>
 
-    <!-- KARTA S NÁHĽADOM -->
+    <!-- PREVIEW -->
     <div class="card preview">
       <h2>Náhľad údajov</h2>
 
@@ -83,12 +79,10 @@
         <thead>
           <tr>
             <th>Meno študenta</th>
-            <th>Študijný program</th>
-            <th>Trieda / ročník</th>
+            <th>Študijný odbor</th>
             <th>Firma</th>
             <th>Dátum začiatku</th>
             <th>Dátum konca</th>
-            <th>Počet hodín</th>
             <th>Stav</th>
             <th>Akad. rok</th>
             <th>Semester</th>
@@ -98,12 +92,10 @@
         <tbody>
           <tr v-for="(row, index) in rows" :key="index">
             <td>{{ row.student_name }}</td>
-            <td>{{ row.study_program }}</td>
-            <td>{{ row.class }}</td>
+            <td>{{ row.study_field || '—' }}</td>
             <td>{{ row.company }}</td>
             <td>{{ row.start_date }}</td>
             <td>{{ row.end_date }}</td>
-            <td>{{ row.hours }}</td>
             <td>{{ row.status }}</td>
             <td>{{ row.academic_year }}</td>
             <td>{{ row.semester }}</td>
@@ -119,20 +111,17 @@
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
-// FILTRE – stav
 const filters = ref({
   academic_year: '',
   semester: '',
-  study_program_id: '',
+  study_field: '',
   status: [],
 })
 
-// DÁTA Z API
 const rows = ref([])
 const loading = ref(false)
 const downloading = ref(false)
 
-// Pomocné dáta
 const academicYears = ref(['2023/2024', '2024/2025'])
 
 const semesters = ref([
@@ -146,17 +135,18 @@ const statuses = ref([
   { value: 'Zamietnutá', label: 'Zamietnutá' },
 ])
 
-const studyPrograms = ref([])
+const studyFields = ref([])
 
 function authHeaders() {
   const token = localStorage.getItem('access_token')
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
-async function loadStudyPrograms() {
-  // Ak nemáte API, nechaj prázdne / alebo dopln neskôr.
-  // Ideálne neskôr: GET /api/study-programs
-  studyPrograms.value = []
+async function loadStudyFields() {
+  const res = await axios.get('/api/garant/export/study-fields', {
+    headers: authHeaders(),
+  })
+  studyFields.value = res.data?.data || []
 }
 
 async function loadPreview() {
@@ -167,9 +157,6 @@ async function loadPreview() {
       headers: authHeaders(),
     })
     rows.value = res.data?.data || []
-  } catch (err) {
-    console.error('Preview error:', err)
-    rows.value = []
   } finally {
     loading.value = false
   }
@@ -195,15 +182,13 @@ async function downloadCsv() {
     link.click()
     document.body.removeChild(link)
     window.URL.revokeObjectURL(url)
-  } catch (err) {
-    console.error('CSV export error:', err)
   } finally {
     downloading.value = false
   }
 }
 
 onMounted(async () => {
-  await loadStudyPrograms()
+  await loadStudyFields()
   await loadPreview()
 })
 </script>
@@ -241,6 +226,23 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+}
+
+.field-status {
+  grid-column: 1 / span 3;
+}
+
+.checkboxes {
+  display: flex;
+  gap: 2.5rem;
+  margin-top: 0.5rem;
+}
+
+.checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 500;
 }
 
 .actions {
