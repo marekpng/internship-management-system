@@ -2,7 +2,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Internship;
+use App\Models\Notification;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class GarantController extends Controller
 {
@@ -132,5 +134,143 @@ class GarantController extends Controller
         $internship->save();
 
         return response()->json(['message' => 'Prax bola označená ako neobhájená.']);
+    }
+
+    /**
+     * Profil prihláseného garanta
+     * Zdroj pravdy je tabuľka users (garant je user s rolou garant)
+     */
+    public function profile(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'id' => $user->id,
+            'email' => $user->email,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'phone' => $user->phone,
+            'alternative_email' => $user->alternative_email,
+
+            // notifikačné nastavenia (aby to frontend vedel zobraziť aj bez ďalšieho callu)
+            'notify_new_request' => (bool) $user->notify_new_request,
+            'notify_approved' => (bool) $user->notify_approved,
+            'notify_rejected' => (bool) $user->notify_rejected,
+            'notify_profile_change' => (bool) $user->notify_profile_change,
+        ]);
+    }
+
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        // Validujeme len to, čo garant reálne môže meniť
+        $data = $request->validate([
+            'phone' => ['nullable', 'string', 'max:255'],
+            'alternative_email' => ['nullable', 'email', 'max:255'],
+        ]);
+
+        // Uloženie (pozor: ak používaš $fillable, musí obsahovať phone a alternative_email)
+        $user->fill($data);
+        $user->save();
+
+        // Voliteľné: notifikácia do systému o zmene profilu
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'profile_change',
+            'message' => 'Údaje profilu garanta boli aktualizované.',
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Profil bol aktualizovaný.',
+            'user' => $user->only([
+                'id',
+                'email',
+                'first_name',
+                'last_name',
+                'phone',
+                'alternative_email',
+                'notify_new_request',
+                'notify_approved',
+                'notify_rejected',
+                'notify_profile_change',
+            ]),
+        ]);
+    }
+
+    /**
+     * Načítanie notifikačných nastavení pre garanta
+     * (checkboxy v settings)
+     */
+    public function getNotifications(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'notify_new_request' => (bool) $user->notify_new_request,
+            'notify_approved' => (bool) $user->notify_approved,
+            'notify_rejected' => (bool) $user->notify_rejected,
+            'notify_profile_change' => (bool) $user->notify_profile_change,
+        ]);
+    }
+
+    /**
+     * Uloženie notifikačných nastavení pre garanta
+     */
+    public function updateNotifications(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'notify_new_request' => ['required', 'boolean'],
+            'notify_approved' => ['required', 'boolean'],
+            'notify_rejected' => ['required', 'boolean'],
+            'notify_profile_change' => ['required', 'boolean'],
+        ]);
+
+        $user->notify_new_request = $data['notify_new_request'];
+        $user->notify_approved = $data['notify_approved'];
+        $user->notify_rejected = $data['notify_rejected'];
+        $user->notify_profile_change = $data['notify_profile_change'];
+        $user->save();
+
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'notification_settings',
+            'message' => 'Notifikačné nastavenia garanta boli aktualizované.',
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Notifikačné nastavenia boli uložené.',
+        ]);
+    }
+
+    /**
+     * Zoznam notifikácií pre prihláseného garanta
+     * Načítava iba notifikácie patriace aktuálnemu userovi
+     */
+    public function getUserNotifications(Request $request)
+    {
+        return Notification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'DESC')
+            ->get();
+    }
+
+    /**
+     * Označenie notifikácie ako prečítanej (iba vlastnej)
+     */
+    public function markNotificationRead($id, Request $request)
+    {
+        $notification = Notification::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        $notification->read = true;
+        $notification->save();
+
+        return response()->json(['status' => 'success']);
     }
 }

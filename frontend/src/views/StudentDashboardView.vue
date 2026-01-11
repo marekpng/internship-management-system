@@ -1,16 +1,12 @@
 <template>
   <div class="overlay">
     <div class="container">
-      <!-- Vrchný panel -->
-      <div class="top-bar">
-        <div class="logo">
-          <img src="@/assets/logo-fpv.png" alt="Logo FPV" />
-          <div class="logo-text">Praxový systém</div>
-        </div>
-        <div class="user-actions">
-          <div class="user-name">{{ userName }}</div>
-          <button class="logout-button" @click="logout">Odhlásiť sa</button>
-        </div>
+      <!-- Navbar (spoločný pre roly: notifikácie + nastavenia + odhlásenie) -->
+      <CompanyNavBar />
+      <div class="welcome-bar">
+        <span class="portal-badge">Študentský portál</span>
+        <h1>Vitajte, {{ userName }}</h1>
+        <p>Spravujte a sledujte priebeh svojej odbornej praxe.</p>
       </div>
 
       <!-- sekcie dashboardu -->
@@ -41,6 +37,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 
 const router = useRouter()
 const userName = ref('')
@@ -73,7 +70,7 @@ onMounted(() => {
 
 // odhlásenie
 const logout = () => {
-  localStorage.removeItem('token')
+  localStorage.removeItem('access_token')
   localStorage.removeItem('user')
   router.push({ name: 'login' })
 }
@@ -96,11 +93,39 @@ const goToMyPractice = () => {
 
 <style src="../assets/style.css"></style>
 <style>
+.portal-badge {
+  display: inline-block;
+  background: #dff2e7;
+  color: #1d4d2d;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
 .clickable {
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
-.clickable:hover {
-  background-color: #f9f9f9;
+
+.welcome-bar {
+  background: #e8f7ee;
+  border: 1px solid #1d4d2d;
+  padding: 18px 22px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+}
+
+.welcome-bar h1 {
+  margin: 0 0 6px 0;
+  font-size: 26px;
+  color: #1d4d2d;
+}
+
+.welcome-bar p {
+  margin: 0;
+  font-size: 15px;
+  color: #355f44;
 }
 </style>

@@ -1,12 +1,13 @@
 FROM php:8.3-fpm
 
-# System packages + LibreOffice + PHP extensions
+# System packages + LibreOffice + MySQL client + PHP extensions
 RUN apt-get update && apt-get install -y \
     bash \
     procps \
     git \
     unzip \
     zip \
+    mysql-client \
     libzip-dev \
     libpng-dev \
     libjpeg-dev \
@@ -26,7 +27,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# sanity check
+# sanity checks (nefailne build)
 RUN php -m | grep bcmath || true
 RUN soffice --version || true
 

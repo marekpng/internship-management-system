@@ -1,11 +1,13 @@
 <template>
+  <CompanyNavBar />
   <div class="garant-dashboard">
 
     <section class="hero-section">
       <div class="container hero-content">
         <div>
           <span class="chip">Garant portál</span>
-          <h1>Vitajte, {{ garant?.first_name, garant?.last_name }}</h1>
+          <h1>Vitajte, {{ first_name }} {{ last_name }}</h1>
+          <p v-if="!first_name && !last_name" class="lead" style="margin-top: 6px; opacity: 0.9;">Vitajte</p>
           <p class="lead">
             Spravujte a kontrolujte všetky študentské praxe na vašej fakulte.
           </p>
@@ -13,9 +15,7 @@
             <router-link to="/garant/practices" class="btn-primary">
               Zobraziť všetky praxe
             </router-link>
-            <button class="btn-secondary" @click="logout">
-              Odhlásiť sa
-            </button>
+          
           </div>
         </div>
       </div>
@@ -35,7 +35,7 @@
           <h3>Potvrdené</h3>
           <p class="stat-number">{{ approvedCount }}</p>
         </div>
-        <div class="stat-card" @click="goToStatus('zamietnute')" style="cursor: pointer;">
+        <div class="stat-card" @click="goToStatus('zamietnuta')" style="cursor: pointer;">
           <h3>Zamietnute</h3>
           <p class="stat-number">{{ rejectedCount }}</p>
         </div>
@@ -63,9 +63,11 @@
 
 <script>
 import axios from 'axios'
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 
 export default {
   name: "GarantDashboardView",
+  components: { CompanyNavBar },
 
   data() {
     return {
@@ -78,10 +80,16 @@ export default {
       rejectedCountGarant: 0,
       approvedCountGarant: 0,
       notDefendedCount: 0,
+      first_name: '',
+      last_name: '',
     };
   },
 
   mounted() {
+    const lsUser = JSON.parse(localStorage.getItem('user') || '{}');
+    this.first_name = lsUser.first_name || '';
+    this.last_name = lsUser.last_name || '';
+
     axios.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('access_token')}`;
 
     axios.get("http://127.0.0.1:8000/api/garant/internships/count/Vytvorená")

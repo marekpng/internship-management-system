@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\ResetPasswordMail;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -32,6 +33,38 @@ class LoginController extends Controller
 
         $roles = $user->roles->pluck('name')->toArray();
 
+        // Základné údaje, ktoré potrebujeme mať k dispozícii hneď po logine (pre všetky roly)
+        // Poznámka: tieto polia sa používajú na zobrazenie mena v navbare a na predvyplnenie nastavení.
+        $baseUserPayload = [
+            'id' => $user->id,
+            'email' => $user->email,
+            'roles' => $roles,
+
+            // Profilové údaje (fungujú pre študenta aj garanta; firma ich môže mať prázdne)
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'phone' => $user->phone,
+            'alternative_email' => $user->alternative_email,
+
+            // Notifikačné nastavenia (používajú sa v Settings a pri emailových notifikáciách)
+            'notify_new_request' => (bool) $user->notify_new_request,
+            'notify_approved' => (bool) $user->notify_approved,
+            'notify_rejected' => (bool) $user->notify_rejected,
+            'notify_profile_change' => (bool) $user->notify_profile_change,
+        ];
+
+        // Firemné údaje ponechávame len pre rolu company (aby sme garantovi/študentovi neposielali company polia)
+        $companyPayload = [];
+        if (in_array('company', $roles)) {
+            $companyPayload = [
+                'company_name' => $user->company_name,
+                'contact_person_name' => $user->contact_person_name,
+                'contact_person_email' => $user->contact_person_email,
+                'contact_person_phone' => $user->contact_person_phone,
+                'company_account_active_state' => (bool) $user->company_account_active_state,
+            ];
+        }
+
         // Firma musí mať aktívny účet
         if (in_array('company', $roles) && !$user->company_account_active_state) {
             return response()->json([
@@ -44,11 +77,7 @@ class LoginController extends Controller
             return response()->json([
                 'status' => 'FORCE_PASSWORD_CHANGE',
                 'message' => 'Musíte zmeniť svoje heslo pred pokračovaním.',
-                'user' => [
-                    'id' => $user->id,
-                    'email' => $user->email,
-                    'roles' => $user->roles->pluck('name')->toArray(),
-                ],
+                'user' => array_merge($baseUserPayload, $companyPayload),
             ], 200);
         }
 
@@ -63,16 +92,7 @@ class LoginController extends Controller
             'token_type' => 'Bearer',
             'expires_at' => $tokenResult->token->expires_at,
             'must_change_password' => $mustChangePassword,
-            'user' => [
-                'id' => $user->id,
-                'email' => $user->email,
-                'company_name' => $user->company_name,
-                'contact_person_name' => $user->contact_person_name,
-                'contact_person_email' => $user->contact_person_email,
-                'contact_person_phone' => $user->contact_person_phone,
-                'company_account_active_state' => $user->company_account_active_state,
-                'roles' => $user->roles->pluck('name')->toArray(),
-            ],
+            'user' => array_merge($baseUserPayload, $companyPayload),
         ]);
     }
 
@@ -97,14 +117,22 @@ public function changePassword(Request $request)
     // Logovanie požiadavky prichádzajúcej na server
     Log::info('Zmena hesla - prichádzajúci request:', [
         'email' => $request->email,
-        'token' => $request->bearerToken(),
+        'has_token' => (bool) $request->bearerToken(),
     ]);
 
     $request->validate([
         'current_password' => 'required|string',
-        'new_password' => 'required|string|min:8|confirmed', // musí byť "new_password_confirmation" v requeste
-        'email' => 'nullable|email' //  doplnené pre prípad, že používateľ nie je prihlásený
+
+        // Frontend môže posielať buď new_password/new_password_confirmation alebo password/password_confirmation.
+        'new_password' => 'required_without:password|string|min:8|confirmed',
+        'password' => 'required_without:new_password|string|min:8|confirmed',
+
+        // Doplnené pre prípad, že používateľ nie je prihlásený (force password change)
+        'email' => 'nullable|email',
     ]);
+
+    // Normalizácia: zober nové heslo z jedného z podporovaných polí
+    $newPassword = $request->input('new_password') ?? $request->input('password');
 
     // Získame aktuálneho používateľa z tokenu
     $user = $request->user();
@@ -151,9 +179,34 @@ public function changePassword(Request $request)
     }
 
     // Zmena hesla a reset flagu po úspešnej zmene
-    $user->password = Hash::make($request->new_password);
+    $user->password = Hash::make($newPassword);
     $user->must_change_password = false; // 🔹 reset flagu po úspešnej zmene
     $user->save();
+
+    // In-app notifikácia o zmene hesla
+    Notification::create([
+        'user_id' => $user->id,
+        'type' => 'password_change',
+        'message' => 'Vaše heslo bolo úspešne zmenené.',
+    ]);
+
+    // Emailová notifikácia o zmene hesla (podľa nastavenia používateľa)
+    if ((bool) $user->notify_profile_change) {
+        try {
+            Mail::raw(
+                'Bolo zmenené heslo k vášmu účtu. Ak ste túto zmenu nevykonali vy, okamžite kontaktujte administrátora.',
+                function ($message) use ($user) {
+                    $message->to($user->email)
+                        ->subject('Zmena hesla - Notifikácia');
+                }
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Email notifikácia o zmene hesla sa nepodarila odoslať.', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
 
     Log::info('Heslo bolo úspešne zmenené.', ['user_id' => $user->id]);
 

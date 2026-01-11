@@ -1,4 +1,7 @@
 <template>
+  <!-- Navbar (notifikácie + nastavenia + odhlásenie) -->
+  <CompanyNavBar />
+
   <div class="overlay">
     <div class="practice-container">
       <!-- HEADER -->
@@ -192,6 +195,8 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+
+import CompanyNavBar from "@/components/icons/CompanyNavBar.vue";
 
 const router = useRouter();
 
@@ -725,5 +730,9 @@ button:disabled {
   margin-top: 20px;
   color: #555;
   font-style: italic;
+}
+
+.overlay {
+  padding-top: 70px;
 }
 </style>

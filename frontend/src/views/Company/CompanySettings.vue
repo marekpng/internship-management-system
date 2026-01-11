@@ -7,6 +7,7 @@
       <ul>
         <li :class="{ active: activeTab === 'data' }" @click="activeTab = 'data'">Údaje firmy</li>
         <li :class="{ active: activeTab === 'notifications' }" @click="activeTab = 'notifications'">Notifikácie</li>
+        <li :class="{ active: activeTab === 'password' }" @click="activeTab = 'password'">Zmena hesla</li>
       </ul>
     </aside>
 
@@ -134,6 +135,47 @@
           </div>
         </div>
       </div>
+
+      <div v-if="activeTab === 'password'">
+        <h1>Zmena hesla</h1>
+
+        <div class="info-bar">
+          <p>Heslo slúži na prihlásenie do systému a môžete ho tu zmeniť.</p>
+        </div>
+
+        <section class="block">
+          <div class="field">
+            <label>Aktuálne heslo</label>
+            <input type="password" v-model="passwordForm.current_password" />
+          </div>
+
+          <div class="field">
+            <label>Nové heslo</label>
+            <input type="password" v-model="passwordForm.new_password" />
+          </div>
+
+          <div class="field">
+            <label>Potvrdenie nového hesla</label>
+            <input type="password" v-model="passwordForm.new_password_confirmation" />
+          </div>
+
+          <button class="btn-save" @click="passwordConfirmVisible = true">
+            Uložiť zmenu hesla
+          </button>
+        </section>
+
+        <div v-if="passwordConfirmVisible" class="modal-backdrop">
+          <div class="modal">
+            <h3>Ste si istí, že chcete zmeniť heslo?</h3>
+            <p>Po zmene hesla sa budete prihlasovať už len novým heslom.</p>
+
+            <div class="modal-actions">
+              <button class="btn-cancel" @click="passwordConfirmVisible = false">Zrušiť</button>
+              <button class="btn-confirm" @click="changePassword">Potvrdiť</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -176,6 +218,9 @@ const notifications = ref({
   notify_rejected: true,
   notify_profile_change: true
 })
+
+const passwordConfirmVisible = ref(false)
+const passwordForm = ref({ current_password: '', new_password: '', new_password_confirmation: '' })
 
 async function loadCompany() {
   const token = localStorage.getItem('access_token')
@@ -249,6 +294,33 @@ async function confirmNotificationSave() {
     setTimeout(() => (notification.value = ''), 3000)
   } finally {
     notifyConfirmVisible.value = false
+  }
+}
+
+async function changePassword() {
+  const token = localStorage.getItem('access_token')
+  try {
+    await axios.post(
+      'http://localhost:8000/api/change-password',
+      {
+        current_password: passwordForm.value.current_password,
+        password: passwordForm.value.new_password,
+        password_confirmation: passwordForm.value.new_password_confirmation
+      },
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      }
+    )
+    passwordConfirmVisible.value = false
+    passwordForm.value.current_password = ''
+    passwordForm.value.new_password = ''
+    passwordForm.value.new_password_confirmation = ''
+    notification.value = 'Heslo bolo úspešne zmenené.'
+    setTimeout(() => notification.value = '', 3000)
+  } catch (error) {
+    passwordConfirmVisible.value = false
+    notification.value = error?.response?.data?.message || 'Nepodarilo sa zmeniť heslo. Skúste to prosím znova.'
+    setTimeout(() => notification.value = '', 3000)
   }
 }
 

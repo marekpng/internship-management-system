@@ -8,9 +8,10 @@ import RegisterCompanyView from '../views/RegisterCompanyView.vue'
 import LandingPage from '../views/LandingPage.vue'
 import ChangePasswordView from '../views/ChangePasswordView.vue'
 import ProfileView from '@/views/ProfileView.vue'
-import GarantDashboardView from '@/views/GarantDashboardView.vue'
-import GarantPracticesView from '@/views/GarantPracticesView.vue'
-import GarantPracticeDetailView from '@/views/GarantPracticeDetailView.vue'
+import GarantDashboardView from '@/views/Garant/GarantDashboardView.vue'
+import GarantPracticesView from '@/views/Garant/GarantPracticesView.vue'
+import GarantPracticeDetailView from '@/views/Garant/GarantPracticeDetailView.vue'
+import GarantSettingsView from '@/views/Garant/GarantSettings.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -37,6 +38,12 @@ const router = createRouter({
       path: '/student/my-practice', 
       name: 'studentMyPractice', 
       component: () => import('@/views/StudentMyPracticeView.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/student/settings',
+      name: 'studentSettings',
+      component: () => import('@/views/StudentSettings.vue'),
       meta: { requiresAuth: true }
     },
     { path: '/change-password', name: 'changePassword', component: ChangePasswordView },
@@ -84,6 +91,12 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
+      path: '/garant/settings',
+      name: 'garantSettings',
+      component: GarantSettingsView,
+      meta: { requiresAuth: true }
+    },
+    {
       path: '/admin/login',
       name: 'adminLogin',
       component: () => import('@/views/Admin/AdminLoginView.vue')
@@ -112,7 +125,8 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('access_token')
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  const role = user?.roles?.[0]?.name
+  const rawRole = user?.roles?.[0]
+  const role = typeof rawRole === 'string' ? rawRole : rawRole?.name
 
   // ak stránka vyžaduje login a user nemá token → redirect
   if (to.meta.requiresAuth && !token) {
@@ -128,7 +142,7 @@ router.beforeEach((to, from, next) => {
 
   // ochrana routov pre firmu
   if (role === 'company') {
-    if (to.path.startsWith('/student' || to.path.startsWith('/garant'))) {
+    if (to.path.startsWith('/student') || to.path.startsWith('/garant') || to.path.startsWith('/admin')) {
       return next('/company/dashboard')
     }
   }

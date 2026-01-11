@@ -53,7 +53,6 @@ services:
   nginx:
     image: nginx:1.27-alpine
     depends_on:
-      - mysql
       - backend
     ports:
       - "8000:80"

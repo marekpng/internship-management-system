@@ -19,18 +19,18 @@ class InternshipController extends Controller
 
         $data = $internships->map(function ($internship) {
             return [
-                'id'           => $internship->id,
-                'year'         => $internship->year,
-                'semester'     => $internship->semester,
-                'start_date'   => $internship->start_date,
-                'end_date'     => $internship->end_date,
-                'status'       => $internship->status,
-                'company_id'   => $internship->company_id,
-                'company_name' => $internship->company
+                'id'                 => $internship->id,
+                'year'               => $internship->year,
+                'semester'           => $internship->semester,
+                'start_date'         => $internship->start_date,
+                'end_date'           => $internship->end_date,
+                'status'             => $internship->status,
+                'company_id'         => $internship->company_id,
+                'company_name'       => $internship->company
                     ? ($internship->company->company_name ?? $internship->company->name ?? 'Neznáma firma')
                     : 'Neznáma firma',
-                'student_id'   => $internship->student_id,
-                'garant_id'    => $internship->garant_id,
+                'student_id'         => $internship->student_id,
+                'garant_id'          => $internship->garant_id,
                 'agreement_pdf_path' => $internship->agreement_pdf_path,
             ];
         });
@@ -159,12 +159,14 @@ class InternshipController extends Controller
     {
         $user = $request->user();
 
+        // Získame všetky stáže, kde je študent, firma alebo garant
         $internships = Internship::with(['company', 'student', 'garant'])
             ->where('student_id', $user->id)
             ->orWhere('company_id', $user->id)
             ->orWhere('garant_id', $user->id)
             ->get();
 
+        // Mapujeme dáta na požiadavaný formát
         $data = $internships->map(function ($internship) {
             return [
                 'id'                 => $internship->id,
@@ -174,8 +176,8 @@ class InternshipController extends Controller
                 'start_date'         => $internship->start_date,
                 'end_date'           => $internship->end_date,
                 'status'             => $internship->status,
-                'company'            => $internship->company ? $internship->company->toArray() : null,
-                'student'            => $internship->student ? $internship->student->toArray() : null,
+                'company'            => $internship->company ? $internship->company->toArray() : null, // Všetky dáta o firme
+                'student'            => $internship->student ? $internship->student->toArray() : null, // Všetky dáta o študentovi
                 'garant_id'          => $internship->garant_id,
                 'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
                 'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
@@ -186,6 +188,9 @@ class InternshipController extends Controller
         return response()->json($data);
     }
 
+    /**
+     * Stiahnuť PDF dohodu pre konkrétnu prax.
+     */
     public function downloadAgreement($id, AgreementGenerator $generator)
     {
         $internship = Internship::findOrFail($id);
@@ -238,6 +243,9 @@ class InternshipController extends Controller
         return $response;
     }
 
+    /**
+     * Zmeniť stav stáže.
+     */
     public function changeStatus($id, Request $request)
     {
         $validStatuses = [
