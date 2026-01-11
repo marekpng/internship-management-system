@@ -101,7 +101,9 @@ Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
 
 Route::middleware('auth:api')->post('/update-profile', [LoginController::class, 'updateProfile']);
 
-Route::get('internships/{id}/agreement/download', [InternshipController::class, 'downloadAgreement']);
+Route::middleware('auth:api')
+    ->get('internships/{id}/agreement/download', [InternshipController::class, 'downloadAgreement']);
+
 
 
 

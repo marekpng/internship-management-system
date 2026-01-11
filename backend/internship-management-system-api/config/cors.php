@@ -2,26 +2,25 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Laravel CORS Configuration
-    |--------------------------------------------------------------------------
-    */
-
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
         'http://localhost:5173',
-        'http://127.0.0.1:5173'
+        'http://127.0.0.1:5173',
     ],
 
     'allowed_origins_patterns' => [],
 
     'allowed_headers' => ['*'],
 
-    'exposed_headers' => [],
+    // FE potrebuje čítať Content-Disposition kvôli názvu súboru
+    'exposed_headers' => [
+        'Content-Disposition',
+        'Content-Type',
+        'Content-Length',
+    ],
 
     'max_age' => 0,
 

@@ -1,21 +1,34 @@
-FROM php:8.4-fpm-alpine 
+FROM php:8.3-fpm
 
-RUN apk update && apk add --no-cache \
+# System packages + LibreOffice + PHP extensions
+RUN apt-get update && apt-get install -y \
     bash \
-    curl \
-    libzip-dev \
-    zip \
+    procps \
+    git \
     unzip \
-    mysql-client \
-    && docker-php-ext-install pdo pdo_mysql zip
+    zip \
+    libzip-dev \
+    libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libreoffice \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install \
+        pdo \
+        pdo_mysql \
+        zip \
+        gd \
+        bcmath \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-COPY ./backend/internship-management-system-api .
-
-RUN composer install --no-dev --optimize-autoloader
+# sanity check
+RUN php -m | grep bcmath || true
+RUN soffice --version || true
 
 EXPOSE 9000
 

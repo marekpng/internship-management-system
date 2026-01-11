@@ -9,9 +9,6 @@ use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
-    /* ========================================================================
-     *   ŠTUDENT – UPLOAD DOKUMENTU
-     * ======================================================================== */
     public function uploadStudentDocument(Request $request, $internshipId)
     {
         $request->validate([
@@ -21,12 +18,10 @@ class DocumentController extends Controller
 
         $internship = Internship::findOrFail($internshipId);
 
-        // študent môže nahrávať iba svoje dokumenty
         if ($request->user()->id !== $internship->student_id) {
             return response()->json(['message' => 'Nemáte oprávnenie nahrať dokument.'], 403);
         }
 
-        // Podpísaná dohoda sa nahráva až po "Potvrdená"
         if ($request->document_type === 'signed_agreement' && $internship->status !== 'Potvrdená') {
             return response()->json(['message' => 'Podpísanú zmluvu je možné nahrať až po potvrdení praxe.'], 400);
         }
@@ -51,20 +46,15 @@ class DocumentController extends Controller
         ], 201);
     }
 
-    /* ========================================================================
-     *   GARANT – UPLOAD DOKUMENTU
-     * ======================================================================== */
     public function uploadGarantDocument(Request $request, $internshipId)
     {
         $request->validate([
-            // nastav si typy podľa toho čo chcete – toto je safe minimum
             'document_type' => 'required|in:review',
             'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         $internship = Internship::findOrFail($internshipId);
 
-        // garant môže nahrávať iba k praxiam, kde je garantom
         if (auth('api')->id() !== $internship->garant_id) {
             return response()->json(['message' => 'Nemáte oprávnenie nahrať dokument.'], 403);
         }
@@ -80,7 +70,6 @@ class DocumentController extends Controller
             'type' => $request->document_type,
             'internship_id' => $internshipId,
             'uploaded_by' => auth('api')->id(),
-            // status pole nechávame rovnaké aby UI fungovalo (pending/submitted/approved/rejected)
             'company_status' => 'submitted'
         ]);
 
@@ -90,18 +79,15 @@ class DocumentController extends Controller
         ], 201);
     }
 
-    /* ========================================================================
-     *   ZOZNAM DOKUMENTOV
-     * ======================================================================== */
     public function listByInternship($internshipId)
     {
         $documents = Document::where('internship_id', $internshipId)->get();
         return response()->json($documents);
     }
 
-    /* ========================================================================
-     *   STIAHNUTIE DOKUMENTU – BEZ REDIRECTOV
-     * ======================================================================== */
+    /**
+     * STIAHNUTIE DOKUMENTU
+     */
     public function download($documentId)
     {
         if (!auth('api')->check()) {
@@ -114,22 +100,25 @@ class DocumentController extends Controller
             return response()->json(['message' => 'Súbor neexistuje.'], 404);
         }
 
-        $absolutePath = storage_path("app/public/" . $document->file_path);
-        $mime = mime_content_type($absolutePath);
+        $absolutePath = Storage::disk('public')->path($document->file_path);
+        $mime = mime_content_type($absolutePath) ?: 'application/octet-stream';
+
+        // Názov súboru (podľa DB)
+        $fileName = $document->document_name ?: 'dokument';
+
+        // RFC5987 pre diakritiku (filename*)
+        $fileNameStar = rawurlencode($fileName);
 
         return response()->download(
             $absolutePath,
-            $document->document_name,
+            $fileName,
             [
-                "Content-Type" => $mime,
-                "Content-Disposition" => "attachment; filename=\"{$document->document_name}\""
+                'Content-Type' => $mime,
+                'Content-Disposition' => "attachment; filename=\"{$fileName}\"; filename*=UTF-8''{$fileNameStar}",
             ]
         );
     }
 
-    /* ========================================================================
-     *   GARANT – SCHVÁLIŤ DOKUMENT
-     * ======================================================================== */
     public function approveDocumentByGarant($documentId)
     {
         if (!auth('api')->check()) {
@@ -139,7 +128,6 @@ class DocumentController extends Controller
         $document = Document::findOrFail($documentId);
         $internship = Internship::findOrFail($document->internship_id);
 
-        // iba garant danej praxe
         if (auth('api')->id() !== $internship->garant_id) {
             return response()->json(['message' => 'Nemáte oprávnenie schváliť tento dokument.'], 403);
         }
@@ -150,9 +138,6 @@ class DocumentController extends Controller
         return response()->json(['message' => 'Dokument bol schválený garantom.']);
     }
 
-    /* ========================================================================
-     *   GARANT – ZAMIETNUŤ DOKUMENT
-     * ======================================================================== */
     public function rejectDocumentByGarant($documentId)
     {
         if (!auth('api')->check()) {
@@ -162,7 +147,6 @@ class DocumentController extends Controller
         $document = Document::findOrFail($documentId);
         $internship = Internship::findOrFail($document->internship_id);
 
-        // iba garant danej praxe
         if (auth('api')->id() !== $internship->garant_id) {
             return response()->json(['message' => 'Nemáte oprávnenie zamietnuť tento dokument.'], 403);
         }
@@ -173,17 +157,11 @@ class DocumentController extends Controller
         return response()->json(['message' => 'Dokument bol zamietnutý garantom.']);
     }
 
-    /* ========================================================================
-     *   DETAIL
-     * ======================================================================== */
     public function show($id)
     {
         return response()->json(Document::findOrFail($id));
     }
 
-    /* ========================================================================
-     *   ZMAZANIE
-     * ======================================================================== */
     public function destroy($id)
     {
         $document = Document::findOrFail($id);
