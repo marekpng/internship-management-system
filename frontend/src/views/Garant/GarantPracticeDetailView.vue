@@ -513,7 +513,6 @@ export default {
   border-radius: 6px;
   cursor: pointer;
 }
-<<<<<<< HEAD:frontend/src/views/GarantPracticeDetailView.vue
 .back-btn:hover { background: #f0f6f2; }
 
 .header-bar {
@@ -563,9 +562,4 @@ export default {
 .upload-error { color: #d9534f; font-weight: 600; }
 .upload-success { color: #0b6b37; font-weight: 600; }
 .no-documents { color: #666; }
-=======
-.back-btn:hover {
-  background: #f0f6f2;
-}
->>>>>>> origin/develop:frontend/src/views/Garant/GarantPracticeDetailView.vue
 </style>

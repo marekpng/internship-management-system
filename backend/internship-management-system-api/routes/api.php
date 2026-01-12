@@ -91,7 +91,6 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
 
     Route::put('internships/{id}', [InternshipController::class, 'update']);
 
-<<<<<<< HEAD
     // Garant nahraje dokument k praxi
     Route::post('/internships/{id}/documents/upload', [DocumentController::class, 'uploadGarantDocument']);
 
@@ -100,11 +99,9 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
 
     // Garant zamietne dokument
     Route::post('/documents/{id}/reject', [DocumentController::class, 'rejectDocumentByGarant']);
-=======
     // Reálne notifikácie pre zvonček (garant)
     Route::get('/user-notifications', [GarantController::class, 'getUserNotifications']);
     Route::post('/notifications/read/{id}', [GarantController::class, 'markNotificationRead']);
->>>>>>> origin/develop
 });
 
 Route::post('/login', [LoginController::class, 'login']);
