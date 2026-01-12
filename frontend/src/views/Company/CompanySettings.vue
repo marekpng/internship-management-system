@@ -1,7 +1,14 @@
 <template>
-  <CompanyNavBar />
-  <button class="back-button" @click="$router.back()">← Späť</button>
-  <div class="settings-layout">
+  <div class="company-settings-page">
+    <CompanyNavBar />
+
+    <div class="page-controls">
+      <button class="back-button" type="button" @click="$router.back()">
+        ← Späť
+      </button>
+    </div>
+
+    <div class="settings-layout">
     <aside class="settings-sidebar">
       <h3>Nastavenia</h3>
       <ul>
@@ -176,6 +183,7 @@
           </div>
         </div>
       </div>
+    </div>
     </div>
   </div>
 </template>
@@ -433,13 +441,37 @@ input:disabled {
   color: #444;
 }
 
+.page-controls {
+  max-width: 1100px;
+  margin: 16px auto 0;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+}
+
 .back-button {
-  margin: 20px 0;
-  background: none;
-  border: none;
-  font-size: 16px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #e6e6e6;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
   cursor: pointer;
-  color: #1d4d2d;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+.back-button:hover {
+  background: #f7f7f7;
+  border-color: #d7d7d7;
+}
+
+.back-button:active {
+  transform: translateY(1px);
 }
 
 .notification-bar {

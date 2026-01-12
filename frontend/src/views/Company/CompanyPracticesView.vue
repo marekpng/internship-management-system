@@ -28,6 +28,9 @@
       </div>
 
       <div class="filter-secondary">
+        <button class="back-button secondary-back" type="button" @click="$router.back()">
+          ← Späť
+        </button>
         <div class="filter-group">
           <label for="year">Rok</label>
           <select id="year" v-model="year" @change="reloadWithFilters">
@@ -356,16 +359,21 @@ export default {
 
 .filter-secondary {
   display: flex;
-  gap: 14px;
   align-items: flex-end;
+  gap: 12px;
   margin-top: 10px;
   flex-wrap: wrap;
+
+  justify-content: flex-start; /* LEFT aligned */
+  width: 100%;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 140px;
+  margin-right: 6px;
 }
 
 .filter-group label {
@@ -394,5 +402,58 @@ export default {
 
 .filter-reset:hover {
   background: #f5f5f5;
+}
+
+/* --- Back button inline with filters --- */
+.inline-back {
+  margin-right: 16px;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #d9d9d9;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0b6b37;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.inline-back:hover {
+  background: #f5f7f5;
+  border-color: #cfe2d5;
+}
+
+/* ensure filter bar aligns nicely */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* --- Back button in secondary filter row --- */
+.secondary-back {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid #d9d9d9;
+  background: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0b6b37;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.secondary-back:hover {
+  background: #f5f7f5;
+  border-color: #cfe2d5;
 }
 </style>
