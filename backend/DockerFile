@@ -1,22 +1,48 @@
-FROM php:8.4-fpm-alpine 
+FROM php:8.3-fpm
 
-RUN apk update && apk add --no-cache \
-    bash \
-    curl \
-    libzip-dev \
-    zip \
-    unzip \
-    mysql-client \
-    && docker-php-ext-install pdo pdo_mysql zip
+# System packages + LibreOffice + MySQL client + PHP extensions
+RUN set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        bash \
+        procps \
+        git \
+        unzip \
+        zip \
+        libzip-dev \
+        libpng-dev \
+        libjpeg-dev \
+        libfreetype6-dev \
+        libreoffice \
+        ca-certificates \
+    ; \
+    # MySQL client package name differs across Debian versions.
+    # Use "apt-get -s" (simulate) to detect real installability.
+    if apt-get -s install -y --no-install-recommends default-mysql-client >/dev/null 2>&1; then \
+        apt-get install -y --no-install-recommends default-mysql-client; \
+    elif apt-get -s install -y --no-install-recommends mysql-client >/dev/null 2>&1; then \
+        apt-get install -y --no-install-recommends mysql-client; \
+    else \
+        apt-get install -y --no-install-recommends mariadb-client-compat; \
+    fi; \
+    docker-php-ext-configure gd --with-freetype --with-jpeg; \
+    docker-php-ext-install \
+        pdo \
+        pdo_mysql \
+        zip \
+        gd \
+        bcmath \
+    ; \
+    rm -rf /var/lib/apt/lists/*
 
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-COPY ./backend/internship-management-system-api .
-
-RUN composer install --no-dev --optimize-autoloader
+# sanity checks (non-failing)
+RUN php -m | grep -i bcmath || true
+RUN soffice --version || true
 
 EXPOSE 9000
-
 CMD ["php-fpm"]

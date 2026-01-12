@@ -1,51 +1,49 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Internship;
 use App\Models\User;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Services\AgreementGenerator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class InternshipController extends Controller
 {
-    /**
-     * Získať všetky stáže.
-     */
     public function index()
     {
         $internships = Internship::with(['company', 'student', 'garant'])->get();
 
         $data = $internships->map(function ($internship) {
             return [
-                'id'           => $internship->id,
-                'year'         => $internship->year,
-                'semester'     => $internship->semester,
-                'start_date'   => $internship->start_date,
-                'end_date'     => $internship->end_date,
-                'status'       => $internship->status,
-                'company_id'   => $internship->company_id,
-                'company_name' => $internship->company ? ($internship->company->company_name ?? $internship->company->name ?? 'Neznáma firma') : 'Neznáma firma',
-                'student_id'   => $internship->student_id,
-                'garant_id'    => $internship->garant_id,
+                'id'                 => $internship->id,
+                'year'               => $internship->year,
+                'semester'           => $internship->semester,
+                'start_date'         => $internship->start_date,
+                'end_date'           => $internship->end_date,
+                'status'             => $internship->status,
+                'company_id'         => $internship->company_id,
+                'company_name'       => $internship->company
+                    ? ($internship->company->company_name ?? $internship->company->name ?? 'Neznáma firma')
+                    : 'Neznáma firma',
+                'student_id'         => $internship->student_id,
+                'garant_id'          => $internship->garant_id,
+                'agreement_pdf_path' => $internship->agreement_pdf_path,
             ];
         });
 
         return response()->json($data);
     }
 
-    /**
-     * Získať detail stáže.
-     */
     public function show($id)
     {
         $internship = Internship::with(['company', 'student', 'garant'])->findOrFail($id);
         return response()->json($internship);
     }
 
-    /**
-     * Pridať novú stáž.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -58,7 +56,6 @@ class InternshipController extends Controller
             'student_id' => 'required|exists:users,id',
         ]);
 
-        // Kontrola duplicity praxe pre rovnaký rok a semester
         if (
             Internship::where('student_id', $validated['student_id'])
                 ->where('year', $validated['year'])
@@ -69,10 +66,8 @@ class InternshipController extends Controller
         }
 
         try {
-            // Pred vytvorením stáže priradíme garanta
             $garantId = $this->assignGarantToInternship();
 
-            // Vytvorenie novej stáže s priradeným garantom
             $internship = Internship::create([
                 'start_date' => $validated['start_date'] ?? null,
                 'end_date'   => $validated['end_date'] ?? null,
@@ -84,37 +79,8 @@ class InternshipController extends Controller
                 'garant_id'  => $garantId,
             ]);
 
-            // (Nechávam tvoju logiku: pri vytvorení sa pokúsi vygenerovať PDF)
-            Storage::disk('public')->makeDirectory('internships/agreements');
-
-            try {
-                $student = $internship->student;
-                $company = $internship->company;
-                $garant  = $internship->garant ?? (object) ['first_name' => 'N/A', 'last_name' => ''];
-
-                $pdf = Pdf::loadView('pdf.agreement', [
-                    'internship' => $internship,
-                    'student'    => $student,
-                    'company'    => $company,
-                    'garant'     => $garant,
-                ]);
-
-                $pdfPath = "internships/agreements/internship_{$internship->id}.pdf";
-                Storage::disk('public')->put($pdfPath, $pdf->output());
-
-                // Uloženie cesty k PDF (ak stĺpec existuje v DB)
-                try {
-                    $internship->update(['agreement_pdf_path' => $pdfPath]);
-                } catch (\Throwable $e) {
-                    // ak nemáš stĺpec v DB, tak len ignorujeme
-                    \Log::warning('agreement_pdf_path sa nepodarilo uložiť (možno chýba stĺpec): ' . $e->getMessage());
-                }
-            } catch (\Exception $e) {
-                \Log::error('Chyba pri generovaní PDF dohody: ' . $e->getMessage());
-            }
-
             return response()->json([
-                'message'    => 'Prax bola úspešne vytvorená a PDF dohoda bola vygenerovaná.',
+                'message'    => 'Prax bola úspešne vytvorená.',
                 'internship' => $internship->load(['company', 'student', 'garant']),
             ], 201);
 
@@ -126,9 +92,6 @@ class InternshipController extends Controller
         }
     }
 
-    /**
-     * Aktualizovať stáž.
-     */
     public function update(Request $request, $id)
     {
         $internship = Internship::findOrFail($id);
@@ -149,9 +112,6 @@ class InternshipController extends Controller
         ]);
     }
 
-    /**
-     * Zmazať stáž.
-     */
     public function destroy($id)
     {
         $internship = Internship::findOrFail($id);
@@ -159,9 +119,6 @@ class InternshipController extends Controller
         return response()->json(null, 204);
     }
 
-    /**
-     * Získať všetky praxe, kde dané token zodpovedá študentovi, firme alebo garantovi.
-     */
     public function myInternships(Request $request)
     {
         $user = $request->user();
@@ -181,7 +138,9 @@ class InternshipController extends Controller
                 'end_date'           => $internship->end_date,
                 'status'             => $internship->status,
                 'company_id'         => $internship->company_id,
-                'company_name'       => $internship->company ? ($internship->company->company_name ?? $internship->company->name ?? 'Neznáma firma') : 'Neznáma firma',
+                'company_name'       => $internship->company
+                    ? ($internship->company->company_name ?? $internship->company->name ?? 'Neznáma firma')
+                    : 'Neznáma firma',
                 'student_id'         => $internship->student_id,
                 'student_first_name' => $internship->student?->first_name ?? 'Nezadané meno',
                 'student_last_name'  => $internship->student?->last_name ?? 'Nezadané priezvisko',
@@ -189,6 +148,7 @@ class InternshipController extends Controller
                 'garant_id'          => $internship->garant_id,
                 'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
                 'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
+                'agreement_pdf_path' => $internship->agreement_pdf_path,
             ];
         });
 
@@ -199,12 +159,14 @@ class InternshipController extends Controller
     {
         $user = $request->user();
 
+        // Získame všetky stáže, kde je študent, firma alebo garant
         $internships = Internship::with(['company', 'student', 'garant'])
             ->where('student_id', $user->id)
             ->orWhere('company_id', $user->id)
             ->orWhere('garant_id', $user->id)
             ->get();
 
+        // Mapujeme dáta na požiadavaný formát
         $data = $internships->map(function ($internship) {
             return [
                 'id'                 => $internship->id,
@@ -214,11 +176,12 @@ class InternshipController extends Controller
                 'start_date'         => $internship->start_date,
                 'end_date'           => $internship->end_date,
                 'status'             => $internship->status,
-                'company'            => $internship->company ? $internship->company->toArray() : null,
-                'student'            => $internship->student ? $internship->student->toArray() : null,
+                'company'            => $internship->company ? $internship->company->toArray() : null, // Všetky dáta o firme
+                'student'            => $internship->student ? $internship->student->toArray() : null, // Všetky dáta o študentovi
                 'garant_id'          => $internship->garant_id,
                 'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
                 'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
+                'agreement_pdf_path' => $internship->agreement_pdf_path,
             ];
         });
 
@@ -227,66 +190,57 @@ class InternshipController extends Controller
 
     /**
      * Stiahnuť PDF dohodu pre konkrétnu prax.
-     * NOVÉ: Ak PDF neexistuje (staré praxe / čistý git pull), tak ho vygenerujeme a uložíme.
      */
-    public function downloadAgreement($id)
+    public function downloadAgreement($id, AgreementGenerator $generator)
     {
-        $internship = Internship::with(['student', 'company', 'garant'])->findOrFail($id);
+        $internship = Internship::findOrFail($id);
 
-        // Path z DB (ak existuje) alebo fallback
-        $pdfPath = $internship->agreement_pdf_path ?? "internships/agreements/internship_{$id}.pdf";
-
-        // Ak neexistuje, tak ho vygeneruj (aby download fungoval vždy)
-        if (!Storage::disk('public')->exists($pdfPath)) {
+        if (
+            !$internship->agreement_pdf_path ||
+            !Storage::disk('public')->exists($internship->agreement_pdf_path)
+        ) {
             try {
-                $pdfPath = $this->generateAgreementPdf($internship);
-
-                // Skús uložiť path aj do DB (ak je stĺpec)
-                try {
-                    $internship->update(['agreement_pdf_path' => $pdfPath]);
-                } catch (\Throwable $e) {
-                    \Log::warning('agreement_pdf_path sa nepodarilo uložiť (možno chýba stĺpec): ' . $e->getMessage());
-                }
+                $path = $generator->generatePdf($internship);
+                $internship->agreement_pdf_path = $path;
+                $internship->save();
             } catch (\Throwable $e) {
-                \Log::error('Nepodarilo sa vygenerovať PDF dohodu pri download: ' . $e->getMessage());
+                Log::error('PDF generation/download failed: ' . $e->getMessage());
 
                 return response()->json([
-                    'error' => 'PDF dohoda pre túto prax neexistuje a nepodarilo sa ju vygenerovať.',
+                    'error' => 'Nepodarilo sa vygenerovať PDF dohodu.',
+                    'details' => $e->getMessage(),
                 ], 500);
             }
         }
 
-        // Stiahnutie PDF súboru
-        return response()->download(
-            storage_path('app/public/' . $pdfPath),
-            "Dohoda_praxe_{$id}.pdf",
-            ['Content-Type' => 'application/pdf']
+        // absolútna cesta na disk
+        $absPath = Storage::disk('public')->path($internship->agreement_pdf_path);
+
+        // (len istota) refresh FS cache
+        clearstatcache(true, $absPath);
+
+        if (!is_file($absPath)) {
+            return response()->json(['message' => 'Súbor neexistuje.'], 404);
+        }
+
+        $fileName = "Dohoda_praxe_{$internship->id}.pdf";
+
+        $response = new BinaryFileResponse($absPath);
+        $response->headers->set('Content-Type', 'application/pdf');
+
+        // správny Content-Disposition (ASCII fallback + UTF-8 filename*)
+        $response->setContentDisposition(
+            ResponseHeaderBag::DISPOSITION_ATTACHMENT,
+            $fileName,
+            // fallback bez diakritiky (keby si niekedy dal do názvu diakritiku)
+            "Dohoda_praxe_{$internship->id}.pdf"
         );
-    }
 
-    /**
-     * Helper: vygeneruje PDF dohodu a uloží ju na public disk.
-     * Vracia relatívny path v rámci storage/public.
-     */
-    private function generateAgreementPdf(Internship $internship): string
-    {
-        Storage::disk('public')->makeDirectory('internships/agreements');
+        // nech to browser necachuje (pri testovaní pomáha)
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
 
-        $student = $internship->student;
-        $company = $internship->company;
-        $garant  = $internship->garant ?? (object) ['first_name' => 'N/A', 'last_name' => ''];
-
-        $pdf = Pdf::loadView('pdf.agreement', [
-            'internship' => $internship,
-            'student'    => $student,
-            'company'    => $company,
-            'garant'     => $garant,
-        ]);
-
-        $pdfPath = "internships/agreements/internship_{$internship->id}.pdf";
-        Storage::disk('public')->put($pdfPath, $pdf->output());
-
-        return $pdfPath;
+        return $response;
     }
 
     /**
@@ -309,7 +263,6 @@ class InternshipController extends Controller
         ]);
 
         $internship = Internship::findOrFail($id);
-
         $internship->status = $validated['status'];
         $internship->save();
 
@@ -325,6 +278,10 @@ class InternshipController extends Controller
             $query->where('name', 'garant');
         })->get();
 
+        if ($garants->isEmpty()) {
+            throw new \RuntimeException('Neboli nájdení žiadni garanti.');
+        }
+
         $garantCounts = [];
         foreach ($garants as $garant) {
             $garantCounts[$garant->id] = Internship::where('garant_id', $garant->id)->count();
@@ -336,7 +293,6 @@ class InternshipController extends Controller
         return $selectedGarantId;
     }
 
-    //EXTERNY SYSTEM
     public function getApprovedInternships()
     {
         $internships = Internship::where('status', 'Schválená')
@@ -354,9 +310,7 @@ class InternshipController extends Controller
         $internship = Internship::find($id);
 
         if (!$internship) {
-            return response()->json([
-                'message' => 'Praxe s daným ID neexistuje.',
-            ], 404);
+            return response()->json(['message' => 'Praxe s daným ID neexistuje.'], 404);
         }
 
         if ($internship->status !== 'Schválená') {
@@ -385,7 +339,7 @@ class InternshipController extends Controller
         $query = Internship::where('garant_id', $garantId)
             ->with(['student', 'company']);
 
-        if ($status && in_array($status, $allowed)) {
+        if ($status && in_array($status, $allowed, true)) {
             $query->where('status', $status);
         }
 
@@ -404,7 +358,7 @@ class InternshipController extends Controller
             'Neobhájená',
         ];
 
-        if (!in_array($status, $allowed)) {
+        if (!in_array($status, $allowed, true)) {
             return response()->json(['error' => 'Neplatný stav'], 400);
         }
 

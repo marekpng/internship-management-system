@@ -1,4 +1,7 @@
 <template>
+  <!-- Navbar (notifikácie + nastavenia + odhlásenie) -->
+  <CompanyNavBar />
+
   <div class="overlay">
     <div class="practice-container">
       <!-- HEADER -->
@@ -126,10 +129,7 @@
                   </div>
                 </template>
 
-                <p
-                  v-else
-                  class="no-documents no-documents-inline"
-                >
+                <p v-else class="no-documents no-documents-inline">
                   Zatiaľ neboli nahraté žiadne dokumenty.
                 </p>
               </div>
@@ -176,11 +176,7 @@
 
             <!-- ACTION BUTTONS -->
             <div class="button-row">
-              <button
-                type="button"
-                @click="startEditing(p)"
-                class="btn-outline"
-              >
+              <button type="button" @click="startEditing(p)" class="btn-outline">
                 Upraviť prax
               </button>
             </div>
@@ -199,6 +195,8 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
+
+import CompanyNavBar from "@/components/icons/CompanyNavBar.vue";
 
 const router = useRouter();
 
@@ -242,9 +240,7 @@ const loadDocuments = async (id) => {
     const token = localStorage.getItem("access_token");
     const res = await axios.get(
       `http://localhost:8000/api/internships/${id}/documents`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
     documents.value[id] = res.data;
   } catch (e) {
@@ -311,10 +307,58 @@ const submitEdit = async (id) => {
   }
 };
 
+// ------------------- DOWNLOAD HELPERS -------------------
+
+const extensionFromContentType = (ct) => {
+  if (!ct) return null;
+  const type = ct.split(";")[0].trim().toLowerCase();
+
+  if (type === "application/pdf") return ".pdf";
+  if (type === "image/jpeg") return ".jpg";
+  if (type === "image/png") return ".png";
+  if (type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+    return ".docx";
+
+  return null;
+};
+
+// RFC5987 + fallback
+const getFileNameFromDisposition = (cd) => {
+  if (!cd) return null;
+
+  // filename*=UTF-8''...
+  const utf8 = cd.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  if (utf8?.[1]) {
+    try {
+      return decodeURIComponent(utf8[1]);
+    } catch {
+      return utf8[1];
+    }
+  }
+
+  // filename="..."
+  const ascii = cd.match(/filename\s*=\s*"?([^";]+)"?/i);
+  if (ascii?.[1]) return ascii[1];
+
+  return null;
+};
+
+const ensureExtension = (name, contentType) => {
+  if (!name) return name;
+  const ext = extensionFromContentType(contentType);
+  if (!ext) return name;
+
+  // ak už má príponu, nechaj
+  if (/\.[a-z0-9]{2,5}$/i.test(name)) return name;
+
+  return name + ext;
+};
+
 /**
- * Spoločná funkcia na stiahnutie súboru cez autorizovanú request
+ * Spoločná funkcia na stiahnutie súboru cez autorizovanú request.
+ * forcedFileName = keď nechceš riešiť CORS/headers (napr. dohoda).
  */
-const downloadWithAuth = async (url) => {
+const downloadWithAuth = async (url, forcedFileName = null) => {
   try {
     const token = localStorage.getItem("access_token");
 
@@ -323,16 +367,25 @@ const downloadWithAuth = async (url) => {
       responseType: "blob",
     });
 
-    const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-
-    let fileName = "dokument.pdf";
     const cd = response.headers["content-disposition"];
-    if (cd) {
-      const match = cd.match(/filename="?(.+)"?/);
-      if (match && match[1]) {
-        fileName = decodeURIComponent(match[1]);
-      }
-    }
+    const ct = response.headers["content-type"];
+
+    const fromHeader = getFileNameFromDisposition(cd);
+
+    // prioritne: forced -> header -> fallback
+    let fileName =
+      forcedFileName ||
+      fromHeader ||
+      (url.includes("/agreement/") ? "Dohoda_praxe.pdf" : "dokument");
+
+    // doplň príponu podľa Content-Type ak treba
+    fileName = ensureExtension(fileName, ct);
+
+    const blob = new Blob([response.data], {
+      type: ct || "application/octet-stream",
+    });
+
+    const blobUrl = window.URL.createObjectURL(blob);
 
     const a = document.createElement("a");
     a.href = blobUrl;
@@ -348,15 +401,20 @@ const downloadWithAuth = async (url) => {
   }
 };
 
+// dohoda: vynútiť názov podľa ID
 const downloadAgreement = (id) =>
   downloadWithAuth(
-    `http://localhost:8000/api/internships/${id}/agreement/download`
+    `http://localhost:8000/api/internships/${id}/agreement/download`,
+    `Dohoda_praxe_${id}.pdf`
   );
 
+const downloadDocument = (docId) =>
+  downloadWithAuth(`http://localhost:8000/api/documents/${docId}/download`);
+
+// ------------------- UPLOAD -------------------
+
 const onFileChange = (e, id) => {
-  if (!uploadForms.value[id]) {
-    initUpload(id);
-  }
+  if (!uploadForms.value[id]) initUpload(id);
   uploadForms.value[id].file = e.target.files[0] || null;
 };
 
@@ -387,9 +445,7 @@ const uploadDocument = async (id) => {
     await axios.post(
       `http://localhost:8000/api/internships/${id}/documents/upload`,
       fd,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
+      { headers: { Authorization: `Bearer ${token}` } }
     );
 
     uploadSuccess.value[id] = "Dokument bol úspešne nahratý.";
@@ -405,10 +461,7 @@ const uploadDocument = async (id) => {
   uploadLoading.value[id] = false;
 };
 
-const downloadDocument = (docId) =>
-  downloadWithAuth(
-    `http://localhost:8000/api/documents/${docId}/download`
-  );
+// ------------------- TRANSLATIONS -------------------
 
 const translateDocType = (t) =>
   ({
@@ -677,5 +730,9 @@ button:disabled {
   margin-top: 20px;
   color: #555;
   font-style: italic;
+}
+
+.overlay {
+  padding-top: 70px;
 }
 </style>

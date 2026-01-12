@@ -19,7 +19,20 @@ Route::get('/company/activate/{id}', [RegisterController::class, 'activateCompan
 
 Route::middleware(['auth:api', 'role:student'])->group(function () {
     Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
+
+    // Profil študenta – načítanie a úprava (pre stránku Nastavenia)
+    Route::get('/student/profile', [StudentController::class, 'profile']);
+    Route::put('/student/profile', [StudentController::class, 'updateProfile']);
+
+    // Notifikácie – nastavenia (emailové preferencie)
+    Route::get('/student/notifications', [StudentController::class, 'getNotifications']);
+    Route::put('/student/notifications', [StudentController::class, 'updateNotifications']);
+
     Route::post('/internships/{id}/documents/upload', [DocumentController::class, 'uploadStudentDocument']);
+
+    // Reálne notifikácie pre zvonček (študent)
+    Route::get('/student/user-notifications', [StudentController::class, 'getUserNotifications']);
+    Route::post('/student/notifications/read/{id}', [StudentController::class, 'markNotificationRead']);
 });
 
 // Verejný endpoint pre načítanie všetkých firiem (pre študentov)
@@ -53,6 +66,14 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
 
     Route::get('/dashboard', [GarantController::class, 'dashboard']);
 
+    // Profil garanta – načítanie a úprava (pre stránku Nastavenia)
+    Route::get('/profile', [GarantController::class, 'profile']);
+    Route::put('/profile', [GarantController::class, 'updateProfile']);
+
+    // Notifikácie – nastavenia (emailové preferencie)
+    Route::get('/notifications', [GarantController::class, 'getNotifications']);
+    Route::put('/notifications', [GarantController::class, 'updateNotifications']);
+
     // Zoznam praxí podľa stavu
     Route::get('/internships/status/{status}', [InternshipController::class, 'getByStatus']);
     Route::get('/internships/count/{status}', [InternshipController::class, 'getCountByStatus']);
@@ -78,6 +99,9 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
 
     // Garant zamietne dokument
     Route::post('/documents/{id}/reject', [DocumentController::class, 'rejectDocumentByGarant']);
+    // Reálne notifikácie pre zvonček (garant)
+    Route::get('/user-notifications', [GarantController::class, 'getUserNotifications']);
+    Route::post('/notifications/read/{id}', [GarantController::class, 'markNotificationRead']);
 });
 
 Route::post('/login', [LoginController::class, 'login']);
@@ -101,7 +125,9 @@ Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
 
 Route::middleware('auth:api')->post('/update-profile', [LoginController::class, 'updateProfile']);
 
-Route::get('internships/{id}/agreement/download', [InternshipController::class, 'downloadAgreement']);
+Route::middleware('auth:api')
+    ->get('internships/{id}/agreement/download', [InternshipController::class, 'downloadAgreement']);
+
 
 
 

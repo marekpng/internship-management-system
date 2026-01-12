@@ -1,11 +1,27 @@
 <template>
-  <div class="container" v-if="internship">
-    <div class="header-bar">
-      <span class="header-title">Garant • Praxe</span>
-      <button class="header-back" @click="$router.push('/garant/dashboard')">Domov</button>
-    </div>
+  <CompanyNavBar>
+    <template #filters>
+      <div class="filter-bar">
+        <!-- Rovnaké filtre ako v zozname (GarantPracticesView). Stav držíme v query ?status=... -->
+        <router-link class="filter-btn" :class="{ active: status === 'vsetky' }" to="/garant/practices?status=vsetky">Všetky</router-link>
+        <router-link class="filter-btn" :class="{ active: status === 'vytvorena' }" to="/garant/practices?status=vytvorena">Čakajúce</router-link>
+        <router-link class="filter-btn" :class="{ active: status === 'potvrdena' }" to="/garant/practices?status=potvrdena">Potvrdené</router-link>
+        <router-link class="filter-btn" :class="{ active: status === 'zamietnuta' }" to="/garant/practices?status=zamietnuta">Zamietnuté</router-link>
+        <router-link class="filter-btn" :class="{ active: status === 'schvalena' }" to="/garant/practices?status=schvalena">Schválené</router-link>
+        <router-link class="filter-btn" :class="{ active: status === 'neschvalena' }" to="/garant/practices?status=neschvalena">Neschválené</router-link>
+        <router-link class="filter-btn" :class="{ active: status === 'obhajena' }" to="/garant/practices?status=obhajena">Obhájené</router-link>
+        <router-link class="filter-btn" :class="{ active: status === 'neobhajena' }" to="/garant/practices?status=neobhajena">Neobhájené</router-link>
+      </div>
+    </template>
+  </CompanyNavBar>
 
-    <button class="back-btn" @click="$router.push('/garant/practices')">← Späť</button>
+  <div class="container" v-if="internship">
+    <button
+      class="back-btn"
+      @click="$router.push({ path: '/garant/practices', query: { status: status === 'zamietnute' ? 'zamietnuta' : status } })"
+    >
+      ← Späť
+    </button>
 
     <h1>Detail praxe</h1>
 
@@ -164,14 +180,17 @@
 
 <script>
 import axios from "axios";
+import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
 
 export default {
   name: "GarantPracticeDetailView",
+  components: { CompanyNavBar },
 
   data() {
     return {
       internship: null,
       loading: true,
+      status: 'vytvorena',
       editMode: false,
       editForm: {
         start_date: "",
@@ -450,6 +469,8 @@ export default {
   },
 
   mounted() {
+    // status prichádza zo zoznamu cez query param (vďaka tomu sa vieme vrátiť späť do rovnakého filtra)
+    this.status = this.$route.query.status || 'vytvorena'
     this.loadDetail();
   },
 };
@@ -482,7 +503,7 @@ export default {
   width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;
 }
 
-/* Header + back */
+/* Back */
 .back-btn {
   margin-bottom: 15px;
   background: #ffffff;
