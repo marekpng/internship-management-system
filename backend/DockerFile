@@ -44,5 +44,10 @@ WORKDIR /var/www/html
 RUN php -m | grep -i bcmath || true
 RUN soffice --version || true
 
+COPY ./backend/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 9000
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["php-fpm"]
