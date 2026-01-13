@@ -3,7 +3,7 @@
   <CompanyNavBar />
 
   <div class="practice-form">
-    <div class="back-button" @click="goBack">← Späť</div>
+    <button type="button" class="back-btn" @click="goBack">← Späť</button>
     <h2>Vytvorenie nového záznamu praxe</h2>
 
     <form @submit.prevent="submitForm">
@@ -199,17 +199,20 @@ const submitForm = async () => {
   color: red;
 }
 
-.back-button {
-  cursor: pointer;
-  font-size: 18px;
-  font-weight: 500;
-  color: #1b5e20;
+.back-btn {
   margin-bottom: 12px;
-  display: inline-block;
-  transition: color 0.2s ease;
+  background: #ffffff;
+  border: 1px solid #1b5e20;
+  color: #1b5e20;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
 }
 
-.back-button:hover {
-  color: #2e7d32;
+.back-btn:hover {
+  background: #e8f5e9;
 }
 </style>

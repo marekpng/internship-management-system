@@ -4,7 +4,7 @@
       <!-- Link vľavo musí smerovať podľa roly, inak garanta/študenta presmeruje na firmu -->
       <router-link :to="homePath" class="brand">
         <div class="brand-badge">FPV</div>
-        Praxový systém
+        <span class="brand-title">Praxový systém</span>
       </router-link>
 
       <nav class="actions">
@@ -238,20 +238,30 @@ onBeforeUnmount(() => {
 
 .brand {
   text-decoration: none;
-  color: #1b1b1b;
-  font-size: 20px;
-  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
+.brand-title {
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
 .brand-badge {
-  background: #1d4d2d;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  background: #059669;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
 }
 
 .actions {
@@ -268,18 +278,18 @@ onBeforeUnmount(() => {
 }
 
 .nav-btn:hover {
-  color: #14542b;
+  color: #047857;
 }
 
 .logout {
-  background: #1d4d2d;
+  background: #059669;
   color: white !important;
   padding: 8px 16px;
   border-radius: 6px;
-  border: 1px solid #1d4d2d;
+  border: 1px solid #059669;
 }
 .logout:hover {
-  background: #164022;
+  background: #047857;
   color: white !important;
 }
 
@@ -305,7 +315,7 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   font-size: 14px;
   text-decoration: none;
-  color: #1d4d2d;
+  color: #059669;
   border: 1px solid #cfe5d8;
 }
 
@@ -314,9 +324,9 @@ onBeforeUnmount(() => {
 }
 
 ::v-deep .filter-btn.active {
-  background: #1d4d2d;
+  background: #059669;
   color: white !important;
-  border-color: #1d4d2d;
+  border-color: #059669;
 }
 
 .notification-wrapper {
@@ -380,7 +390,7 @@ onBeforeUnmount(() => {
 }
 
 .confirm-btn {
-  background: #1d4d2d;
+  background: #059669;
   color: white;
   border: none;
   padding: 4px 8px;

@@ -1,16 +1,21 @@
 <template>
   <CompanyNavBar />
-  <button class="back-button" @click="$router.back()">← Späť</button>
+
+  <div class="page-controls">
+    <button class="back-btn" type="button" @click="$router.back()">← Späť</button>
+  </div>
 
   <div class="settings-layout">
-    <aside class="settings-sidebar">
-      <h3>Nastavenia</h3>
-      <ul>
-        <li :class="{ active: activeTab === 'data' }" @click="activeTab = 'data'">Údaje študenta</li>
-        <li :class="{ active: activeTab === 'notifications' }" @click="activeTab = 'notifications'">Notifikácie</li>
-        <li :class="{ active: activeTab === 'password' }" @click="activeTab = 'password'">Zmena hesla</li>
-      </ul>
-    </aside>
+    <div class="left-col">
+      <aside class="settings-sidebar">
+        <h3>Nastavenia</h3>
+        <ul>
+          <li :class="{ active: activeTab === 'data' }" @click="activeTab = 'data'">Údaje študenta</li>
+          <li :class="{ active: activeTab === 'notifications' }" @click="activeTab = 'notifications'">Notifikácie</li>
+          <li :class="{ active: activeTab === 'password' }" @click="activeTab = 'password'">Zmena hesla</li>
+        </ul>
+      </aside>
+    </div>
 
     <div class="settings-wrapper">
       <div class="notification-bar" v-if="notification" :class="notificationType">
@@ -120,15 +125,17 @@
           <h2>Emailové notifikácie</h2>
 
           <div class="field">
-            <label><input type="checkbox" v-model="notifications.notify_new_request" /> Nová žiadosť o prax</label>
+            <label>
+              <input type="checkbox" v-model="notifications.notify_approved" disabled />
+              Schválenie praxe
+            </label>
           </div>
 
           <div class="field">
-            <label><input type="checkbox" v-model="notifications.notify_approved" /> Schválenie praxe</label>
-          </div>
-
-          <div class="field">
-            <label><input type="checkbox" v-model="notifications.notify_rejected" /> Zamietnutie praxe</label>
+            <label>
+              <input type="checkbox" v-model="notifications.notify_rejected" disabled />
+              Zamietnutie praxe
+            </label>
           </div>
 
           <div class="field">
@@ -231,10 +238,13 @@ async function loadStudent() {
     editable.value.phone = student.value.phone || ''
     editable.value.alternative_email = student.value.alternative_email || ''
 
-    if (typeof lsUser.notify_new_request !== 'undefined') notifications.value.notify_new_request = lsUser.notify_new_request == 1 || lsUser.notify_new_request === true
-    if (typeof lsUser.notify_approved !== 'undefined') notifications.value.notify_approved = lsUser.notify_approved == 1 || lsUser.notify_approved === true
-    if (typeof lsUser.notify_rejected !== 'undefined') notifications.value.notify_rejected = lsUser.notify_rejected == 1 || lsUser.notify_rejected === true
-    if (typeof lsUser.notify_profile_change !== 'undefined') notifications.value.notify_profile_change = lsUser.notify_profile_change == 1 || lsUser.notify_profile_change === true
+    // Študent mení iba notify_profile_change, ostatné sú vždy zapnuté
+    notifications.value.notify_new_request = true
+    notifications.value.notify_approved = true
+    notifications.value.notify_rejected = true
+    if (typeof lsUser.notify_profile_change !== 'undefined') {
+      notifications.value.notify_profile_change = lsUser.notify_profile_change == 1 || lsUser.notify_profile_change === true
+    }
   }
 
   // 2) Ak existuje backend endpoint, je to zdroj pravdy
@@ -258,9 +268,10 @@ async function loadStudent() {
     const nres = await axios.get(`${API_BASE}/student/notifications`, { headers: authHeaders() })
     const n = nres.data || {}
 
-    if (typeof n.notify_new_request !== 'undefined') notifications.value.notify_new_request = !!n.notify_new_request
-    if (typeof n.notify_approved !== 'undefined') notifications.value.notify_approved = !!n.notify_approved
-    if (typeof n.notify_rejected !== 'undefined') notifications.value.notify_rejected = !!n.notify_rejected
+    // Študent mení iba notify_profile_change, ostatné sú vždy zapnuté
+    notifications.value.notify_new_request = true
+    notifications.value.notify_approved = true
+    notifications.value.notify_rejected = true
     if (typeof n.notify_profile_change !== 'undefined') notifications.value.notify_profile_change = !!n.notify_profile_change
 
     // 3) Sync do localStorage, aby navbar a iné view mali rovnaké dáta
@@ -324,9 +335,9 @@ async function saveChanges() {
 async function saveNotificationSettings() {
   try {
     const payload = {
-      notify_new_request: !!notifications.value.notify_new_request,
-      notify_approved: !!notifications.value.notify_approved,
-      notify_rejected: !!notifications.value.notify_rejected,
+      notify_new_request: true,
+      notify_approved: true,
+      notify_rejected: true,
       notify_profile_change: !!notifications.value.notify_profile_change
     }
 
@@ -502,13 +513,39 @@ input:disabled {
   color: #444;
 }
 
-.back-button {
+
+.back-btn {
   margin: 20px 0;
-  background: none;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
+  background: #ffffff;
+  border: 1px solid #1d4d2d;
   color: #1d4d2d;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.back-btn:hover {
+  background: #e8f5e9;
+}
+
+
+.left-col {
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+
+.page-controls {
+  max-width: 1100px;
+  margin: 24px auto 0; /* viac priestoru pod navbarom */
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
 }
 
 .notification-bar {
@@ -556,11 +593,11 @@ input:disabled {
   display: flex;
   gap: 30px;
   max-width: 1100px;
-  margin: 20px auto;
+  margin: 20px auto; /* odsadenie pod back buttonom */
 }
 
 .settings-sidebar {
-  width: 220px;
+  width: 100%;
   background: white;
   padding: 20px;
   border: 1px solid #e6e6e6;

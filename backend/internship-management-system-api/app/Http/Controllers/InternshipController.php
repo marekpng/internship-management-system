@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Internship;
 use App\Models\User;
+use App\Models\Notification;
 use App\Services\AgreementGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
@@ -78,6 +80,50 @@ class InternshipController extends Controller
                 'student_id' => $validated['student_id'] ?? null,
                 'garant_id'  => $garantId,
             ]);
+
+            // --- NOTIFIKÁCIA PRE FIRMU: študent vytvoril prax ---
+            try {
+                $companyId = (int) ($internship->company_id ?? 0);
+                $studentId = (int) ($internship->student_id ?? 0);
+
+                if ($companyId > 0) {
+                    $company = User::find($companyId);
+
+                    // rešpektujeme nastavenie firmy (default true)
+                    if ($company && (bool) ($company->notify_new_request ?? true)) {
+                        $student = $studentId > 0 ? User::find($studentId) : null;
+
+                        $studentName = trim(($student?->first_name ?? '') . ' ' . ($student?->last_name ?? ''));
+                        if ($studentName === '') $studentName = 'Študent';
+
+                        $semester = $internship->semester ?? '-';
+                        $year = $internship->year ?? '-';
+
+                        $msg = $studentName . ' vytvoril(a) novú prax pre semester (' . $semester . ' a rok ' . $year . '). Čaká na vaše potvrdenie.';
+
+                        Notification::create([
+                            'user_id' => $companyId,
+                            'type'    => 'internship_created',
+                            'message' => $msg,
+                            'read'    => false,
+                        ]);
+
+                        // Email firme iba ak má povolené notify_new_request (už kontrolované vyššie) a má email
+                        if (!empty($company->email)) {
+                            Mail::raw(
+                                $msg,
+                                function ($message) use ($company) {
+                                    $message->to($company->email)
+                                        ->subject('Nová prax na potvrdenie');
+                                }
+                            );
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                // notifikácia nesmie zablokovať vytvorenie praxe
+                Log::warning('Failed to create company notification for internship ' . ($internship->id ?? 'unknown') . ': ' . $e->getMessage());
+            }
 
             return response()->json([
                 'message'    => 'Prax bola úspešne vytvorená.',

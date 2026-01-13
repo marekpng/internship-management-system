@@ -1,103 +1,109 @@
 <template>
-  <CompanyNavBar />
+  <div class="company-detail-page">
+    <CompanyNavBar />
 
-  <div class="company-wrapper">
-    <!-- pôvodný obsah tvojho company -->
-  </div>
-
-  <div class="container" v-if="internship">
-    <h1>Detail praxe</h1>
-
-    <!-- ============================= -->
-    <!-- ŠTUDENT + PRAX -->
-    <!-- ============================= -->
-    <div class="card">
-      <h2>Študent</h2>
-      <p><strong>Meno:</strong> {{ internship.student.first_name }} {{ internship.student.last_name }}</p>
-      <p><strong>Email:</strong> {{ internship.student.email }}</p>
-
-      <h2>Prax</h2>
-
-      <template v-if="!editMode">
-        <p><strong>Začiatok:</strong> {{ formatDate(internship.start_date) }}</p>
-        <p><strong>Koniec:</strong> {{ formatDate(internship.end_date) }}</p>
-        <p><strong>Semester:</strong> {{ internship.semester }}</p>
-        <p><strong>Rok:</strong> {{ internship.year }}</p>
-        <p><strong>Stav praxe:</strong> {{ internship.status }}</p>
-      </template>
-
-      <template v-else>
-        <h3>Upraviť údaje</h3>
-        <div class="form-group">
-          <label>Stav praxe:</label>
-          <select v-model="editForm.status">
-            <option value="Vytvorená">Vytvorená</option>
-            <option value="Potvrdená">Potvrdená</option>
-            <option value="Zamietnutá">Zamietnutá</option>
-          </select>
-        </div>
-      </template>
+    <div class="page-controls">
+      <button class="back-button" type="button" @click="$router.back()">
+        ← Späť
+      </button>
     </div>
 
-    <!-- ============================= -->
-    <!-- DOKUMENTY (firma len číta / sťahuje) -->
-    <!-- ============================= -->
-    <div class="card">
-      <h2>Dokumenty</h2>
+    <div class="company-wrapper">
+      <!-- pôvodný obsah tvojho company -->
+    </div>
 
-      <div v-if="documents.length" class="documents-list">
-        <div v-for="doc in documents" :key="doc.document_id" class="doc-item">
-          <!-- LEFT -->
-          <div class="doc-info">
-            <div class="doc-name">{{ doc.document_name }}</div>
+    <div class="container" v-if="internship">
+      <h1>Detail praxe</h1>
 
-            <div class="doc-meta">
-              <span class="doc-badge">{{ translateDocType(doc.type) }}</span>
-              <span
-                v-if="doc.company_status"
-                class="doc-status"
-                :class="'status-' + doc.company_status"
-              >
-                {{ translateCompanyStatus(doc.company_status) }}
-              </span>
-            </div>
+      <!-- ============================= -->
+      <!-- ŠTUDENT + PRAX -->
+      <!-- ============================= -->
+      <div class="card">
+        <h2>Študent</h2>
+        <p><strong>Meno:</strong> {{ internship.student.first_name }} {{ internship.student.last_name }}</p>
+        <p><strong>Email:</strong> {{ internship.student.email }}</p>
+
+        <h2>Prax</h2>
+
+        <template v-if="!editMode">
+          <p><strong>Začiatok:</strong> {{ formatDate(internship.start_date) }}</p>
+          <p><strong>Koniec:</strong> {{ formatDate(internship.end_date) }}</p>
+          <p><strong>Semester:</strong> {{ internship.semester }}</p>
+          <p><strong>Rok:</strong> {{ internship.year }}</p>
+          <p><strong>Stav praxe:</strong> {{ internship.status }}</p>
+        </template>
+
+        <template v-else>
+          <h3>Upraviť údaje</h3>
+          <div class="form-group">
+            <label>Stav praxe:</label>
+            <select v-model="editForm.status">
+              <option value="Vytvorená">Vytvorená</option>
+              <option value="Potvrdená">Potvrdená</option>
+              <option value="Zamietnutá">Zamietnutá</option>
+            </select>
           </div>
-
-          <!-- RIGHT -->
-          <div class="doc-actions">
-            <button class="btn-outline" @click="downloadDocument(doc.document_id)">
-              📥 Stiahnuť
-            </button>
-          </div>
-        </div>
+        </template>
       </div>
 
-      <p v-else class="no-documents">Zatiaľ nie sú nahraté žiadne dokumenty.</p>
+      <!-- ============================= -->
+      <!-- DOKUMENTY (firma len číta / sťahuje) -->
+      <!-- ============================= -->
+      <div class="card">
+        <h2>Dokumenty</h2>
 
+        <div v-if="documents.length" class="documents-list">
+          <div v-for="doc in documents" :key="doc.document_id" class="doc-item">
+            <!-- LEFT -->
+            <div class="doc-info">
+              <div class="doc-name">{{ doc.document_name }}</div>
 
+              <div class="doc-meta">
+                <span class="doc-badge">{{ translateDocType(doc.type) }}</span>
+                <span
+                  v-if="doc.company_status"
+                  class="doc-status"
+                  :class="'status-' + doc.company_status"
+                >
+                  {{ translateCompanyStatus(doc.company_status) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- RIGHT -->
+            <div class="doc-actions">
+              <button class="btn-outline" @click="downloadDocument(doc.document_id)">
+                📥 Stiahnuť
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p v-else class="no-documents">Zatiaľ nie sú nahraté žiadne dokumenty.</p>
+      </div>
+
+      <!-- ============================= -->
+      <!-- GLOBAL ACTIONS (schvaľovanie praxe – nechávam, lebo to nie sú dokumenty) -->
+      <!-- ============================= -->
+      <div class="actions">
+        <template v-if="internship.status === 'Vytvorená'">
+          <button class="approve" @click="approve">Potvrdiť</button>
+          <button class="reject" @click="reject">Zamietnuť</button>
+        </template>
+
+        <template v-if="!editMode && (internship.status === 'Potvrdená' || internship.status === 'Zamietnutá')">
+          <button class="approve" style="background:#0b6b37" @click="editMode = true">Editovať prax</button>
+        </template>
+
+        <template v-if="editMode">
+          <button class="approve" style="background:#0b6b37" @click="saveEdit">Uložiť zmeny</button>
+          <button class="reject" @click="cancelEdit">Zrušiť</button>
+        </template>
+      </div>
     </div>
 
-    <!-- ============================= -->
-    <!-- GLOBAL ACTIONS (schvaľovanie praxe – nechávam, lebo to nie sú dokumenty) -->
-    <!-- ============================= -->
-    <div class="actions">
-      <template v-if="internship.status === 'Vytvorená'">
-        <button class="approve" @click="approve">Potvrdiť</button>
-        <button class="reject" @click="reject">Zamietnuť</button>
-      </template>
-
-      <template v-if="!editMode && (internship.status === 'Potvrdená' || internship.status === 'Zamietnutá')">
-        <button class="approve" style="background:#0b6b37" @click="editMode = true">Editovať prax</button>
-      </template>
-
-      <template v-if="editMode">
-        <button class="approve" style="background:#0b6b37" @click="saveEdit">Uložiť zmeny</button>
-        <button class="reject" @click="cancelEdit">Zrušiť</button>
-      </template>
-    </div>
+    <div v-else class="loading">Načítavam detail…</div>
   </div>
-
-  <div v-else class="loading">Načítavam detail…</div>
 </template>
 
 <script>
@@ -297,6 +303,17 @@ export default {
 
 <style scoped>
 .container { padding: 20px; }
+
+.page-controls {
+  max-width: 1100px;
+  margin: 24px auto 0;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+}
+
+.company-detail-page { width: 100%; }
+
 .card {
   border: 1px solid #ddd;
   padding: 20px;
@@ -359,5 +376,29 @@ export default {
   font-size: 13px;
   color: #555;
   font-style: italic;
+}
+
+.back-button {
+  margin-bottom: 0;
+  background: #ffffff;
+  border: 1px solid #0b6b37;
+  color: #0b6b37;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.15s ease, transform 0.05s ease;
+}
+
+.back-button:hover {
+  background: #f0f6f2;
+}
+
+.back-button:active {
+  transform: translateY(1px);
 }
 </style>
