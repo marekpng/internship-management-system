@@ -18,9 +18,7 @@
                          <RouterLink to="/garant/export" class="btn-export-link">
   Export údajov
 </RouterLink>
-            <button class="btn-secondary" @click="logout">
-              Odhlásiť sa
-            </button>
+            
           
 
           </div>
