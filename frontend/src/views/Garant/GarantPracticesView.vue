@@ -16,6 +16,12 @@
   </CompanyNavBar>
 
   <div class="container">
+    <button
+      class="back-btn"
+      @click="$router.push('/garant/dashboard')"
+    >
+      ← Späť
+    </button>
     <h1>Prax v stave: {{ title }}</h1>
 
     <div v-if="loading">Načítavam…</div>
@@ -164,5 +170,18 @@ export default {
 
 .practice-link:hover {
   text-decoration: none;
+}
+
+.back-btn {
+  margin-bottom: 15px;
+  background: #ffffff;
+  border: 1px solid #0b6b37;
+  color: #0b6b37;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.back-btn:hover {
+  background: #f0f6f2;
 }
 </style>

@@ -301,9 +301,19 @@ export default {
 };
 </script>
 
-.company-detail-page { width: 100%; }
 <style scoped>
 .container { padding: 20px; }
+
+.page-controls {
+  max-width: 1100px;
+  margin: 24px auto 0;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+}
+
+.company-detail-page { width: 100%; }
+
 .card {
   border: 1px solid #ddd;
   padding: 20px;
@@ -369,19 +379,26 @@ export default {
 }
 
 .back-button {
-  cursor: pointer;
-  padding: 6px 15px;
-  border-radius: 20px;
-  border: 1px solid #e6e6e6;
+  margin-bottom: 0;
   background: #ffffff;
-  color: #334155;
+  border: 1px solid #0b6b37;
+  color: #0b6b37;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
   font-size: 14px;
-  transition: background 0.3s ease, border-color 0.3s ease;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
 
 .back-button:hover {
-  background: #f7f7f7;
-  border-color: #d7d7d7;
+  background: #f0f6f2;
+}
+
+.back-button:active {
+  transform: translateY(1px);
 }
 </style>

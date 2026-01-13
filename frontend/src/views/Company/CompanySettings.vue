@@ -43,10 +43,6 @@
             <input type="text" :value="company.ico" disabled />
           </div>
 
-          <div class="field">
-            <label>DIČ</label>
-            <input type="text" :value="company.dic" disabled />
-          </div>
 
           <div class="field">
             <label>Meno a priezvisko</label>
@@ -73,18 +69,13 @@
           </div>
 
           <div class="field">
-            <label>Notifikačný email</label>
+            <label>Alternatívny email</label>
             <input v-model="editable.notification_email" type="email" />
           </div>
 
           <div class="field">
-            <label>Notifikačné telefónne číslo</label>
+            <label>Alternatívne telefónne číslo</label>
             <input v-model="editable.notification_phone" type="text" />
-          </div>
-
-          <div class="field">
-            <label>Webstránka</label>
-            <input v-model="editable.website" type="text" />
           </div>
 
           <button class="btn-save" @click="confirmVisible = true">
@@ -443,20 +434,19 @@ input:disabled {
 
 .page-controls {
   max-width: 1100px;
-  margin: 16px auto 0;
+  margin: 32px auto 0;
   padding: 0 20px;
   display: flex;
   align-items: center;
 }
 
 .back-button {
-  height: 36px;
-  padding: 0 14px;
-  border-radius: 999px;
+  padding: 8px 14px;
+  border-radius: 6px;
   border: 1px solid #e6e6e6;
   background: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: #334155;
   cursor: pointer;
   display: inline-flex;
