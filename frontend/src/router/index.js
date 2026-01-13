@@ -22,21 +22,21 @@ const router = createRouter({
     { path: '/register', name: 'registerChoice', component: RegisterChoiceView },
     { path: '/register/student', name: 'registerStudent', component: RegisterStudentView },
     { path: '/register/company', name: 'registerCompany', component: RegisterCompanyView },
-    { 
-      path: '/student/dashboard', 
-      name: 'studentDashboard', 
-      component: StudentDashboardView, 
-      meta: { requiresAuth: true } 
+    {
+      path: '/student/dashboard',
+      name: 'studentDashboard',
+      component: StudentDashboardView,
+      meta: { requiresAuth: true }
     },
-    { 
-      path: '/student/practice', 
-      name: 'studentPracticeForm', 
+    {
+      path: '/student/practice',
+      name: 'studentPracticeForm',
       component: () => import('@/views/StudentPracticeForm.vue'),
       meta: { requiresAuth: true }
     },
-    { 
-      path: '/student/my-practice', 
-      name: 'studentMyPractice', 
+    {
+      path: '/student/my-practice',
+      name: 'studentMyPractice',
       component: () => import('@/views/StudentMyPracticeView.vue'),
       meta: { requiresAuth: true }
     },
@@ -113,8 +113,16 @@ const router = createRouter({
       component: () => import('@/views/Admin/AdminRoleSettingsView.vue'),
       meta: { requiresAuth: true }
     },
+    {
+      path: '/garant/export',
+      name: 'garant-export',
+      component: () => import('@/views/GarantExportView.vue'),
+      meta: { requiresAuth: true }
+    }
+
   ],
 })
+
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('access_token')
@@ -141,7 +149,7 @@ router.beforeEach((to, from, next) => {
     }
   }
 
-    if (role === 'garant') {
+  if (role === 'garant') {
     if (to.path.startsWith('/student') || to.path.startsWith('/company')) {
       return next('/garant/dashboard')
     }

@@ -15,11 +15,19 @@
             <router-link to="/garant/practices" class="btn-primary">
               Zobraziť všetky praxe
             </router-link>
+                         <RouterLink to="/garant/export" class="btn-export-link">
+  Export údajov
+</RouterLink>
+            <button class="btn-secondary" @click="logout">
+              Odhlásiť sa
+            </button>
           
+
           </div>
         </div>
       </div>
     </section>
+   
 
     <section class="stats-section">
       <div class="container stats-grid">
@@ -252,4 +260,21 @@ export default {
 .btn-secondary:hover {
   background: #f0f6f2;
 }
+.btn-export-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 20px;
+  background: #16a34a;
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 12px;
+  transition: background 0.2s ease;
+}
+
+.btn-export-link:hover {
+  background: #15803d;
+}
+
 </style>
