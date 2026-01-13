@@ -105,7 +105,7 @@
           <div class="field">
             <label><input type="checkbox" v-model="notifications.notify_new_request" /> Nová žiadosť o prax</label>
           </div>
-
+          <!--
           <div class="field">
             <label><input type="checkbox" v-model="notifications.notify_approved" /> Schválenie praxe</label>
           </div>
@@ -113,6 +113,17 @@
           <div class="field">
             <label><input type="checkbox" v-model="notifications.notify_rejected" /> Zamietnutie praxe</label>
           </div>
+          -->
+
+          
+          <div class="field">
+            <label><input type="checkbox" checked disabled /> Schválená/Zamietnutá prax</label>
+          </div>
+
+          <div class="field">
+            <label><input type="checkbox" checked disabled /> Obhájená/Neobhájená prax</label>
+          </div>
+          
 
           <div class="field">
             <label><input type="checkbox" v-model="notifications.notify_profile_change" /> Zmena údajov profilu</label>

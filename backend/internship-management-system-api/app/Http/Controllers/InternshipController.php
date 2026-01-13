@@ -88,36 +88,35 @@ class InternshipController extends Controller
 
                 if ($companyId > 0) {
                     $company = User::find($companyId);
+                    $student = $studentId > 0 ? User::find($studentId) : null;
 
-                    // rešpektujeme nastavenie firmy (default true)
-                    if ($company && (bool) ($company->notify_new_request ?? true)) {
-                        $student = $studentId > 0 ? User::find($studentId) : null;
+                    $studentName = trim(($student?->first_name ?? '') . ' ' . ($student?->last_name ?? ''));
+                    if ($studentName === '') {
+                        $studentName = 'Študent';
+                    }
 
-                        $studentName = trim(($student?->first_name ?? '') . ' ' . ($student?->last_name ?? ''));
-                        if ($studentName === '') $studentName = 'Študent';
+                    $semester = $internship->semester ?? '-';
+                    $year = $internship->year ?? '-';
 
-                        $semester = $internship->semester ?? '-';
-                        $year = $internship->year ?? '-';
+                    $msg = $studentName . ' vytvoril(a) novú prax pre semester ' . $semester . ' a rok ' . $year . '. Čaká na vaše potvrdenie.';
 
-                        $msg = $studentName . ' vytvoril(a) novú prax pre semester (' . $semester . ' a rok ' . $year . '). Čaká na vaše potvrdenie.';
+                    // 🔔 zvonček notifikácia vždy (bez ohľadu na checkboxy)
+                    Notification::create([
+                        'user_id' => $companyId,
+                        'type'    => 'internship_created',
+                        'message' => $msg,
+                        'read'    => false,
+                    ]);
 
-                        Notification::create([
-                            'user_id' => $companyId,
-                            'type'    => 'internship_created',
-                            'message' => $msg,
-                            'read'    => false,
-                        ]);
+                    // ✉️ email iba ak má firma zapnuté notify_new_request
+                    $emailEnabled = $company ? (bool) ($company->notify_new_request ?? true) : true;
+                    $toEmail = $company?->contact_person_email ?: ($company?->email ?? null);
 
-                        // Email firme iba ak má povolené notify_new_request (už kontrolované vyššie) a má email
-                        if (!empty($company->email)) {
-                            Mail::raw(
-                                $msg,
-                                function ($message) use ($company) {
-                                    $message->to($company->email)
-                                        ->subject('Nová prax na potvrdenie');
-                                }
-                            );
-                        }
+                    if ($emailEnabled && !empty($toEmail)) {
+                        Mail::raw($msg, function ($message) use ($toEmail) {
+                            $message->to($toEmail)
+                                ->subject('Nová prax na potvrdenie');
+                        });
                     }
                 }
             } catch (\Throwable $e) {

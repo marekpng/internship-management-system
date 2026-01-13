@@ -4,12 +4,55 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use App\Models\Notification;
 use App\Models\Internship;
 use App\Models\User;
 
 class CompanyController extends Controller
 {
+    private function normalizeStatus(string $status): string
+    {
+        $s = trim($status);
+        $map = [
+            'Vytvorena' => 'Vytvorená',
+            'vytvorena' => 'Vytvorená',
+            'Potvrdena' => 'Potvrdená',
+            'potvrdena' => 'Potvrdená',
+            'Zamietnuta' => 'Zamietnutá',
+            'zamietnuta' => 'Zamietnutá',
+        ];
+        return $map[$s] ?? $s;
+    }
+
+    private function shouldSendGarantEmailForStatus(?User $garant, string $status): bool
+    {
+        if (!$garant) {
+            return false;
+        }
+
+        $status = $this->normalizeStatus($status);
+
+        // Mapovanie stavov na existujúce checkboxy (Garanti si tým riadia iba EMAIL):
+        // - notify_approved  -> „Schválenie praxe“ (použijeme aj pre stav Potvrdená, aby si vedel vypnúť emaily od firiem bez riešenia "Nová žiadosť")
+        // - notify_rejected  -> „Zamietnutie praxe“
+        // - notify_new_request ostáva v DB, ale pri emailoch od firiem ho tu zámerne nepoužívame
+        if ($status === 'Potvrdená') {
+            return (bool) ($garant->notify_approved ?? true);
+        }
+
+        if (in_array($status, ['Schválená', 'Obhájená'], true)) {
+            return (bool) ($garant->notify_approved ?? true);
+        }
+
+        if (in_array($status, ['Zamietnutá', 'Neschválená', 'Neobhájená'], true)) {
+            return (bool) ($garant->notify_rejected ?? true);
+        }
+
+        // Default: ak pribudne nový stav a nie je namapovaný, mail neposielame.
+        return false;
+    }
+
     /**
      * Vytvorí notifikácie pri zmene stavu praxe vykonanej firmou.
      *
@@ -28,6 +71,18 @@ class CompanyController extends Controller
             return;
         }
 
+        $newStatus = $this->normalizeStatus($newStatus);
+        $oldStatus = $this->normalizeStatus($oldStatus);
+
+        Log::info('notifyAfterCompanyStatusChange invoked', [
+            'internship_id' => $internship->id,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'student_id' => $internship->student_id,
+            'company_id' => $internship->company_id,
+            'garant_id' => $internship->garant_id,
+        ]);
+
         $company = $internship->company()->first();
         $companyName = $company?->company_name ?? 'firma';
 
@@ -41,6 +96,10 @@ class CompanyController extends Controller
 
         if ($newStatus === 'Potvrdená') {
             // ZVONČEK: vždy (bez ohľadu na checkbox)
+            Log::info('Creating student notification (confirmed by company)', [
+                'student_id' => $internship->student_id,
+                'internship_id' => $internship->id,
+            ]);
             Notification::create([
                 'user_id'  => $internship->student_id,
                 'type'     => 'internship_status',
@@ -48,13 +107,31 @@ class CompanyController extends Controller
                 'read'     => false,
             ]);
 
-            // EMAIL: iba ak má študent zapnuté notify_approved
-            if ($student && (bool) ($student->notify_approved ?? false) && !empty($student->email)) {
+            // EMAIL (študent): vždy na primárny email; ak má alternatívny, pošleme aj naň (CC)
+            if ($student && !empty($student->email)) {
+                $primaryEmail = trim((string) $student->email);
+                $altEmail = trim((string) ($student->alternative_email ?? ''));
+
+                // odstráň duplicitný alt email
+                if ($altEmail !== '' && strcasecmp($altEmail, $primaryEmail) === 0) {
+                    $altEmail = '';
+                }
+
+                Log::info('Sending student email (confirmed by company)', [
+                    'to' => $primaryEmail,
+                    'cc' => $altEmail,
+                    'internship_id' => $internship->id,
+                ]);
+
                 Mail::raw(
                     'Firma ' . $companyName . ' potvrdila vašu prax.',
-                    function ($message) use ($student) {
-                        $message->to($student->email)
+                    function ($message) use ($primaryEmail, $altEmail) {
+                        $message->to($primaryEmail)
                                 ->subject('Prax potvrdená firmou');
+
+                        if (!empty($altEmail)) {
+                            $message->cc($altEmail);
+                        }
                     }
                 );
             }
@@ -71,13 +148,13 @@ class CompanyController extends Controller
                     'read'    => false,
                 ]);
 
-                // EMAIL: iba ak má garant zapnuté notify_new_request
-                if ($garant && (bool) ($garant->notify_new_request ?? false) && !empty($garant->email)) {
+                // EMAIL (garant): podľa nastavenia "Nová žiadosť o prax"
+                if ($garant && $this->shouldSendGarantEmailForStatus($garant, 'Potvrdená') && !empty($garant->email)) {
                     Mail::raw(
                         'Firma ' . $companyName . ' potvrdila prax študenta ' . $studentName . '. Prax čaká na vaše schválenie.',
                         function ($message) use ($garant) {
                             $message->to($garant->email)
-                                    ->subject('Nová prax na schválenie');
+                                    ->subject('Nová žiadosť o prax');
                         }
                     );
                 }
@@ -88,6 +165,10 @@ class CompanyController extends Controller
 
         if ($newStatus === 'Zamietnutá') {
             // ZVONČEK: vždy
+            Log::info('Creating student notification (rejected by company)', [
+                'student_id' => $internship->student_id,
+                'internship_id' => $internship->id,
+            ]);
             Notification::create([
                 'user_id' => $internship->student_id,
                 'type'    => 'internship_status',
@@ -95,13 +176,31 @@ class CompanyController extends Controller
                 'read'    => false,
             ]);
 
-            // EMAIL: iba ak má študent zapnuté notify_rejected
-            if ($student && (bool) ($student->notify_rejected ?? false) && !empty($student->email)) {
+            // EMAIL (študent): vždy na primárny email; ak má alternatívny, pošleme aj naň (CC)
+            if ($student && !empty($student->email)) {
+                $primaryEmail = trim((string) $student->email);
+                $altEmail = trim((string) ($student->alternative_email ?? ''));
+
+                // odstráň duplicitný alt email
+                if ($altEmail !== '' && strcasecmp($altEmail, $primaryEmail) === 0) {
+                    $altEmail = '';
+                }
+
+                Log::info('Sending student email (rejected by company)', [
+                    'to' => $primaryEmail,
+                    'cc' => $altEmail,
+                    'internship_id' => $internship->id,
+                ]);
+
                 Mail::raw(
                     'Firma ' . $companyName . ' zamietla vašu prax.',
-                    function ($message) use ($student) {
-                        $message->to($student->email)
+                    function ($message) use ($primaryEmail, $altEmail) {
+                        $message->to($primaryEmail)
                                 ->subject('Prax zamietnutá firmou');
+
+                        if (!empty($altEmail)) {
+                            $message->cc($altEmail);
+                        }
                     }
                 );
             }
@@ -120,13 +219,13 @@ class CompanyController extends Controller
                     'read'    => false,
                 ]);
 
-                // EMAIL: iba ak má garant zapnuté notify_new_request
-                if ($garant && (bool) ($garant->notify_new_request ?? false) && !empty($garant->email)) {
+                // EMAIL (garant): podľa nastavenia "Zamietnutie praxe"
+                if ($garant && $this->shouldSendGarantEmailForStatus($garant, 'Zamietnutá') && !empty($garant->email)) {
                     Mail::raw(
                         $msg,
                         function ($message) use ($garant) {
                             $message->to($garant->email)
-                                    ->subject('Prax zamietnutá firmou');
+                                    ->subject('Zamietnutie praxe');
                         }
                     );
                 }
@@ -179,7 +278,7 @@ class CompanyController extends Controller
         $companyId = $request->user()->id;
 
         $request->validate([
-            'status' => 'required|in:Vytvorená,Potvrdená,Zamietnutá'
+            'status' => 'required|in:Vytvorená,Potvrdená,Zamietnutá,Vytvorena,Potvrdena,Zamietnuta,vytvorena,potvrdena,zamietnuta'
         ]);
 
         $internship = Internship::where('id', $id)
@@ -187,7 +286,7 @@ class CompanyController extends Controller
             ->firstOrFail();
 
         $oldStatus = $internship->status;
-        $newStatus = $request->status;
+        $newStatus = $this->normalizeStatus((string) $request->status);
 
         // Ak sa nič nemení, vrátime odpoveď bez vytvárania notifikácií.
         if ($oldStatus === $newStatus) {
@@ -199,6 +298,15 @@ class CompanyController extends Controller
 
         $internship->status = $newStatus;
         $internship->save();
+
+        Log::info('Company updateStatus -> notifyAfterCompanyStatusChange', [
+            'internship_id' => $internship->id,
+            'company_id' => $companyId,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'student_id' => $internship->student_id,
+            'garant_id' => $internship->garant_id,
+        ]);
 
         // Notifikácie podľa pravidiel zo zadania (Potvrdená -> študent + garant, Zamietnutá -> študent)
         $this->notifyAfterCompanyStatusChange($internship, $oldStatus, $newStatus);
@@ -346,6 +454,12 @@ class CompanyController extends Controller
         $internship = Internship::where('id', $id)->firstOrFail();
 
         $oldStatus = $internship->status;
+        Log::info('Company approveInternship called', [
+            'internship_id' => $internship->id,
+            'old_status' => $oldStatus,
+            'student_id' => $internship->student_id,
+            'garant_id' => $internship->garant_id,
+        ]);
         $internship->status = 'Potvrdená';
         $internship->save();
 
@@ -354,16 +468,6 @@ class CompanyController extends Controller
 
         $company = $internship->company()->first();
 
-        // Email študentovi iba ak to má povolené v nastaveniach (notify_approved)
-        if ($internship->student && !empty($internship->student->email) && (bool) ($internship->student->notify_approved ?? true)) {
-            Mail::raw(
-                'Vaša prax bola schválená firmou.',
-                function ($message) use ($internship) {
-                    $message->to($internship->student->email)
-                            ->subject('Prax schválená');
-                }
-            );
-        }
 
         return response()->json(['message' => 'Prax bola potvrdená.']);
     }
@@ -373,6 +477,12 @@ class CompanyController extends Controller
         $internship = Internship::where('id', $id)->firstOrFail();
 
         $oldStatus = $internship->status;
+        Log::info('Company rejectInternship called', [
+            'internship_id' => $internship->id,
+            'old_status' => $oldStatus,
+            'student_id' => $internship->student_id,
+            'garant_id' => $internship->garant_id,
+        ]);
         $internship->status = 'Zamietnutá';
         $internship->save();
 
@@ -381,16 +491,6 @@ class CompanyController extends Controller
 
         $company = $internship->company()->first();
 
-        // Email študentovi iba ak to má povolené v nastaveniach (notify_rejected)
-        if ($internship->student && !empty($internship->student->email) && (bool) ($internship->student->notify_rejected ?? true)) {
-            Mail::raw(
-                'Vaša prax bola zamietnutá firmou.',
-                function ($message) use ($internship) {
-                    $message->to($internship->student->email)
-                           ->subject('Prax zamietnutá');
-                }
-            );
-        }
 
         return response()->json(['message' => 'Prax bola zamietnutá.']);
     }
@@ -452,13 +552,11 @@ class CompanyController extends Controller
             );
         }
 
-        if ($user->notify_profile_change) {
-            Notification::create([
-                'user_id' => $user->id,
-                'type' => 'profile_change',
-                'message' => 'Úspešne ste aktualizovali firemné údaje.',
-            ]);
-        }
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'profile_change',
+            'message' => 'Úspešne ste aktualizovali firemné údaje.',
+        ]);
 
         return response()->json([
             'status' => 'success',
