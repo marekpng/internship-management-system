@@ -9,22 +9,10 @@
     <form @submit.prevent="submitForm">
       <!-- Výber firmy -->
       <label for="company">Firma</label>
-      <input
-        id="company"
-        v-model="companySearch"
-        type="text"
-        placeholder="Vyhľadaj firmu podľa názvu..."
-        @input="filterCompanies"
-        @change="selectCompany"
-        list="companyList"
-        required
-      />
+      <input id="company" v-model="companySearch" type="text" placeholder="Vyhľadaj firmu podľa názvu..."
+        @input="filterCompanies" @change="selectCompany" list="companyList" required />
       <datalist id="companyList">
-        <option
-          v-for="company in filteredCompanies"
-          :key="company.id"
-          :value="company.company_name || company.name"
-        />
+        <option v-for="company in filteredCompanies" :key="company.id" :value="company.company_name || company.name" />
       </datalist>
 
       <!-- Rok a semester -->
@@ -40,13 +28,7 @@
 
       <!-- Dátumy praxe -->
       <label for="start_date">Začiatok praxe</label>
-      <input
-        id="start_date"
-        v-model="start_date"
-        type="date"
-        required
-        @change="setYearFromStartDate"
-      />
+      <input id="start_date" v-model="start_date" type="date" required @change="setYearFromStartDate" />
 
       <label for="end_date">Koniec praxe</label>
       <input id="end_date" v-model="end_date" type="date" required />
@@ -54,6 +36,16 @@
       <!-- Odoslanie -->
       <button type="submit">Uložiť prax</button>
     </form>
+    <br />
+    <!-- Firma nie je v zozname -->
+    <div class="missing-company">
+      <h3>Nenašli ste firmu v zozname?</h3><br />
+
+
+      <button type="button" class="register-company-btn" @click="goToCompanyRegister">
+        Zaregistrovať firmu
+      </button>
+    </div>
 
     <!-- Správy o stave -->
     <p v-if="successMessage" class="success">{{ successMessage }}</p>
@@ -91,6 +83,10 @@ const setYearFromStartDate = () => {
   if (start_date.value) {
     year.value = new Date(start_date.value).getFullYear();
   }
+};
+
+const goToCompanyRegister = () => {
+  router.push("/register/company");
 };
 
 // Načítanie všetkých firiem
@@ -187,7 +183,8 @@ const submitForm = async () => {
   margin: 0 auto;
   background: #fff;
   padding: 24px;
-  padding-top: 94px; /* rezerva pre sticky navbar */
+  padding-top: 94px;
+  /* rezerva pre sticky navbar */
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -195,6 +192,7 @@ const submitForm = async () => {
 .success {
   color: green;
 }
+
 .error {
   color: red;
 }
@@ -214,5 +212,22 @@ const submitForm = async () => {
 
 .back-btn:hover {
   background: #e8f5e9;
+}
+
+.register-company-btn {
+  width: 100%;
+  background-color: #1b5e20;
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.register-company-btn:hover {
+  background-color: #2e7d32;
 }
 </style>

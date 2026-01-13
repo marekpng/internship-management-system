@@ -10,7 +10,7 @@
       <nav class="actions">
         <!-- Notifikácie: endpoint sa vyberie podľa roly (company/garant/student) -->
         <div v-if="isAuthed" class="notification-wrapper" @click="toggleNotifications">
-          🔔
+          <i class="fa-regular fa-bell"></i>
           <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
 
           <!--
@@ -47,20 +47,20 @@
 
         <!-- Nastavenia: každá rola má svoj cieľ (firma/garant) alebo profil (študent) -->
         <router-link v-if="role === 'company'" to="/company/settings" class="nav-btn">
-          ⚙️ Nastavenia
+          <i class="fa-solid fa-gear"></i> Nastavenia
         </router-link>
         <router-link v-else-if="role === 'garant'" to="/garant/settings" class="nav-btn">
-          ⚙️ Nastavenia
+          <i class="fa-solid fa-gear"></i> Nastavenia
         </router-link>
         <router-link v-else-if="role === 'student'" to="/student/settings" class="nav-btn">
-          ⚙️ Nastavenia
+          <i class="fa-solid fa-gear"></i> Nastavenia
         </router-link>
         <router-link v-else to="/profile" class="nav-btn">
-          ⚙️ Nastavenia
+          <i class="fa-solid fa-gear"></i> Nastavenia
         </router-link>
 
         <button class="nav-btn logout" @click="logout">
-          ⏻ Odhlásiť sa
+          <i class="fa-solid fa-arrow-right-from-bracket"></i> Odhlásiť sa
         </button>
       </nav>
     </div>
