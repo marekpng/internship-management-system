@@ -5,7 +5,7 @@
     <!-- ADMIN NAVBAR -->
     <nav class="admin-nav">
       <div class="nav-container">
-        <button class="nav-btn" @click="goBack">🏠 Admin Dashboard</button>
+        <button class="nav-btn" @click="goBack">Admin Dashboard</button>
         <span class="nav-title">Nastavenia rolí</span>
         <button class="nav-btn logout" @click="logout">Odhlásiť sa</button>
       </div>
@@ -157,7 +157,7 @@ export default {
 <style scoped>
 /* ADMIN NAVBAR */
 .admin-nav {
-  background: #003f86;
+  background: #008736;
   padding: 14px 0;
   margin-bottom: 30px;
 }
@@ -172,12 +172,12 @@ export default {
 }
 
 .nav-title {
-  font-size: 20px;
+  font-size: 25px;
   font-weight: bold;
 }
 
 .nav-btn {
-  background: #0057b8;
+  background: #016d2c;
   color: white;
   border: none;
   padding: 10px 18px;
@@ -186,7 +186,7 @@ export default {
 }
 
 .nav-btn:hover {
-  background: #004a9a;
+  background: #008736;
 }
 
 .logout {
@@ -221,7 +221,7 @@ export default {
 }
 
 th {
-  background: #0057b8;
+  background: #008736;
   color: white;
   padding: 14px;
 }
@@ -232,7 +232,7 @@ td {
 }
 
 .badge {
-  background: #0057b8;
+  background: #008736;
   padding: 4px 10px;
   border-radius: 6px;
   color: white;
@@ -242,7 +242,7 @@ td {
 
 /* BUTTONS */
 .btn-primary {
-  background: #0057b8;
+  background: #008736;
   padding: 8px 16px;
   color: white;
   border-radius: 6px;
@@ -251,7 +251,7 @@ td {
 }
 
 .btn-primary:hover {
-  background: #003f86;
+  background: #008736;
 }
 
 .btn-secondary {
