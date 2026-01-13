@@ -178,6 +178,18 @@ input {
   color:#fff;
   border:0;
   cursor:pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.05s ease;
+}
+.btn:hover:not(:disabled) {
+  background: #086735;
+  color: #fff;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 .error {
   color: #b00020;
