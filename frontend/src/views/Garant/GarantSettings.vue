@@ -86,12 +86,9 @@
         <section class="block">
           <h2>Emailové notifikácie</h2>
 
-          <div class="field">
-            <label><input type="checkbox" v-model="notifications.notify_new_request" /> Nová žiadosť o prax</label>
-          </div>
 
           <div class="field">
-            <label><input type="checkbox" v-model="notifications.notify_approved" /> Schválenie praxe</label>
+            <label><input type="checkbox" v-model="notifications.notify_approved" /> Potvrdenie praxe</label>
           </div>
 
           <div class="field">

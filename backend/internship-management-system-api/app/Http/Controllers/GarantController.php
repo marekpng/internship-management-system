@@ -108,6 +108,40 @@ class GarantController extends Controller
         return response()->json(['message' => 'Prax bola označená ako neschválená garantom.']);
     }
 
+    private function sendEmailToStudent(?User $student, string $subject, string $body): void
+    {
+        if (!$student) return;
+
+        $emails = [];
+        if (!empty($student->email)) {
+            $emails[] = $student->email;
+        }
+        if (!empty($student->alternative_email) && $student->alternative_email !== $student->email) {
+            $emails[] = $student->alternative_email;
+        }
+
+        foreach (array_unique($emails) as $to) {
+            Mail::raw($body, function ($message) use ($to, $subject) {
+                $message->to($to)->subject($subject);
+            });
+        }
+    }
+
+    private function sendEmailToCompany(?User $company, string $toggleField, string $subject, string $body): void
+    {
+        if (!$company) return;
+
+        $to = !empty($company->contact_person_email)
+            ? $company->contact_person_email
+            : $company->email;
+
+        if (!empty($to) && (bool) ($company->{$toggleField} ?? true)) {
+            Mail::raw($body, function ($message) use ($to, $subject) {
+                $message->to($to)->subject($subject);
+            });
+        }
+    }
+
     /**
      * Notifikácie a emaily po rozhodnutí garanta (obhájená / neobhájená prax)
      */
@@ -130,19 +164,17 @@ class GarantController extends Controller
             $msgCompany = $garantName . ' označil(a) prax študenta ' . $studentName . ' ako obhájenú.';
             $subjectStudent = 'Prax obhájená';
             $subjectCompany = 'Prax obhájená';
-            $studentToggle = 'notify_approved';
             $companyToggle = 'notify_approved';
         } else { // Neobhájená
             $msgStudent = $garantName . ' označil(a) vašu prax ako neobhájenú.';
             $msgCompany = $garantName . ' označil(a) prax študenta ' . $studentName . ' ako neobhájenú.';
             $subjectStudent = 'Prax neobhájená';
             $subjectCompany = 'Prax neobhájená';
-            $studentToggle = 'notify_rejected';
             $companyToggle = 'notify_rejected';
         }
 
-        // Študent: ZVONČEK vždy, EMAIL iba podľa nastavenia
-        if ($student) {
+        // Študent: ZVONČEK vždy, EMAIL vždy (na primárny aj alternatívny, ak je)
+        if ($student && (int) $student->id !== (int) $internship->garant_id) {
             Notification::create([
                 'user_id' => $student->id,
                 'type'    => 'internship_status',
@@ -150,18 +182,11 @@ class GarantController extends Controller
                 'read'    => false,
             ]);
 
-            if ((bool) ($student->{$studentToggle} ?? false) && !empty($student->email)) {
-                Mail::raw(
-                    $msgStudent,
-                    function ($message) use ($student, $subjectStudent) {
-                        $message->to($student->email)->subject($subjectStudent);
-                    }
-                );
-            }
+            $this->sendEmailToStudent($student, $subjectStudent, $msgStudent);
         }
 
         // Firma: ZVONČEK vždy, EMAIL iba podľa nastavenia
-        if ($company) {
+        if ($company && (int) $company->id !== (int) $internship->garant_id) {
             Notification::create([
                 'user_id' => $company->id,
                 'type'    => 'internship_status',
@@ -169,17 +194,10 @@ class GarantController extends Controller
                 'read'    => false,
             ]);
 
-            $toCompanyEmail = !empty($company->contact_person_email) ? $company->contact_person_email : $company->email;
-
-            if ((bool) ($company->{$companyToggle} ?? false) && !empty($toCompanyEmail)) {
-                Mail::raw(
-                    $msgCompany,
-                    function ($message) use ($toCompanyEmail, $subjectCompany) {
-                        $message->to($toCompanyEmail)->subject($subjectCompany);
-                    }
-                );
-            }
+            $this->sendEmailToCompany($company, $companyToggle, $subjectCompany, $msgCompany);
         }
+
+
     }
 
     /**
@@ -203,19 +221,17 @@ class GarantController extends Controller
             $msgCompany = $garantName . ' schválil(a) prax študenta ' . $studentName . '.';
             $subjectStudent = 'Prax schválená garantom';
             $subjectCompany = 'Prax schválená garantom';
-            $studentToggle = 'notify_approved';
             $companyToggle = 'notify_approved';
         } else { // Neschválená
             $msgStudent = $garantName . ' neschválil(a) vašu prax.';
             $msgCompany = $garantName . ' neschválil(a) prax študenta ' . $studentName . '.';
             $subjectStudent = 'Prax neschválená garantom';
             $subjectCompany = 'Prax neschválená garantom';
-            $studentToggle = 'notify_rejected';
             $companyToggle = 'notify_rejected';
         }
 
-        // Študent: ZVONČEK vždy, EMAIL iba podľa nastavenia
-        if ($student) {
+        // Študent: ZVONČEK vždy, EMAIL vždy (na primárny aj alternatívny, ak je)
+        if ($student && (int) $student->id !== (int) $internship->garant_id) {
             Notification::create([
                 'user_id' => $student->id,
                 'type'    => 'internship_status',
@@ -223,18 +239,11 @@ class GarantController extends Controller
                 'read'    => false,
             ]);
 
-            if ((bool) ($student->{$studentToggle} ?? false) && !empty($student->email)) {
-                Mail::raw(
-                    $msgStudent,
-                    function ($message) use ($student, $subjectStudent) {
-                        $message->to($student->email)->subject($subjectStudent);
-                    }
-                );
-            }
+            $this->sendEmailToStudent($student, $subjectStudent, $msgStudent);
         }
 
         // Firma: ZVONČEK vždy, EMAIL iba podľa nastavenia
-        if ($company) {
+        if ($company && (int) $company->id !== (int) $internship->garant_id) {
             Notification::create([
                 'user_id' => $company->id,
                 'type'    => 'internship_status',
@@ -242,17 +251,10 @@ class GarantController extends Controller
                 'read'    => false,
             ]);
 
-            $toCompanyEmail = !empty($company->contact_person_email) ? $company->contact_person_email : $company->email;
-
-            if ((bool) ($company->{$companyToggle} ?? false) && !empty($toCompanyEmail)) {
-                Mail::raw(
-                    $msgCompany,
-                    function ($message) use ($toCompanyEmail, $subjectCompany) {
-                        $message->to($toCompanyEmail)->subject($subjectCompany);
-                    }
-                );
-            }
+            $this->sendEmailToCompany($company, $companyToggle, $subjectCompany, $msgCompany);
         }
+
+
     }
 
     /**

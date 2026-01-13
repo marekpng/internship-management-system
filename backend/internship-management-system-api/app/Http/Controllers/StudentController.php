@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use App\Models\Notification;
-use App\Models\User;
 
 class StudentController extends Controller
 {
@@ -60,7 +59,7 @@ class StudentController extends Controller
         $user->alternative_email = $data['alternative_email'] ?? null;
         $user->save();
 
-        // Voliteľný email pri zmene profilu
+        // Email iba ak si to študent zapol (toto je jediné emailové nastavenie pre študenta)
         if ($user->notify_profile_change) {
             Mail::raw(
                 'Vaše údaje profilu boli úspešne zmenené. Ak ste túto zmenu nevykonali vy, kontaktujte administrátora.',
@@ -75,6 +74,7 @@ class StudentController extends Controller
             'user_id' => $user->id,
             'type' => 'profile_change',
             'message' => 'Údaje profilu boli aktualizované.',
+            'read' => false,
         ]);
 
         return response()->json([
@@ -85,7 +85,7 @@ class StudentController extends Controller
     }
 
     /**
-     * Načítanie notifikačných nastavení študenta
+     * Načítanie notifikačných nastavení študenta (iba profile-change email)
      */
     public function getNotifications(Request $request)
     {
@@ -97,7 +97,7 @@ class StudentController extends Controller
     }
 
     /**
-     * Uloženie notifikačných nastavení študenta
+     * Uloženie notifikačných nastavení študenta (iba profile-change email)
      */
     public function updateNotifications(Request $request)
     {
@@ -107,36 +107,51 @@ class StudentController extends Controller
             'notify_profile_change' => ['required', 'boolean'],
         ]);
 
-        // Študent môže ovládať iba email pri zmene profilu
         $user->notify_profile_change = (bool) $data['notify_profile_change'];
-
-        // Ostatné emailové notifikácie pre študenta držíme vypnuté
-        $user->notify_new_request = false;
-        $user->notify_approved = false;
-        $user->notify_rejected = false;
-
         $user->save();
+
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'notification_settings',
+            'message' => 'Notifikačné nastavenia boli aktualizované.',
+            'read' => false,
+        ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Notifikačné nastavenia boli uložené.',
+        ]);
     }
 
     /**
      * Zoznam notifikácií pre prihláseného študenta
+     * - zobrazujeme všetko (aj prax)
+     * - odkliknúť (mark read) môže iba profile_change
      */
     public function getUserNotifications(Request $request)
     {
-        return Notification::where('user_id', $request->user()->id)
-            ->where('type', 'profile_change')
+        // Študent má vidieť všetky notifikácie a musí ich vedieť aj odkliknúť (označiť ako prečítané)
+        $items = Notification::where('user_id', $request->user()->id)
             ->orderBy('created_at', 'DESC')
             ->get();
+
+        // Frontend používa tento flag na zobrazenie tlačidla ✔
+        $items->transform(function ($n) {
+            $n->can_mark_read = true;
+            return $n;
+        });
+
+        return $items;
     }
 
     /**
-     * Označenie notifikácie ako prečítanej (iba vlastnej)
+     * Označenie notifikácie ako prečítanej (študent môže iba profile_change)
      */
     public function markNotificationRead($id, Request $request)
     {
+        // Študent môže označiť ako prečítanú iba vlastnú notifikáciu
         $notification = Notification::where('user_id', $request->user()->id)
             ->where('id', $id)
-            ->where('type', 'profile_change')
             ->firstOrFail();
 
         $notification->read = true;

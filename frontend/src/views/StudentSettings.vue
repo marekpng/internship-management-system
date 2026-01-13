@@ -139,6 +139,14 @@
           </div>
 
           <div class="field">
+            <label><input type="checkbox" checked disabled /> Schválená/Zamietnutá prax</label>
+          </div>
+
+          <div class="field">
+            <label><input type="checkbox" checked disabled /> Obhájená/Neobhájená prax</label>
+          </div>
+
+          <div class="field">
             <label><input type="checkbox" v-model="notifications.notify_profile_change" /> Zmena údajov profilu</label>
           </div>
 
