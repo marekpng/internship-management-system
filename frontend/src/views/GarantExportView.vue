@@ -130,9 +130,13 @@ const semesters = ref([
 ])
 
 const statuses = ref([
-  { value: 'Vytvorená', label: 'Vytvorená' },
+  { value: 'Vytvorená', label: 'Čakajúce' },
   { value: 'Schválená', label: 'Schválená' },
   { value: 'Zamietnutá', label: 'Zamietnutá' },
+  { value: 'Neschválená', label: 'Neschválená' },
+  { value: 'Potvrdená', label: 'Potvrdená' },
+  { value: 'Obhájená', label: 'Obhájená' },
+  { value: 'Neobhájená', label: 'Neobhájená' }, 
 ])
 
 const studyFields = ref([])
@@ -233,9 +237,10 @@ onMounted(async () => {
 }
 
 .checkboxes {
-  display: flex;
-  gap: 2.5rem;
-  margin-top: 0.5rem;
+display: flex;
+flex-wrap: wrap;
+gap: 2rem 3rem;
+margin-top: 0.5rem;
 }
 
 .checkboxes label {
