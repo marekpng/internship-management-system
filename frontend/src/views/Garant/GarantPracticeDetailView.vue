@@ -217,6 +217,9 @@ export default {
     formatDate(date) {
       return date ? new Date(date).toLocaleDateString("sk-SK") : "";
     },
+    goToFilter(filter) {
+      this.$router.push({ path: '/garant/practices', query: { status: filter } })
+    },
 
     async loadDetail() {
       try {
@@ -387,7 +390,7 @@ export default {
           { headers: { Authorization: `Bearer ${this.token()}` } }
         );
         alert("Prax bola schválená garantom.");
-        this.loadDetail();
+        this.goToFilter('schvalena');
       } catch (error) {
         console.error(error);
       }
@@ -402,7 +405,7 @@ export default {
           { headers: { Authorization: `Bearer ${this.token()}` } }
         );
         alert("Prax bola neschválená garantom.");
-        this.loadDetail();
+        this.goToFilter('neschvalena');
       } catch (error) {
         console.error(error);
       }
@@ -417,7 +420,7 @@ export default {
           { headers: { Authorization: `Bearer ${this.token()}` } }
         );
         alert("Prax bola označená ako obhájená.");
-        this.loadDetail();
+        this.goToFilter('obhajena');
       } catch (error) {
         console.error(error);
       }
@@ -432,7 +435,7 @@ export default {
           { headers: { Authorization: `Bearer ${this.token()}` } }
         );
         alert("Prax bola označená ako neobhájená.");
-        this.loadDetail();
+        this.goToFilter('neobhajena');
       } catch (error) {
         console.error(error);
       }

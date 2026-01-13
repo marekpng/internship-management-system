@@ -6,7 +6,7 @@
     <div class="practice-container">
       <!-- HEADER -->
       <div class="header-row">
-        <div class="back-button" @click="goBack">← Späť</div>
+        <button type="button" class="back-btn" @click="goBack">← Späť</button>
         <h2>Moja prax</h2>
       </div>
 
@@ -51,7 +51,7 @@
           <!-- ==================================== -->
           <template v-else>
             <!-- STATUS -->
-            <div class="status-box">
+            <div class="status-box" :class="statusClass(p.status)">
               {{ p.status }}
             </div>
 
@@ -223,6 +223,24 @@ const goBack = () => router.back();
 const formatDate = (d) => {
   if (!d) return "—";
   return new Date(d).toLocaleDateString("sk-SK");
+};
+
+const statusClass = (status) => {
+  const s = (status || '').trim();
+
+  if (['Zamietnutá', 'Neschválená', 'Neobhájená'].includes(s)) {
+    return 'status--danger';
+  }
+
+  if (['Vytvorená', 'Potvrdená'].includes(s)) {
+    return 'status--warning';
+  }
+
+  if (['Schválená', 'Obhájená'].includes(s)) {
+    return 'status--success';
+  }
+
+  return 'status--neutral';
 };
 
 const initUpload = (id) => {
@@ -497,14 +515,26 @@ onMounted(loadPractices);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  position: relative;
   margin-bottom: 10px;
 }
 
-.back-button {
+/* BACK BUTTON – jednotný štýl */
+.back-btn {
+  background: #ffffff;
+  border: 1px solid #1b5e20;
   color: #1b5e20;
+  padding: 8px 14px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 18px;
-  font-weight: bold;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.back-btn:hover {
+  background: #e8f5e9;
 }
 
 h2 {
@@ -532,12 +562,39 @@ h2 {
   position: absolute;
   top: -10px;
   right: 0;
-  background: #e8f5e9;
   padding: 6px 14px;
   border-radius: 8px;
   font-weight: bold;
-  color: #1b5e20;
   font-size: 14px;
+  border: 1px solid transparent;
+}
+
+/* Čaká (oranžová) */
+.status--warning {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+/* Zamietnutá / Neschválená / Neobhájená (červená) */
+.status--danger {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+/* Schválená / Obhájená (zelená) */
+.status--success {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+/* Fallback */
+.status--neutral {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #e2e8f0;
 }
 
 /* INFO */

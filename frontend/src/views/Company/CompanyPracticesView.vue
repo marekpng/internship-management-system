@@ -439,21 +439,24 @@ export default {
 .secondary-back {
   height: 36px;
   padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  border: 1px solid #0b6b37;
   background: #ffffff;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: #0b6b37;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, transform 0.05s ease;
 }
 
 .secondary-back:hover {
-  background: #f5f7f5;
-  border-color: #cfe2d5;
+  background: #f0f6f2;
+}
+
+.secondary-back:active {
+  transform: translateY(1px);
 }
 </style>

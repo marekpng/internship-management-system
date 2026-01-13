@@ -31,56 +31,105 @@ class CompanyController extends Controller
         $company = $internship->company()->first();
         $companyName = $company?->company_name ?? 'firma';
 
-        // 1) Potvrdená -> študent + garant
+        $student = User::find($internship->student_id);
+        $studentName = $student
+            ? trim(($student->first_name ?? '') . ' ' . ($student->last_name ?? ''))
+            : 'študenta';
+        if ($studentName === '') {
+            $studentName = 'študenta';
+        }
+
         if ($newStatus === 'Potvrdená') {
-            // Študent (rešpektujeme jeho nastavenie notify_approved, ak existuje)
-            $student = User::find($internship->student_id);
-            if ($student && (bool) ($student->notify_approved ?? true)) {
-                Notification::create([
-                    'user_id'  => $internship->student_id,
-                    'type'     => 'internship_status',
-                    'message'  => 'Firma ' . $companyName . ' potvrdila vašu prax (stav: Potvrdená).',
-                    'read'     => false,
-                ]);
+            // ZVONČEK: vždy (bez ohľadu na checkbox)
+            Notification::create([
+                'user_id'  => $internship->student_id,
+                'type'     => 'internship_status',
+                'message'  => 'Firma ' . $companyName . ' potvrdila vašu prax.',
+                'read'     => false,
+            ]);
+
+            // EMAIL: iba ak má študent zapnuté notify_approved
+            if ($student && (bool) ($student->notify_approved ?? false) && !empty($student->email)) {
+                Mail::raw(
+                    'Firma ' . $companyName . ' potvrdila vašu prax.',
+                    function ($message) use ($student) {
+                        $message->to($student->email)
+                                ->subject('Prax potvrdená firmou');
+                    }
+                );
             }
 
             $garantId = (int) ($internship->garant_id ?? 0);
             if ($garantId > 0 && $garantId !== (int) $internship->student_id) {
                 $garant = User::find($garantId);
 
-                if ($garant && (bool) ($garant->notify_new_request ?? true)) {
-                    Notification::create([
-                        'user_id' => $garantId,
-                        'type'    => 'internship_status',
-                        'message' => 'Firma ' . $companyName . ' potvrdila prax študenta. Prax čaká na vaše schválenie.',
-                        'read'    => false,
-                    ]);
+                // ZVONČEK: vždy
+                Notification::create([
+                    'user_id' => $garantId,
+                    'type'    => 'internship_status',
+                    'message' => 'Firma ' . $companyName . ' potvrdila prax študenta ' . $studentName . '. Prax čaká na vaše schválenie.',
+                    'read'    => false,
+                ]);
 
-                    if (!empty($garant->email)) {
-                        Mail::raw(
-                            'Firma ' . $companyName . ' potvrdila prax študenta. Prax čaká na vaše schválenie.',
-                            function ($message) use ($garant) {
-                                $message->to($garant->email)
-                                        ->subject('Nová prax na schválenie');
-                            }
-                        );
-                    }
+                // EMAIL: iba ak má garant zapnuté notify_new_request
+                if ($garant && (bool) ($garant->notify_new_request ?? false) && !empty($garant->email)) {
+                    Mail::raw(
+                        'Firma ' . $companyName . ' potvrdila prax študenta ' . $studentName . '. Prax čaká na vaše schválenie.',
+                        function ($message) use ($garant) {
+                            $message->to($garant->email)
+                                    ->subject('Nová prax na schválenie');
+                        }
+                    );
                 }
             }
 
             return;
         }
 
-        // 2) Zamietnutá -> iba študent
         if ($newStatus === 'Zamietnutá') {
-            $student = User::find($internship->student_id);
-            if ($student && (bool) ($student->notify_rejected ?? true)) {
+            // ZVONČEK: vždy
+            Notification::create([
+                'user_id' => $internship->student_id,
+                'type'    => 'internship_status',
+                'message' => 'Firma ' . $companyName . ' zamietla vašu prax.',
+                'read'    => false,
+            ]);
+
+            // EMAIL: iba ak má študent zapnuté notify_rejected
+            if ($student && (bool) ($student->notify_rejected ?? false) && !empty($student->email)) {
+                Mail::raw(
+                    'Firma ' . $companyName . ' zamietla vašu prax.',
+                    function ($message) use ($student) {
+                        $message->to($student->email)
+                                ->subject('Prax zamietnutá firmou');
+                    }
+                );
+            }
+
+            // Garant (prehľad)
+            $garantId = (int) ($internship->garant_id ?? 0);
+            if ($garantId > 0 && $garantId !== (int) $internship->student_id) {
+                $garant = User::find($garantId);
+
+                // ZVONČEK: vždy
+                $msg = 'Firma ' . $companyName . ' zamietla prax študenta ' . $studentName . '.';
                 Notification::create([
-                    'user_id' => $internship->student_id,
+                    'user_id' => $garantId,
                     'type'    => 'internship_status',
-                    'message' => 'Firma ' . $companyName . ' zamietla vašu prax (stav: Zamietnutá).',
+                    'message' => $msg,
                     'read'    => false,
                 ]);
+
+                // EMAIL: iba ak má garant zapnuté notify_new_request
+                if ($garant && (bool) ($garant->notify_new_request ?? false) && !empty($garant->email)) {
+                    Mail::raw(
+                        $msg,
+                        function ($message) use ($garant) {
+                            $message->to($garant->email)
+                                    ->subject('Prax zamietnutá firmou');
+                        }
+                    );
+                }
             }
 
             return;
@@ -403,11 +452,13 @@ class CompanyController extends Controller
             );
         }
 
-        Notification::create([
-            'user_id' => $user->id,
-            'type' => 'profile_change',
-            'message' => 'Úspešne ste aktualizovali firemné údaje.',
-        ]);
+        if ($user->notify_profile_change) {
+            Notification::create([
+                'user_id' => $user->id,
+                'type' => 'profile_change',
+                'message' => 'Úspešne ste aktualizovali firemné údaje.',
+            ]);
+        }
 
         return response()->json([
             'status' => 'success',

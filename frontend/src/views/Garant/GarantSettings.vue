@@ -1,6 +1,11 @@
 <template>
   <CompanyNavBar />
-  <button class="back-button" @click="$router.back()">← Späť</button>
+
+  <div class="page-controls">
+    <button class="back-button" type="button" @click="$router.back()">
+      ← Späť
+    </button>
+  </div>
 
   <div class="settings-layout">
     <aside class="settings-sidebar">
@@ -377,7 +382,15 @@ function confirmPasswordChange() {
 onMounted(loadGarant)
 </script>
 
+
 <style scoped>
+.page-controls {
+  max-width: 1100px;
+  margin: 24px auto 0;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+}
 .settings-wrapper {
   flex: 1;
   max-width: 800px;
@@ -491,12 +504,25 @@ input:disabled {
 }
 
 .back-button {
-  margin: 20px 0;
-  background: none;
-  border: none;
-  font-size: 16px;
+  margin-bottom: 0;
+  background: #ffffff;
+  border: 1px solid #0b6b37;
+  color: #0b6b37;
+  padding: 8px 14px;
+  border-radius: 6px;
   cursor: pointer;
-  color: #1d4d2d;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.back-button:hover {
+  background: #f0f6f2;
+}
+
+.back-button:active {
+  transform: translateY(1px);
 }
 
 .notification-bar {
