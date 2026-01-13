@@ -17,25 +17,25 @@
       </div>
 
       <label>
-        Adresa (ulica)
-        <input v-model.trim="form.street" />
+        Adresa (ulica) *
+        <input v-model.trim="form.street" required />
       </label>
 
       <div class="grid">
         <label>
-          Mesto
-          <input v-model.trim="form.city" />
+          Mesto *
+          <input v-model.trim="form.city" required />
         </label>
         <label>
-          Číslo domu
-          <input v-model.trim="form.house_number" />
+          Číslo domu *
+          <input v-model.trim="form.house_number" required />
         </label>
       </div>
 
       <div class="grid">
         <label>
-          PSČ
-          <input v-model.trim="form.postal_code" />
+          PSČ *
+          <input v-model.trim="form.postal_code" required />
         </label>
         <label>
           Študentský email *
@@ -46,17 +46,17 @@
       <div class="grid">
         <label>
           Alternatívny email
-          <input type="email" v-model.trim="form.alternative_email" />
+          <input type="email" v-model.trim="form.alternative_email"/>
         </label>
         <label>
-          Telefón
-          <input v-model.trim="form.phone" />
+          Telefón *
+          <input v-model.trim="form.phone" required />
         </label>
       </div>
 
       <label>
-        Študijný odbor
-        <input v-model.trim="form.study_field" />
+        Študijný odbor *
+        <input v-model.trim="form.study_field" required />
       </label>
 
       <div v-if="error" class="error">{{ error }}</div>
@@ -73,10 +73,11 @@
 
 <script setup>
 import { reactive, ref } from 'vue'
-import axios from 'axios' 
+import axios from 'axios'
 import '@/assets/landing.css'
 import HeaderComponent from '@/components/HeaderComponent.vue'
 import FooterComponent from '@/components/FooterComponent.vue'
+
 const form = reactive({
   first_name: '',
   last_name: '',
@@ -98,17 +99,41 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+function validatePhone(phone) {
+  return /^[0-9+\s()-]{6,}$/.test(phone)
+}
+
 async function submit() {
   error.value = ''
   success.value = ''
 
-  // ✅ klientská validácia
-  if (!form.first_name || !form.last_name) {
-    error.value = 'Meno a priezvisko sú povinné.'
+  if (
+    !form.first_name ||
+    !form.last_name ||
+    !form.street ||
+    !form.city ||
+    !form.house_number ||
+    !form.postal_code ||
+    !form.student_email ||
+    !form.phone ||
+    !form.study_field
+  ) {
+    error.value = 'Vyplň všetky povinné polia.'
     return
   }
-  if (!form.student_email || !validateEmail(form.student_email)) {
-    error.value = 'Zadaj platný študentský email.'
+
+  if (!validateEmail(form.student_email)) {
+    error.value = 'Zadaj platný email.'
+    return
+  }
+
+  if (form.alternative_email && !validateEmail(form.alternative_email)) {
+    error.value = 'Zadaj platný alternatívny email.'
+    return
+  }
+
+  if (!validatePhone(form.phone)) {
+    error.value = 'Zadaj platné telefónne číslo.'
     return
   }
 
@@ -116,21 +141,20 @@ async function submit() {
     first_name: form.first_name,
     last_name: form.last_name,
     student_email: form.student_email,
-    city: form.city || null,
-    street: form.street || null,
-    house_number: form.house_number || null,
-    postal_code: form.postal_code || null,
-    alternative_email: form.alternative_email || null,
-    phone: form.phone || null,
-    study_field: form.study_field || null
+    city: form.city,
+    street: form.street,
+    house_number: form.house_number,
+    postal_code: form.postal_code,
+    alternative_email: form.alternative_email ? form.alternative_email : null,
+    phone: form.phone,
+    study_field: form.study_field
   }
 
   loading.value = true
   try {
-    // ✅ priamy POST na backend (bežiaci na 127.0.0.1:8000)
     const res = await axios.post('http://127.0.0.1:8000/api/register/student', payload)
     success.value = res.data.message || 'Registrácia prebehla úspešne. Skontroluj email.'
-    Object.keys(form).forEach(k => form[k] = '')
+    Object.keys(form).forEach(k => (form[k] = ''))
   } catch (err) {
     if (err.response) {
       if (err.response.status === 422 && err.response.data.errors) {
@@ -191,6 +215,18 @@ input {
   color:#fff;
   border:0;
   cursor:pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.05s ease;
+}
+.btn:hover:not(:disabled) {
+  background: #086735;
+  color: #fff;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 .error {
   color: #b00020;

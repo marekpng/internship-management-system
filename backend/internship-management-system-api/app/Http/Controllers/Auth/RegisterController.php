@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Carbon\Carbon;
+
 class RegisterController extends Controller
 {
     public function registerStudent(Request $request)
@@ -19,13 +20,13 @@ class RegisterController extends Controller
             'first_name' => 'required|string',
             'last_name' => 'required|string',
             'student_email' => 'required|email|unique:users,student_email',
-            'city' => 'nullable|string',
-            'street' => 'nullable|string',
-            'house_number' => 'nullable|string',
-            'postal_code' => 'nullable|string',
+            'city' => 'required|string',
+            'street' => 'required|string',
+            'house_number' => 'required|string',
+            'postal_code' => 'required|string',
             'alternative_email' => 'nullable|email',
-            'phone' => 'nullable|string',
-            'study_field' => 'nullable|string',
+            'phone' => 'required|string',
+            'study_field' => 'required|string',
         ]);
 
         $password = User::generateRandomPassword();
@@ -66,13 +67,12 @@ class RegisterController extends Controller
     {
         $request->validate([
             'company_name' => 'required|string',
-            'company_address' => 'nullable|string',
+            'company_address' => 'required|string',
             'contact_person_name' => 'required|string',
             'contact_person_email' => 'required|email|unique:users,email',
-            'contact_person_phone' => 'nullable|string',
+            'contact_person_phone' => 'required|string',
             'password' => 'required|string|min:8|confirmed',
         ]);
-
 
         $company = User::create([
             'company_name' => $request->company_name,
@@ -97,10 +97,13 @@ class RegisterController extends Controller
             ['id' => $company->id]
         );
 
-        Mail::raw("Vaša firma bola zaregistrovaná. Kliknite na nasledujúci odkaz pre aktiváciu účtu:\n\n$activationUrl", function ($message) use ($company) {
-            $message->to($company->contact_person_email)
-                ->subject('Aktivácia firemného účtu');
-        });
+        Mail::raw(
+            "Vaša firma bola zaregistrovaná. Kliknite na nasledujúci odkaz pre aktiváciu účtu:\n\n$activationUrl",
+            function ($message) use ($company) {
+                $message->to($company->contact_person_email)
+                    ->subject('Aktivácia firemného účtu');
+            }
+        );
 
         return response()->json([
             'message' => 'Firma bola úspešne zaregistrovaná. Aktivačný link bol odoslaný emailom.',
@@ -123,5 +126,4 @@ class RegisterController extends Controller
 
         return response()->json(['message' => 'Účet bol úspešne aktivovaný.']);
     }
-
 }

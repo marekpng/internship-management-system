@@ -11,8 +11,8 @@
       </label>
 
       <label>
-        Adresa firmy
-        <input v-model.trim="form.company_address" />
+        Adresa firmy *
+        <input v-model.trim="form.company_address" required />
       </label>
 
       <div class="grid">
@@ -27,8 +27,8 @@
       </div>
 
       <label>
-        Telefón
-        <input v-model.trim="form.contact_person_phone" />
+        Telefón *
+        <input v-model.trim="form.contact_person_phone" required />
       </label>
 
       <div class="grid">
@@ -86,16 +86,28 @@ async function submit() {
     error.value = 'Názov firmy je povinný.'
     return
   }
+  if (!form.company_address) {
+    error.value = 'Adresa firmy je povinná.'
+    return
+  }
   if (!form.contact_person_name) {
     error.value = 'Kontaktná osoba je povinná.'
     return
   }
-  if (!validateEmail(form.contact_person_email)) {
+  if (!form.contact_person_email || !validateEmail(form.contact_person_email)) {
     error.value = 'Zadaj platný kontaktný email.'
+    return
+  }
+  if (!form.contact_person_phone) {
+    error.value = 'Telefón je povinný.'
     return
   }
   if (!form.password || form.password.length < 8) {
     error.value = 'Heslo musí mať aspoň 8 znakov.'
+    return
+  }
+  if (!form.password_confirmation) {
+    error.value = 'Potvrdenie hesla je povinné.'
     return
   }
   if (form.password !== form.password_confirmation) {
@@ -166,6 +178,18 @@ input {
   color:#fff;
   border:0;
   cursor:pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.05s ease;
+}
+.btn:hover:not(:disabled) {
+  background: #086735;
+  color: #fff;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 .error {
   color: #b00020;
