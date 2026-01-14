@@ -12,6 +12,7 @@ import GarantDashboardView from '@/views/Garant/GarantDashboardView.vue'
 import GarantPracticesView from '@/views/Garant/GarantPracticesView.vue'
 import GarantPracticeDetailView from '@/views/Garant/GarantPracticeDetailView.vue'
 import GarantSettingsView from '@/views/Garant/GarantSettings.vue'
+import StudentCompanyRegister from '../views/StudentCompanyRegister.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -44,6 +45,12 @@ const router = createRouter({
       path: '/student/settings',
       name: 'studentSettings',
       component: () => import('@/views/StudentSettings.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/student/company-register',
+      name: 'studentCompanyRegister',
+      component: () => import('@/views/StudentCompanyRegister.vue'),
       meta: { requiresAuth: true }
     },
     { path: '/change-password', name: 'changePassword', component: ChangePasswordView },

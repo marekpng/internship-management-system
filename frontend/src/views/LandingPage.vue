@@ -137,8 +137,6 @@
         <details><summary>Je možné exportovať PDF?</summary><p>Áno, v rámci sekcie „Moja prax“.</p></details>
       </div>
     </section>
-
-    <FooterComponent />
   </div>
 </template>
 
@@ -147,7 +145,6 @@
 import { ref } from 'vue'
 
 import HeaderComponent from '@/components/HeaderComponent.vue'
-import FooterComponent from '@/components/FooterComponent.vue'
 
 const activeRole = ref('student')
 </script>

@@ -86,7 +86,7 @@ const setYearFromStartDate = () => {
 };
 
 const goToCompanyRegister = () => {
-  router.push("/register/company");
+  router.push("/student/company-register");
 };
 
 // Načítanie všetkých firiem

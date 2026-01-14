@@ -19,6 +19,7 @@ Route::get('/company/activate/{id}', [RegisterController::class, 'activateCompan
 
 Route::middleware(['auth:api', 'role:student'])->group(function () {
     Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
+    Route::post('/student/company', [CompanyController::class, 'registerCompanyByStudent']);
 
     // Profil študenta – načítanie a úprava (pre stránku Nastavenia)
     Route::get('/student/profile', [StudentController::class, 'profile']);

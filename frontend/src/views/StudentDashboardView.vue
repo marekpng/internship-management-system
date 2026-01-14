@@ -10,12 +10,6 @@
       </div>
 
       <!-- sekcie dashboardu -->
-      <div class="section">
-        <div class="section-title">Informácie o praxi</div>
-        <div class="section-description">
-          Prehľadné informácie o priebehu, mieste a hodnotení tvojej praxe.
-        </div>
-      </div>
 
       <div class="section clickable" @click="goToPracticeForm">
         <div class="section-title">Pridanie praxe</div>

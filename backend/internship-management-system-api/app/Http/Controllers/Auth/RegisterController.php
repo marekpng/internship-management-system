@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers\Auth;
+
 use App\Http\Controllers\Controller;
 use App\Mail\ResetPasswordMail;
 use App\Models\Role;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
 use Carbon\Carbon;
+use Illuminate\Validation\ValidationException;
+
 
 class RegisterController extends Controller
 {
@@ -63,44 +66,76 @@ class RegisterController extends Controller
         ]);
     }
 
-    public function registerCompany(Request $request)
-    {
-        $request->validate([
-            'company_name' => 'required|string',
-            'company_address' => 'required|string',
-            'contact_person_name' => 'required|string',
-            'contact_person_email' => 'required|email|unique:users,email',
-            'contact_person_phone' => 'required|string',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+   public function registerCompany(Request $request)
+{
+    $request->validate([
+        'company_name' => 'required|string|max:255',
+        'ico' => 'required|digits:8',
 
-        $company = User::create([
-            'company_name' => $request->company_name,
-            'company_address' => $request->company_address,
-            'contact_person_name' => $request->contact_person_name,
-            'contact_person_email' => $request->contact_person_email,
-            'email' => $request->contact_person_email,
-            'contact_person_phone' => $request->contact_person_phone,
-            'password' => Hash::make($request->password),
-            'must_change_password' => true, //todo mjaros opytat sa ze ci to ma byt true alebo false
-            'company_account_active_state' => false,
-        ]);
+        'street' => 'required|string|max:255',
+        'house_number' => 'required|string|max:50',
+        'city' => 'required|string|max:255',
+        'postal_code' => 'required|string|max:20',
+
+        'contact_person_name' => 'required|string|max:255',
+        'contact_person_email' => 'required|email|unique:users,email',
+        'contact_person_phone' => 'required|string|max:255',
+
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+
+    $ico = preg_replace('/\D+/', '', (string) $request->ico);
+    $placeholderEmail = "placeholder+{$ico}@local";
+
+    $existing = User::where('ico', $ico)->first();
+
+    if ($existing) {
+        // už existuje reálna firma
+        if ($existing->email !== $placeholderEmail) {
+            throw ValidationException::withMessages([
+                'ico' => ['Firma s týmto IČO už je zaregistrovaná.'],
+            ]);
+        }
+
+        // placeholder -> update na reálnu firmu
+        $existing->company_name = $request->company_name;
+        $existing->ico = $ico;
+
+        $existing->street = $request->street;
+        $existing->house_number = $request->house_number;
+        $existing->city = $request->city;
+        $existing->postal_code = $request->postal_code;
+
+        $existing->contact_person_name = $request->contact_person_name;
+        $existing->contact_person_email = $request->contact_person_email;
+        $existing->contact_person_phone = $request->contact_person_phone;
+
+        // prepis placeholder email na reálny (login)
+        $existing->email = $request->contact_person_email;
+
+        // prepis heslo
+        $existing->password = Hash::make($request->password);
+
+        $existing->must_change_password = true;
+        $existing->company_account_active_state = false;
+
+        $existing->save();
 
         $companyRole = Role::where('name', 'company')->first();
-        if ($companyRole) {
-            $company->roles()->attach($companyRole->id);
+        if ($companyRole && !$existing->roles()->where('roles.id', $companyRole->id)->exists()) {
+            $existing->roles()->attach($companyRole->id);
         }
 
         $activationUrl = URL::temporarySignedRoute(
             'company.activate',
             Carbon::now()->addMinutes(60),
-            ['id' => $company->id]
+            ['id' => $existing->id]
         );
 
         Mail::raw(
             "Vaša firma bola zaregistrovaná. Kliknite na nasledujúci odkaz pre aktiváciu účtu:\n\n$activationUrl",
-            function ($message) use ($company) {
-                $message->to($company->contact_person_email)
+            function ($message) use ($existing) {
+                $message->to($existing->contact_person_email)
                     ->subject('Aktivácia firemného účtu');
             }
         );
@@ -109,6 +144,51 @@ class RegisterController extends Controller
             'message' => 'Firma bola úspešne zaregistrovaná. Aktivačný link bol odoslaný emailom.',
         ]);
     }
+
+    // create nová firma
+    $company = User::create([
+        'company_name' => $request->company_name,
+        'ico' => $ico,
+
+        'street' => $request->street,
+        'house_number' => $request->house_number,
+        'city' => $request->city,
+        'postal_code' => $request->postal_code,
+
+        'contact_person_name' => $request->contact_person_name,
+        'contact_person_email' => $request->contact_person_email,
+        'email' => $request->contact_person_email,
+        'contact_person_phone' => $request->contact_person_phone,
+
+        'password' => Hash::make($request->password),
+        'must_change_password' => true,
+        'company_account_active_state' => false,
+    ]);
+
+    $companyRole = Role::where('name', 'company')->first();
+    if ($companyRole) {
+        $company->roles()->attach($companyRole->id);
+    }
+
+    $activationUrl = URL::temporarySignedRoute(
+        'company.activate',
+        Carbon::now()->addMinutes(60),
+        ['id' => $company->id]
+    );
+
+    Mail::raw(
+        "Vaša firma bola zaregistrovaná. Kliknite na nasledujúci odkaz pre aktiváciu účtu:\n\n$activationUrl",
+        function ($message) use ($company) {
+            $message->to($company->contact_person_email)
+                ->subject('Aktivácia firemného účtu');
+        }
+    );
+
+    return response()->json([
+        'message' => 'Firma bola úspešne zaregistrovaná. Aktivačný link bol odoslaný emailom.',
+    ]);
+}
+
 
     public function activateCompany(Request $request, $id)
     {
