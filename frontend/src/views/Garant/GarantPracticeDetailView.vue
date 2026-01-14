@@ -31,7 +31,6 @@
       <div class="card-header">
         <h2>Prehľad</h2>
 
-        <!-- ✅ NOVÉ tlačidlo: edit vždy -->
         <button
           v-if="!editMode"
           class="btn-outline"
@@ -60,13 +59,12 @@
       </div>
 
       <!-- ============================= -->
-      <!-- ✅ FULL EDIT MODE -->
+      <!-- FULL EDIT MODE -->
       <!-- ============================= -->
       <template v-else>
         <hr style="margin: 15px 0;">
         <h3>Upraviť prax (všetky údaje)</h3>
 
-        <!-- Firma / študent (voliteľné - ak chceš naozaj "všetky") -->
         <div class="grid">
           <div class="form-group">
             <label>Študent:</label>
@@ -216,7 +214,22 @@
       </template>
 
       <template v-if="internship.status === 'Schválená'">
-        <button class="approve" @click="markDefended">Obhájiť</button>
+        <div class="actions-col">
+          <button
+            class="approve"
+            @click="markDefended"
+            :disabled="!hasRequiredStudentDocument"
+            :title="!hasRequiredStudentDocument ? 'Študent musí mať nahratý dokument (správa alebo podpísaná dohoda).' : ''"
+          >
+            Obhájiť
+          </button>
+
+          <p v-if="!hasRequiredStudentDocument" class="hint">
+            Pre posunutie na <strong>Obhájená</strong> musí mať študent nahratý dokument:
+            <strong>Správa z praxe</strong> alebo <strong>Podpísaná dohoda</strong>.
+          </p>
+        </div>
+
         <button class="reject" @click="markNotDefended">Neobhájiť</button>
       </template>
     </div>
@@ -263,7 +276,17 @@ export default {
       uploadError: "",
       uploadSuccess: "",
       uploadLoading: false,
+
+      // ✅ typy dokumentov, ktoré rátame ako “študentský dokument”
+      studentDocsRequiredTypes: ["report", "signed_agreement"],
     };
+  },
+
+  computed: {
+    // ✅ musí existovať aspoň 1 dokument typu report alebo signed_agreement
+    hasRequiredStudentDocument() {
+      return this.documents.some((d) => this.studentDocsRequiredTypes.includes(d.type));
+    }
   },
 
   methods: {
@@ -276,78 +299,40 @@ export default {
     },
 
     toDateTimeLocal(val) {
-    if (!val) return "";
+      if (!val) return "";
 
-    // ak je iba dátum YYYY-MM-DD -> doplň 00:00
-    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-      return `${val}T00:00`;
-    }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        return `${val}T00:00`;
+      }
 
-    // ak je "YYYY-MM-DD HH:MM:SS" alebo "YYYY-MM-DD HH:MM"
-    if (typeof val === "string") {
-      const s = val.replace(" ", "T");
-      // odrež sekundy (datetime-local ich nechce)
-      return s.slice(0, 16);
-    }
+      if (typeof val === "string") {
+        const s = val.replace(" ", "T");
+        return s.slice(0, 16);
+      }
 
-    // fallback: ak by prišiel Date objekt
-    const d = new Date(val);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  },
+      const d = new Date(val);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    },
 
     async loadStudentsAndCompanies() {
-      // Študenti a firmy z users (ak nemáš endpointy, sprav jednoduché endpointy pre garanta)
-      // Ak už máš admin endpointy, radšej sprav garant-only endpoint: /api/garant/users/students a /api/garant/users/companies
       try {
         const headers = { Authorization: `Bearer ${this.token()}` };
 
-        // ✅ firmy - tento endpoint už máš verejný (/companies)
         const companiesRes = await axios.get(`http://localhost:8000/api/companies`, { headers });
         this.companies = companiesRes.data || [];
 
-        // ✅ študenti - ak taký endpoint nemáš, treba ho doplniť.
-        // dočasne tu nechávam URL, ktoré si vieš prispôsobiť
         const studentsRes = await axios.get(`http://localhost:8000/api/garant/students`, { headers });
-this.students = studentsRes.data || [];
-
+        this.students = studentsRes.data || [];
       } catch (e) {
         console.warn("Nepodarilo sa načítať zoznamy (students/companies).", e);
-        // nech to neblokuje edit mód – len nebude dropdown
       }
     },
 
     startFullEdit() {
-    this.editError = "";
-    this.editMode = true;
-
-    // ✅ tiež použi helper (pre istotu)
-    this.editForm.start_date = this.toDateTimeLocal(this.internship.start_date);
-    this.editForm.end_date   = this.toDateTimeLocal(this.internship.end_date);
-    this.editForm.semester   = this.internship.semester || "";
-    this.editForm.year       = this.internship.year || new Date().getFullYear();
-    this.editForm.status     = this.internship.status || "Vytvorená";
-    this.editForm.student_id = this.internship.student_id || this.internship.student?.id || null;
-    this.editForm.company_id = this.internship.company_id || this.internship.company?.id || null;
-
-    this.loadStudentsAndCompanies();
-  },
-
-    cancelEdit() {
-      this.editMode = false;
       this.editError = "";
-    },
+      this.editMode = true;
 
-    async loadDetail() {
-    try {
-      const id = this.$route.params.id;
-      const res = await axios.get(`http://localhost:8000/api/garant/internships/${id}`, {
-        headers: { Authorization: `Bearer ${this.token()}` }
-      });
-
-      this.internship = res.data;
-
-      // ✅ automaticky naplň editForm podľa DB
       this.editForm.start_date = this.toDateTimeLocal(this.internship.start_date);
       this.editForm.end_date   = this.toDateTimeLocal(this.internship.end_date);
       this.editForm.semester   = this.internship.semester || "";
@@ -356,34 +341,37 @@ this.students = studentsRes.data || [];
       this.editForm.student_id = this.internship.student_id || this.internship.student?.id || null;
       this.editForm.company_id = this.internship.company_id || this.internship.company?.id || null;
 
-      await this.loadDocuments();
-    } finally {
-      this.loading = false;
-    }
+      this.loadStudentsAndCompanies();
+    },
 
-    
-  },
+    cancelEdit() {
+      this.editMode = false;
+      this.editError = "";
+    },
 
-  toDateTimeLocal(val) {
-    if (!val) return "";
+    async loadDetail() {
+      try {
+        const id = this.$route.params.id;
+        const res = await axios.get(`http://localhost:8000/api/garant/internships/${id}`, {
+          headers: { Authorization: `Bearer ${this.token()}` }
+        });
 
-    // ak je iba dátum YYYY-MM-DD -> doplň 00:00
-    if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
-      return `${val}T00:00`;
-    }
+        this.internship = res.data;
 
-    // ak je "YYYY-MM-DD HH:MM:SS" alebo "YYYY-MM-DD HH:MM"
-    if (typeof val === "string") {
-      const s = val.replace(" ", "T");
-      // odrež sekundy (datetime-local ich nechce)
-      return s.slice(0, 16);
-    }
+        this.editForm.start_date = this.toDateTimeLocal(this.internship.start_date);
+        this.editForm.end_date   = this.toDateTimeLocal(this.internship.end_date);
+        this.editForm.semester   = this.internship.semester || "";
+        this.editForm.year       = this.internship.year || new Date().getFullYear();
+        this.editForm.status     = this.internship.status || "Vytvorená";
+        this.editForm.student_id = this.internship.student_id || this.internship.student?.id || null;
+        this.editForm.company_id = this.internship.company_id || this.internship.company?.id || null;
 
-    // fallback: ak by prišiel Date objekt
-    const d = new Date(val);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  },
+        await this.loadDocuments();
+      } finally {
+        this.loading = false;
+      }
+    },
+
     /* =============================
      *   DOCUMENTS
      * ============================= */
@@ -433,7 +421,7 @@ this.students = studentsRes.data || [];
         this.uploadForm.document_type = "";
         this.uploadForm.file = null;
 
-        await this.loadDocuments();
+        await this.loadDocuments(); // ✅ refresh
       } catch (err) {
         this.uploadError = err.response?.data?.message || "Chyba pri nahrávaní.";
       } finally {
@@ -481,7 +469,7 @@ this.students = studentsRes.data || [];
         {},
         { headers: { Authorization: `Bearer ${this.token()}` } }
       );
-      await this.loadDocuments();
+      await this.loadDocuments(); // ✅ refresh
     },
 
     async rejectDocument(docId) {
@@ -490,7 +478,7 @@ this.students = studentsRes.data || [];
         {},
         { headers: { Authorization: `Bearer ${this.token()}` } }
       );
-      await this.loadDocuments();
+      await this.loadDocuments(); // ✅ refresh
     },
 
     translateDocType(type) {
@@ -537,6 +525,12 @@ this.students = studentsRes.data || [];
     },
 
     async markDefended() {
+      // ✅ bezpečnostná kontrola aj v JS (okrem disabled)
+      if (!this.hasRequiredStudentDocument) {
+        alert("Študent musí mať nahratý dokument (Správa z praxe alebo Podpísaná dohoda).");
+        return;
+      }
+
       const id = this.$route.params.id;
       await axios.post(
         `http://localhost:8000/api/garant/internships/${id}/defended`,
@@ -563,7 +557,7 @@ this.students = studentsRes.data || [];
     },
 
     /* =============================
-     *   ✅ SAVE FULL EDIT
+     *   SAVE FULL EDIT
      * ============================= */
     async saveEdit() {
       this.saving = true;
@@ -578,14 +572,13 @@ this.students = studentsRes.data || [];
           semester: this.editForm.semester,
           year: this.editForm.year,
           status: this.editForm.status,
-
-          // ak nechceš meniť študenta/firma, vyhoď tieto 2 riadky
           student_id: this.editForm.student_id,
           company_id: this.editForm.company_id,
         };
 
-        await axios.put(`http://localhost:8000/api/garant/internships/${id}/full`, payload,
-
+        await axios.put(
+          `http://localhost:8000/api/garant/internships/${id}/full`,
+          payload,
           { headers: { Authorization: `Bearer ${this.token()}` } }
         );
 
@@ -638,7 +631,8 @@ this.students = studentsRes.data || [];
   .grid { grid-template-columns: 1fr; }
 }
 
-.actions { display: flex; gap: 20px; margin-top: 15px; }
+.actions { display: flex; gap: 20px; margin-top: 15px; flex-wrap: wrap; }
+.actions-col { display: flex; flex-direction: column; gap: 6px; }
 
 .approve {
   background: #3aa76d; color: white; padding: 12px 20px;
@@ -647,6 +641,21 @@ this.students = studentsRes.data || [];
 .reject {
   background: #d9534f; color: white; padding: 12px 20px;
   border: none; border-radius: 6px; cursor: pointer;
+}
+
+.approve:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: #7a5b00;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  padding: 8px 10px;
+  border-radius: 8px;
 }
 
 .loading { padding: 20px; }

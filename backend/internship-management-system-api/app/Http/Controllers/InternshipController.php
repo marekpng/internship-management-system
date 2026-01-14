@@ -223,7 +223,7 @@ class InternshipController extends Controller
     }
 
     // len pre garanta
-    public function myInternshipsNew(Request $request)
+public function myInternshipsNew(Request $request)
 {
     // všetky praxe (pre garanta)
     $internships = Internship::with(['company', 'student', 'garant'])
@@ -231,6 +231,13 @@ class InternshipController extends Controller
         ->get();
 
     $data = $internships->map(function ($internship) {
+        $studentArr = $internship->student ? $internship->student->toArray() : null;
+
+        // ✅ istota: doplň study_field aj keby ho niečo niekde skrylo
+        if (is_array($studentArr)) {
+            $studentArr['study_field'] = $internship->student->study_field;
+        }
+
         return [
             'id'                 => $internship->id,
             'year'               => $internship->year,
@@ -240,7 +247,8 @@ class InternshipController extends Controller
             'end_date'           => $internship->end_date,
             'status'             => $internship->status,
             'company'            => $internship->company ? $internship->company->toArray() : null,
-            'student'            => $internship->student ? $internship->student->toArray() : null,
+            'student'            => $studentArr,
+            'student_study_field'=> $internship->student?->study_field, // ✅ extra “flat” field (voliteľné, ale praktické)
             'garant_id'          => $internship->garant_id,
             'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
             'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
@@ -250,6 +258,7 @@ class InternshipController extends Controller
 
     return response()->json($data);
 }
+
 
 
     /**

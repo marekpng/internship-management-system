@@ -15,7 +15,7 @@
 
       <!-- Filters from loaded data -->
       <div class="filter-row">
-        <!-- ✅ NEW: Len moje praxe -->
+        <!-- Len moje praxe -->
         <div class="field field-checkbox">
           <label>Len moje praxe</label>
           <label class="checkbox">
@@ -37,6 +37,15 @@
           <select v-model="filters.semester">
             <option value="">Všetky</option>
             <option v-for="s in availableSemesters" :key="s" :value="s">{{ s }}</option>
+          </select>
+        </div>
+
+        <!-- ✅ NEW: Odbor -->
+        <div class="field">
+          <label>Odbor</label>
+          <select v-model="filters.studyField">
+            <option value="">Všetky</option>
+            <option v-for="sf in availableStudyFields" :key="sf" :value="sf">{{ sf }}</option>
           </select>
         </div>
 
@@ -86,12 +95,12 @@
           class="practice-link"
           :to="{ name: 'garantPracticeDetail', params: { id: internship.id }, query: { status: status || 'vytvorena' } }"
         >
-          <!-- ✅ STATUS BADGE -->
+          <!-- STATUS BADGE -->
           <div class="status-box" :class="statusClass(internship.status)">
             {{ internship.status }}
           </div>
 
-          <!-- ✅ DELETE BUTTON (X) under status -->
+          <!-- DELETE BUTTON (X) under status -->
           <button
             class="delete-x"
             type="button"
@@ -114,6 +123,9 @@
             <span v-if="internship.company?.company_name">Firma: {{ internship.company.company_name }}</span>
             <span v-if="internship.year"> • {{ internship.year }}</span>
             <span v-if="internship.semester"> • {{ internship.semester }}</span>
+
+            <!-- ✅ voliteľné: zobraz aj odbor (pomáha pri kontrole) -->
+            <span v-if="getStudyField(internship)"> • {{ getStudyField(internship) }}</span>
           </div>
         </router-link>
       </li>
@@ -136,12 +148,12 @@ export default {
       status: null,
       title: "",
 
-      // ✅ current logged garant id (from localStorage.user.id)
       currentGarantId: null,
 
       filters: {
         year: "",
         semester: "",
+        studyField: "", // ✅ NEW
         studentKey: "",
         companyName: "",
         onlyMine: false,
@@ -149,7 +161,8 @@ export default {
 
       availableYears: [],
       availableSemesters: [],
-      availableStudents: [], // [{ key, label }]
+      availableStudyFields: [], // ✅ NEW
+      availableStudents: [],
       availableCompanies: [],
     };
   },
@@ -170,7 +183,7 @@ export default {
 
     filteredInternships() {
       return this.internships.filter((i) => {
-        // ✅ only mine filter
+        // only mine
         if (this.filters.onlyMine) {
           const gid = i.garant_id ?? i.garant?.id ?? null;
           if (!this.currentGarantId || Number(gid) !== Number(this.currentGarantId)) return false;
@@ -178,6 +191,12 @@ export default {
 
         if (this.filters.year && String(i.year ?? "") !== String(this.filters.year)) return false;
         if (this.filters.semester && String(i.semester ?? "") !== String(this.filters.semester)) return false;
+
+        // ✅ NEW: study field filter
+        if (this.filters.studyField) {
+          const sf = (this.getStudyField(i) || "").trim();
+          if (sf !== this.filters.studyField) return false;
+        }
 
         if (this.filters.studentKey) {
           const key = this.normalizeStudentKey(i);
@@ -210,15 +229,24 @@ export default {
       return full.toLowerCase();
     },
 
+    // ✅ helper: berie study_field buď zo student objektu, alebo z “flat” field
+    getStudyField(internship) {
+      return internship?.student?.study_field || internship?.student_study_field || "";
+    },
+
     buildFilterOptionsFromData() {
       const years = new Set();
       const semesters = new Set();
-      const studentsMap = new Map(); // key -> label
+      const studyFields = new Set(); // ✅ NEW
+      const studentsMap = new Map();
       const companies = new Set();
 
       for (const i of this.internships) {
         if (i.year !== null && i.year !== undefined && String(i.year).trim() !== "") years.add(String(i.year));
         if (i.semester) semesters.add(String(i.semester));
+
+        const sf = (this.getStudyField(i) || "").trim();
+        if (sf) studyFields.add(sf);
 
         const fn = (i.student?.first_name || "").trim();
         const ln = (i.student?.last_name || "").trim();
@@ -231,15 +259,19 @@ export default {
 
       this.availableYears = Array.from(years).sort((a, b) => Number(b) - Number(a));
       this.availableSemesters = Array.from(semesters).sort((a, b) => a.localeCompare(b, "sk"));
+      this.availableStudyFields = Array.from(studyFields).sort((a, b) => a.localeCompare(b, "sk")); // ✅ NEW
+
       this.availableStudents = Array.from(studentsMap.entries())
         .map(([key, label]) => ({ key, label }))
         .sort((a, b) => a.label.localeCompare(b.label, "sk"));
+
       this.availableCompanies = Array.from(companies).sort((a, b) => a.localeCompare(b, "sk"));
     },
 
     clearFilters() {
       this.filters.year = "";
       this.filters.semester = "";
+      this.filters.studyField = ""; // ✅ NEW
       this.filters.studentKey = "";
       this.filters.companyName = "";
       this.filters.onlyMine = false;
@@ -251,7 +283,6 @@ export default {
       if (["Zamietnutá", "Neschválená", "Neobhájená"].includes(s)) return "status--danger";
       if (["Vytvorená", "Potvrdená"].includes(s)) return "status--warning";
       if (["Schválená", "Obhájená"].includes(s)) return "status--success";
-
       return "status--neutral";
     },
 
@@ -289,19 +320,15 @@ export default {
       return new Date(date).toLocaleDateString("sk-SK");
     },
 
-    // ✅ DELETE internship (garant)
     async deleteInternship(id) {
       const ok = confirm("Naozaj chceš vymazať túto prax? Táto akcia je nevratná.");
       if (!ok) return;
 
       try {
-        // ⚠️ uprav URL podľa tvojich secure routes:
-        // odporúčané: DELETE /api/garant/internships/{id}
         await axios.delete(`http://localhost:8000/api/garant/internships/${id}`, {
           headers: { Authorization: `Bearer ${this.token()}` },
         });
 
-        // refresh list
         await this.loadInternships();
         alert("Prax bola vymazaná.");
       } catch (e) {
@@ -377,9 +404,7 @@ export default {
   background: #f0f6f2;
 }
 
-/* =========================
-   FILTER BAR (STATUS)
-========================= */
+/* FILTER BAR (STATUS) */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -387,12 +412,10 @@ export default {
   padding: 10px 0;
 }
 
-/* =========================
-   FILTER ROW (SELECTS + CHECKBOX)
-========================= */
+/* ✅ FILTER ROW: pridaný nový filter => viac stĺpcov */
 .filter-row {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto; /* ✅ bolo repeat(4) */
   gap: 10px;
   align-items: end;
   padding: 10px 0 4px;
@@ -417,9 +440,7 @@ export default {
   box-sizing: border-box;
 }
 
-/* =========================
-   CHECKBOX – LEN MOJE PRAXE
-========================= */
+/* CHECKBOX – LEN MOJE PRAXE */
 .field-checkbox {
   display: flex;
   flex-direction: column;
@@ -451,9 +472,7 @@ export default {
   white-space: nowrap;
 }
 
-/* =========================
-   FILTER ACTIONS
-========================= */
+/* FILTER ACTIONS */
 .filter-actions {
   display: flex;
   gap: 8px;
@@ -473,18 +492,14 @@ export default {
   background: #f0f6f2;
 }
 
-/* =========================
-   META INFO
-========================= */
+/* META INFO */
 .meta {
   margin-top: 4px;
   font-size: 12px;
   opacity: 0.8;
 }
 
-/* =========================
-   STATUS BADGE
-========================= */
+/* STATUS BADGE */
 .status-box {
   position: absolute;
   top: 10px;
@@ -498,10 +513,10 @@ export default {
   pointer-events: none;
 }
 
-/* ✅ Delete X pod status badge */
+/* Delete X pod status badge */
 .delete-x {
   position: absolute;
-  top: 46px; /* pod status-box */
+  top: 46px;
   right: 10px;
   width: 28px;
   height: 28px;
@@ -545,16 +560,18 @@ export default {
   border-color: #e2e8f0;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
-@media (max-width: 900px) {
+/* RESPONSIVE */
+@media (max-width: 1100px) {
   .filter-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .filter-actions {
     grid-column: 1 / -1;
+  }
+
+  .field select {
+    width: 100%;
   }
 }
 </style>

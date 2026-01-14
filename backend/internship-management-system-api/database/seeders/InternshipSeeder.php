@@ -48,5 +48,27 @@ class InternshipSeeder extends Seeder
             'student_id' => $student->id,
             'garant_id' => $garant->id,
         ]);
+
+        Internship::create([
+            'start_date' => now(),
+            'end_date' => now()->addMonths(3),
+            'semester' => 'Letný',
+            'status' => 'Schválená',
+            'year' => 2025,
+            'company_id' => $company->id,
+            'student_id' => $student->id,
+            'garant_id' => $garant->id,
+        ]);
+
+        Internship::create([
+            'start_date' => now()->addMonths(3),
+            'end_date' => now()->addMonths(6),
+            'semester' => 'Zimný',
+            'status' => 'Potvrdená',
+            'year' => 2026,
+            'company_id' => $company->id,
+            'student_id' => $student->id,
+            'garant_id' => $garant->id,
+        ]);
     }
 }
