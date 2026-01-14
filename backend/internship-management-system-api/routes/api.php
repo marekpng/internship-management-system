@@ -25,6 +25,9 @@ Route::middleware(['auth:api', 'role:student'])->group(function () {
     Route::get('/student/profile', [StudentController::class, 'profile']);
     Route::put('/student/profile', [StudentController::class, 'updateProfile']);
 
+    Route::post('/student/internships', [InternshipController::class, 'store']);
+    Route::put('/student/internships/{id}', [InternshipController::class, 'update']);
+
     // Notifikácie – nastavenia (emailové preferencie)
     Route::get('/student/notifications', [StudentController::class, 'getNotifications']);
     Route::put('/student/notifications', [StudentController::class, 'updateNotifications']);
@@ -123,31 +126,6 @@ Route::middleware('auth:api')->get('/internships/my', [InternshipController::cla
 Route::middleware('auth:api')->get('/internships/myNew', [InternshipController::class, 'myInternshipsNew']);
 
 Route::middleware('auth:api')->post('/internships/{id}/status', [InternshipController::class, 'changeStatus']);
-
-// Všetko musí byť prihlásené
-// Route::middleware('auth:api')->group(function () {
-
-//     // LIST všetkých praxí: garant + admin
-//     Route::middleware('role:garant,admin')->group(function () {
-//         Route::get('internships', [InternshipController::class, 'index']);
-//     });
-
-//     // DETAIL (show) – prihlásený user, ale v controllery musíš skontrolovať prístup
-//     Route::get('internships/{id}', [InternshipController::class, 'show']);
-
-//     // toto je duplicitné/neasertívne – odporúčam ZMAZAŤ
-//     // Route::get('internships/user/{id}', [InternshipController::class, 'show']);
-
-//     // vytvoriť prax: študent
-//     Route::middleware('role:student')->group(function () {
-//         Route::post('internships', [InternshipController::class, 'store']);
-//     });
-
-//     // update: študent + garant (+ admin)
-//     Route::middleware('role:student,admin')->group(function () {
-//         Route::put('internships/{id}', [InternshipController::class, 'update']);
-//     });
-// });
 
 
 Route::middleware('auth:api')->post('/update-profile', [LoginController::class, 'updateProfile']);
