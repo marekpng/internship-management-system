@@ -584,9 +584,8 @@ this.students = studentsRes.data || [];
           company_id: this.editForm.company_id,
         };
 
-        await axios.put(
-          `http://localhost:8000/api/garant/internships/${id}`,
-          payload,
+        await axios.put(`http://localhost:8000/api/garant/internships/${id}/full`, payload,
+
           { headers: { Authorization: `Bearer ${this.token()}` } }
         );
 

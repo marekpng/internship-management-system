@@ -94,6 +94,11 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
 
     Route::put('internships/{id}', [InternshipController::class, 'update']);
 
+    Route::put('/internships/{id}/full', [GarantController::class, 'updateInternshipFull']);
+
+    Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
+
+
     // Garant nahraje dokument k praxi
     Route::post('/internships/{id}/documents/upload', [DocumentController::class, 'uploadGarantDocument']);
 
@@ -119,12 +124,31 @@ Route::middleware('auth:api')->get('/internships/myNew', [InternshipController::
 
 Route::middleware('auth:api')->post('/internships/{id}/status', [InternshipController::class, 'changeStatus']);
 
-Route::get('internships', [InternshipController::class, 'index']);
-Route::get('internships/{id}', [InternshipController::class, 'show']);
-Route::get('internships/user/{id}', [InternshipController::class, 'show']);
-Route::post('internships', [InternshipController::class, 'store']);
-Route::put('internships/{id}', [InternshipController::class, 'update']);
-Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
+// Všetko musí byť prihlásené
+// Route::middleware('auth:api')->group(function () {
+
+//     // LIST všetkých praxí: garant + admin
+//     Route::middleware('role:garant,admin')->group(function () {
+//         Route::get('internships', [InternshipController::class, 'index']);
+//     });
+
+//     // DETAIL (show) – prihlásený user, ale v controllery musíš skontrolovať prístup
+//     Route::get('internships/{id}', [InternshipController::class, 'show']);
+
+//     // toto je duplicitné/neasertívne – odporúčam ZMAZAŤ
+//     // Route::get('internships/user/{id}', [InternshipController::class, 'show']);
+
+//     // vytvoriť prax: študent
+//     Route::middleware('role:student')->group(function () {
+//         Route::post('internships', [InternshipController::class, 'store']);
+//     });
+
+//     // update: študent + garant (+ admin)
+//     Route::middleware('role:student,admin')->group(function () {
+//         Route::put('internships/{id}', [InternshipController::class, 'update']);
+//     });
+// });
+
 
 Route::middleware('auth:api')->post('/update-profile', [LoginController::class, 'updateProfile']);
 

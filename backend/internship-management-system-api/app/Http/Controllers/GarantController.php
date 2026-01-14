@@ -439,4 +439,35 @@ class GarantController extends Controller
 
     return response()->json($students);
 }
+
+public function updateInternshipFull(Request $request, $id)
+{
+    $internship = Internship::findOrFail($id);
+
+    $data = $request->validate([
+        'start_date' => ['nullable', 'date'],
+        'end_date'   => ['nullable', 'date'],
+        'semester'   => ['nullable', 'string', 'max:255'],
+        'year'       => ['nullable', 'integer'],
+        'status'     => ['nullable', 'string', 'max:255'],
+
+        // toto je to, čo ti teraz nefunguje:
+        'company_id' => ['nullable', 'exists:users,id'],
+        'student_id' => ['nullable', 'exists:users,id'],
+    ]);
+
+    // ✅ garant kto vykonal zmenu (iba ak mení niečo relevantné, napr. status)
+    // alebo aj vždy, podľa teba:
+    $internship->garant_id = $request->user()->id;
+
+    // ✅ uloženie všetkého
+    $internship->fill($data);
+    $internship->save();
+
+    return response()->json([
+        'message' => 'Prax bola aktualizovaná.',
+        'internship' => $internship->load(['student', 'company']),
+    ]);
+}
+
 }

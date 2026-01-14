@@ -86,10 +86,20 @@
           class="practice-link"
           :to="{ name: 'garantPracticeDetail', params: { id: internship.id }, query: { status: status || 'vytvorena' } }"
         >
-          <!-- ✅ STATUS BADGE (same style as in "Moja prax") -->
+          <!-- ✅ STATUS BADGE -->
           <div class="status-box" :class="statusClass(internship.status)">
             {{ internship.status }}
           </div>
+
+          <!-- ✅ DELETE BUTTON (X) under status -->
+          <button
+            class="delete-x"
+            type="button"
+            title="Vymazať prax"
+            @click.prevent.stop="deleteInternship(internship.id)"
+          >
+            ✕
+          </button>
 
           <strong>
             {{ internship.student?.first_name || "Neznámy študent" }}
@@ -113,7 +123,7 @@
 
 <script>
 import axios from "axios";
-import CompanyNavBar from '@/components/icons/CompanyNavBar.vue'
+import CompanyNavBar from "@/components/icons/CompanyNavBar.vue";
 
 export default {
   name: "GarantPracticesView",
@@ -126,7 +136,7 @@ export default {
       status: null,
       title: "",
 
-      // ✅ NEW: current logged garant id (from localStorage.user.id)
+      // ✅ current logged garant id (from localStorage.user.id)
       currentGarantId: null,
 
       filters: {
@@ -134,7 +144,7 @@ export default {
         semester: "",
         studentKey: "",
         companyName: "",
-        onlyMine: false, // ✅ NEW
+        onlyMine: false,
       },
 
       availableYears: [],
@@ -147,21 +157,20 @@ export default {
   computed: {
     statusMap() {
       return {
-        vytvorena:   { title: "Vytvorené",    api: "Vytvorená" },
-        potvrdena:   { title: "Potvrdené",    api: "Potvrdená" },
-        zamietnuta:  { title: "Zamietnuté",   api: "Zamietnutá" },
-        schvalena:   { title: "Schválené",    api: "Schválená" },
-        neschvalena: { title: "Neschválené",  api: "Neschválená" },
-        obhajena:    { title: "Obhájené",     api: "Obhájená" },
-        neobhajena:  { title: "Neobhájené",   api: "Neobhájená" },
-        vsetky:      { title: "Všetky",       api: "" },
+        vytvorena: { title: "Vytvorené", api: "Vytvorená" },
+        potvrdena: { title: "Potvrdené", api: "Potvrdená" },
+        zamietnuta: { title: "Zamietnuté", api: "Zamietnutá" },
+        schvalena: { title: "Schválené", api: "Schválená" },
+        neschvalena: { title: "Neschválené", api: "Neschválená" },
+        obhajena: { title: "Obhájené", api: "Obhájená" },
+        neobhajena: { title: "Neobhájené", api: "Neobhájená" },
+        vsetky: { title: "Všetky", api: "" },
       };
     },
 
     filteredInternships() {
       return this.internships.filter((i) => {
-
-        // ✅ NEW: only mine filter
+        // ✅ only mine filter
         if (this.filters.onlyMine) {
           const gid = i.garant_id ?? i.garant?.id ?? null;
           if (!this.currentGarantId || Number(gid) !== Number(this.currentGarantId)) return false;
@@ -182,10 +191,14 @@ export default {
 
         return true;
       });
-    }
+    },
   },
 
   methods: {
+    token() {
+      return localStorage.getItem("access_token");
+    },
+
     statusLink(status) {
       return { path: "/garant/practices", query: { ...this.$route.query, status } };
     },
@@ -210,9 +223,7 @@ export default {
         const fn = (i.student?.first_name || "").trim();
         const ln = (i.student?.last_name || "").trim();
         const fullLabel = `${fn} ${ln}`.trim();
-        if (fullLabel) {
-          studentsMap.set(fullLabel.toLowerCase(), fullLabel);
-        }
+        if (fullLabel) studentsMap.set(fullLabel.toLowerCase(), fullLabel);
 
         const companyName = (i.company?.company_name || "").trim();
         if (companyName) companies.add(companyName);
@@ -231,25 +242,17 @@ export default {
       this.filters.semester = "";
       this.filters.studentKey = "";
       this.filters.companyName = "";
-      this.filters.onlyMine = false; // ✅ NEW
+      this.filters.onlyMine = false;
     },
 
     statusClass(status) {
-      const s = (status || '').trim();
+      const s = (status || "").trim();
 
-      if (['Zamietnutá', 'Neschválená', 'Neobhájená'].includes(s)) {
-        return 'status--danger';
-      }
+      if (["Zamietnutá", "Neschválená", "Neobhájená"].includes(s)) return "status--danger";
+      if (["Vytvorená", "Potvrdená"].includes(s)) return "status--warning";
+      if (["Schválená", "Obhájená"].includes(s)) return "status--success";
 
-      if (['Vytvorená', 'Potvrdená'].includes(s)) {
-        return 'status--warning';
-      }
-
-      if (['Schválená', 'Obhájená'].includes(s)) {
-        return 'status--success';
-      }
-
-      return 'status--neutral';
+      return "status--neutral";
     },
 
     async loadInternships() {
@@ -268,7 +271,7 @@ export default {
         }
 
         const response = await axios.get(url, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+          headers: { Authorization: `Bearer ${this.token()}` },
         });
 
         this.internships = response.data || [];
@@ -284,22 +287,42 @@ export default {
 
     formatDate(date) {
       return new Date(date).toLocaleDateString("sk-SK");
-    }
+    },
+
+    // ✅ DELETE internship (garant)
+    async deleteInternship(id) {
+      const ok = confirm("Naozaj chceš vymazať túto prax? Táto akcia je nevratná.");
+      if (!ok) return;
+
+      try {
+        // ⚠️ uprav URL podľa tvojich secure routes:
+        // odporúčané: DELETE /api/garant/internships/{id}
+        await axios.delete(`http://localhost:8000/api/garant/internships/${id}`, {
+          headers: { Authorization: `Bearer ${this.token()}` },
+        });
+
+        // refresh list
+        await this.loadInternships();
+        alert("Prax bola vymazaná.");
+      } catch (e) {
+        console.error("Delete error:", e);
+        alert(e.response?.data?.message || "Nepodarilo sa vymazať prax.");
+      }
+    },
   },
 
   watch: {
-    '$route.query.status'() {
+    "$route.query.status"() {
       this.loadInternships();
-    }
+    },
   },
 
   mounted() {
-    // ✅ NEW: take current garant id from localStorage.user
     const u = JSON.parse(localStorage.getItem("user") || "{}");
     this.currentGarantId = u?.id ?? null;
 
     this.loadInternships();
-  }
+  },
 };
 </script>
 
@@ -371,7 +394,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
   gap: 10px;
-  align-items: end; /* 🔑 všetko zarovná na spodok */
+  align-items: end;
   padding: 10px 0 4px;
 }
 
@@ -386,7 +409,7 @@ export default {
 
 .field select {
   width: 95%;
-  height: 38px; /* 🔑 rovnaká výška */
+  height: 38px;
   padding: 8px 10px;
   border: 1px solid #d0d7de;
   border-radius: 8px;
@@ -400,7 +423,7 @@ export default {
 .field-checkbox {
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* 🔑 zarovnanie ako select */
+  justify-content: flex-end;
 }
 
 .field-checkbox label {
@@ -411,9 +434,8 @@ export default {
   margin-bottom: 6px;
 }
 
-/* vizuálne rovnaký „box“ ako select */
 .field-checkbox .checkbox {
-  height: 38px; /* 🔑 rovnaká výška ako select a button */
+  height: 38px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -425,7 +447,6 @@ export default {
   cursor: pointer;
 }
 
-/* aby sa text nezalamoval */
 .field-checkbox .checkbox span {
   white-space: nowrap;
 }
@@ -439,7 +460,7 @@ export default {
 }
 
 .btn-clear {
-  height: 38px; /* 🔑 rovnaká výška */
+  height: 38px;
   padding: 0 12px;
   border-radius: 8px;
   background: #fff;
@@ -475,6 +496,29 @@ export default {
   border: 1px solid transparent;
   z-index: 2;
   pointer-events: none;
+}
+
+/* ✅ Delete X pod status badge */
+.delete-x {
+  position: absolute;
+  top: 46px; /* pod status-box */
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 900;
+  cursor: pointer;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-x:hover {
+  background: #fee2e2;
 }
 
 .status--warning {
@@ -513,5 +557,4 @@ export default {
     grid-column: 1 / -1;
   }
 }
-
 </style>
