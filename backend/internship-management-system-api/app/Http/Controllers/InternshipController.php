@@ -138,24 +138,46 @@ class InternshipController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        $internship = Internship::findOrFail($id);
+{
+    $internship = Internship::findOrFail($id);
 
-        $validated = $request->validate([
-            'start_date' => 'required|date',
-            'end_date'   => 'required|date',
-        ]);
+    $validated = $request->validate([
+        'start_date' => ['required', 'date'],
+        'end_date'   => ['required', 'date'],
 
-        $internship->update([
-            'start_date' => $validated['start_date'],
-            'end_date'   => $validated['end_date'],
-        ]);
+        // tieto 3 posiela tvoj garant detail view pri editovaní:
+        'semester'   => ['nullable', 'string', 'max:255'],
+        'year'       => ['nullable', 'integer'],
+        'status'     => ['nullable', 'string', 'max:255'],
+    ]);
 
-        return response()->json([
-            'message'    => 'Prax bola úspešne aktualizovaná.',
-            'internship' => $internship->load(['company', 'student', 'garant']),
-        ]);
+    // update dát
+    $internship->start_date = $validated['start_date'];
+    $internship->end_date   = $validated['end_date'];
+
+    if (array_key_exists('semester', $validated)) {
+        $internship->semester = $validated['semester'];
     }
+
+    if (array_key_exists('year', $validated)) {
+        $internship->year = $validated['year'];
+    }
+
+    if (array_key_exists('status', $validated) && !empty($validated['status'])) {
+        $internship->status = $validated['status'];
+
+        // ✅ ak status mení garant, nastav garant_id na toho, kto to spravil
+        // (route /garant/... je už v middleware role:garant)
+        $internship->garant_id = $request->user()->id;
+    }
+
+    $internship->save();
+
+    return response()->json([
+        'message'    => 'Prax bola úspešne aktualizovaná.',
+        'internship' => $internship->load(['company', 'student', 'garant']),
+    ]);
+}
 
     public function destroy($id)
     {

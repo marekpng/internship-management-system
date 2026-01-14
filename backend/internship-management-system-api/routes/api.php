@@ -61,7 +61,6 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
     Route::get('/company/user-notifications', [CompanyController::class, 'getUserNotifications']);
     Route::post('/company/notifications/read/{id}', [CompanyController::class, 'markNotificationRead']);
 });
-Route::get('/internships/count/{status}', [GarantController::class, 'getCountByStatus']);
 
 Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function () {
 
@@ -74,6 +73,9 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
     // Notifikácie – nastavenia (emailové preferencie)
     Route::get('/notifications', [GarantController::class, 'getNotifications']);
     Route::put('/notifications', [GarantController::class, 'updateNotifications']);
+
+    Route::get('/students', [GarantController::class, 'listStudents']);
+
 
     // Zoznam praxí podľa stavu
     Route::get('/internships/status/{status}', [InternshipController::class, 'getByStatus']);

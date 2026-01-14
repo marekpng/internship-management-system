@@ -73,39 +73,30 @@ class GarantController extends Controller
     /**
      * Garant schvaľuje iba praxe v stave Potvrdená
      */
-    public function approveInternship($id)
+    public function approveInternship(Request $request, $id)
     {
+        $garantId = $request->user()->id;
+
         $internship = Internship::findOrFail($id);
 
-        if ($internship->status !== 'Potvrdená') {
-            return response()->json(['error' => 'Prax nie je v stave Potvrdená'], 400);
-        }
-
         $internship->status = 'Schválená';
+        $internship->garant_id = $garantId; // ✅ kto zmenil stav
         $internship->save();
-
-        $this->notifyAfterGarantApprovalDecision($internship, 'Schválená');
 
         return response()->json(['message' => 'Prax bola schválená garantom.']);
     }
 
-    /**
-     * Garant neschvaľuje iba praxe v stave Potvrdená
-     */
-    public function disapproveInternship($id)
+    public function disapproveInternship(Request $request, $id)
     {
+        $garantId = $request->user()->id;
+
         $internship = Internship::findOrFail($id);
 
-        if ($internship->status !== 'Potvrdená') {
-            return response()->json(['error' => 'Prax nie je v stave Potvrdená'], 400);
-        }
-
         $internship->status = 'Neschválená';
+        $internship->garant_id = $garantId; // ✅ kto zmenil stav
         $internship->save();
 
-        $this->notifyAfterGarantApprovalDecision($internship, 'Neschválená');
-
-        return response()->json(['message' => 'Prax bola označená ako neschválená garantom.']);
+        return response()->json(['message' => 'Prax bola neschválená garantom.']);
     }
 
     private function sendEmailToStudent(?User $student, string $subject, string $body): void
@@ -260,37 +251,28 @@ class GarantController extends Controller
     /**
      * Garant obhajuje iba praxe v stave Schválená
      */
-    public function markDefended($id)
+    public function markDefended(Request $request, $id)
     {
+        $garantId = $request->user()->id;
+
         $internship = Internship::findOrFail($id);
 
-        if ($internship->status !== 'Schválená') {
-            return response()->json(['error' => 'Prax nie je v stave Schválená'], 400);
-        }
-
         $internship->status = 'Obhájená';
+        $internship->garant_id = $garantId; // ✅ kto zmenil stav
         $internship->save();
-
-        $this->notifyAfterGarantDefenseDecision($internship, 'Obhájená');
 
         return response()->json(['message' => 'Prax bola označená ako obhájená.']);
     }
 
-    /**
-     * Garant označuje neobhájené praxe
-     */
-    public function markNotDefended($id)
+    public function markNotDefended(Request $request, $id)
     {
+        $garantId = $request->user()->id;
+
         $internship = Internship::findOrFail($id);
 
-        if ($internship->status !== 'Schválená') {
-            return response()->json(['error' => 'Prax nie je v stave Schválená'], 400);
-        }
-
         $internship->status = 'Neobhájená';
+        $internship->garant_id = $garantId; // ✅ kto zmenil stav
         $internship->save();
-
-        $this->notifyAfterGarantDefenseDecision($internship, 'Neobhájená');
 
         return response()->json(['message' => 'Prax bola označená ako neobhájená.']);
     }
@@ -443,4 +425,18 @@ class GarantController extends Controller
 
         return response()->json(['status' => 'success']);
     }
+
+    public function listStudents(Request $request)
+{
+    // len istota - route už je v role:garant middleware
+    $students = User::whereHas('roles', function ($q) {
+            $q->where('name', 'student');
+        })
+        ->select('id', 'first_name', 'last_name', 'email', 'alternative_email', 'student_email')
+        ->orderBy('last_name')
+        ->orderBy('first_name')
+        ->get();
+
+    return response()->json($students);
+}
 }

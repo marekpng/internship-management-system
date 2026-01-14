@@ -15,6 +15,15 @@
 
       <!-- Filters from loaded data -->
       <div class="filter-row">
+        <!-- ✅ NEW: Len moje praxe -->
+        <div class="field field-checkbox">
+          <label>Len moje praxe</label>
+          <label class="checkbox">
+            <input type="checkbox" v-model="filters.onlyMine" />
+            <span>Zobraziť iba praxe, kde som garant</span>
+          </label>
+        </div>
+
         <div class="field">
           <label>Rok</label>
           <select v-model="filters.year">
@@ -117,11 +126,15 @@ export default {
       status: null,
       title: "",
 
+      // ✅ NEW: current logged garant id (from localStorage.user.id)
+      currentGarantId: null,
+
       filters: {
         year: "",
         semester: "",
         studentKey: "",
         companyName: "",
+        onlyMine: false, // ✅ NEW
       },
 
       availableYears: [],
@@ -147,6 +160,13 @@ export default {
 
     filteredInternships() {
       return this.internships.filter((i) => {
+
+        // ✅ NEW: only mine filter
+        if (this.filters.onlyMine) {
+          const gid = i.garant_id ?? i.garant?.id ?? null;
+          if (!this.currentGarantId || Number(gid) !== Number(this.currentGarantId)) return false;
+        }
+
         if (this.filters.year && String(i.year ?? "") !== String(this.filters.year)) return false;
         if (this.filters.semester && String(i.semester ?? "") !== String(this.filters.semester)) return false;
 
@@ -211,6 +231,7 @@ export default {
       this.filters.semester = "";
       this.filters.studentKey = "";
       this.filters.companyName = "";
+      this.filters.onlyMine = false; // ✅ NEW
     },
 
     statusClass(status) {
@@ -241,7 +262,6 @@ export default {
 
         let url = "";
         if (this.status === "vsetky") {
-          // ✅ Garant view should use the "all" endpoint (or keep myNew if you route it for guarant)
           url = "http://localhost:8000/api/internships/myNew";
         } else {
           url = "http://localhost:8000/api/garant/internships/status/" + encodeURIComponent(map.api);
@@ -274,6 +294,10 @@ export default {
   },
 
   mounted() {
+    // ✅ NEW: take current garant id from localStorage.user
+    const u = JSON.parse(localStorage.getItem("user") || "{}");
+    this.currentGarantId = u?.id ?? null;
+
     this.loadInternships();
   }
 };
@@ -290,7 +314,7 @@ export default {
 }
 
 .practice-item {
-  position: relative; /* ✅ needed for status badge */
+  position: relative;
   padding: 12px;
   margin-bottom: 10px;
   border: 1px solid #ccc;
@@ -330,7 +354,9 @@ export default {
   background: #f0f6f2;
 }
 
-/* Navbar status buttons (if you already have these globally, you can remove) */
+/* =========================
+   FILTER BAR (STATUS)
+========================= */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -338,15 +364,18 @@ export default {
   padding: 10px 0;
 }
 
-/* ✅ Filters row */
+/* =========================
+   FILTER ROW (SELECTS + CHECKBOX)
+========================= */
 .filter-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
   gap: 10px;
-  align-items: end;
+  align-items: end; /* 🔑 všetko zarovná na spodok */
   padding: 10px 0 4px;
 }
 
+/* klasické polia (select) */
 .field label {
   display: block;
   font-size: 12px;
@@ -356,39 +385,85 @@ export default {
 }
 
 .field select {
-  width: 100%;
+  width: 95%;
+  height: 38px; /* 🔑 rovnaká výška */
   padding: 8px 10px;
   border: 1px solid #d0d7de;
   border-radius: 8px;
   background: #fff;
+  box-sizing: border-box;
 }
 
+/* =========================
+   CHECKBOX – LEN MOJE PRAXE
+========================= */
+.field-checkbox {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; /* 🔑 zarovnanie ako select */
+}
+
+.field-checkbox label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0b6b37;
+  margin-bottom: 6px;
+}
+
+/* vizuálne rovnaký „box“ ako select */
+.field-checkbox .checkbox {
+  height: 38px; /* 🔑 rovnaká výška ako select a button */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  background: #fff;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+/* aby sa text nezalamoval */
+.field-checkbox .checkbox span {
+  white-space: nowrap;
+}
+
+/* =========================
+   FILTER ACTIONS
+========================= */
 .filter-actions {
   display: flex;
   gap: 8px;
 }
 
 .btn-clear {
-  padding: 8px 12px;
+  height: 38px; /* 🔑 rovnaká výška */
+  padding: 0 12px;
   border-radius: 8px;
   background: #fff;
   color: #0b6b37;
   border: 2px solid #0b6b37;
   cursor: pointer;
   font-weight: 700;
-  height: 38px;
 }
 .btn-clear:hover {
   background: #f0f6f2;
 }
 
+/* =========================
+   META INFO
+========================= */
 .meta {
   margin-top: 4px;
   font-size: 12px;
   opacity: 0.8;
 }
 
-/* ✅ Status badge (same as "Moja prax") */
+/* =========================
+   STATUS BADGE
+========================= */
 .status-box {
   position: absolute;
   top: 10px;
@@ -426,12 +501,17 @@ export default {
   border-color: #e2e8f0;
 }
 
+/* =========================
+   RESPONSIVE
+========================= */
 @media (max-width: 900px) {
   .filter-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
   .filter-actions {
     grid-column: 1 / -1;
   }
 }
+
 </style>
