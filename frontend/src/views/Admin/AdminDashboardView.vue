@@ -18,7 +18,7 @@
             </div>
    
 
-    <FooterComponent />
+
   </div>
 </template>
 <script>

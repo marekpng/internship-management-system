@@ -66,7 +66,7 @@
       </div>
     </div>
 
-    <FooterComponent />
+  
   </div>
 </template>
 
