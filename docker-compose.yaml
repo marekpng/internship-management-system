@@ -1,0 +1,81 @@
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: internship-management-system
+      MYSQL_USER: internship-management-system
+      MYSQL_PASSWORD: internship-management-system
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - si-stvrtok
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 5s
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8080:80"
+    networks:
+      - si-stvrtok
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/DockerFile
+    volumes:
+      - ./backend/internship-management-system-api:/var/www/html
+      - ./backend/internship-management-system-api/storage:/var/www/html/storage
+      - ./backend/internship-management-system-api/bootstrap/cache:/var/www/html/bootstrap/cache
+    networks:
+      - si-stvrtok
+    ports:
+      - "9000:9000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - backend
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend/internship-management-system-api:/var/www/html:ro
+      - ./backend/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - si-stvrtok
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/DockerFile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - si-stvrtok
+
+networks:
+  si-stvrtok:
+
+volumes:
+  mysql_data:
