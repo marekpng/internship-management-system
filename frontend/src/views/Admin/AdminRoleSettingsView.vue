@@ -14,14 +14,14 @@
     <div class="container">
       <h1 class="page-title">Nastavenia rolí</h1>
 
-      <div class="card">
+      <div class="table-wrapper">
         <table class="role-table">
           <thead>
             <tr>
               <th>ID</th>
               <th>Meno</th>
               <th>Email</th>
-              <th>Roly</th>
+              <th>Role</th>
               <th>Akcia</th>
             </tr>
           </thead>
@@ -66,7 +66,7 @@
       </div>
     </div>
 
-    <FooterComponent />
+  
   </div>
 </template>
 
@@ -157,41 +157,73 @@ export default {
 <style scoped>
 /* ADMIN NAVBAR */
 .admin-nav {
-  background: #008736;
-  padding: 14px 0;
-  margin-bottom: 30px;
+  background: #008736; 
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .nav-container {
-  width: 90%;
-  margin: auto;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 14px 20px;
+
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   color: white;
 }
 
+/* TITLE */
 .nav-title {
-  font-size: 25px;
-  font-weight: bold;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
 }
 
+/* BUTTONS */
 .nav-btn {
-  background: #016d2c;
-  color: white;
+  background: rgba(255, 255, 255, 0.15);
   border: none;
-  padding: 10px 18px;
-  border-radius: 6px;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 10px;
   cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
 }
 
 .nav-btn:hover {
-  background: #008736;
+  background: rgba(255, 255, 255, 0.25);
 }
 
-.logout {
-  background: #d9534f !important;
+/* LOGOUT */
+.nav-btn.logout {
+  background: #d9534f;
 }
+
+.nav-btn.logout:hover {
+  background: #c9302c;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .nav-container {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .nav-title {
+    order: -1;
+    width: 100%;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+}
+
 
 /* MAIN LAYOUT */
 .container {
@@ -293,4 +325,59 @@ select {
   padding: 10px;
   margin-top: 8px;
 }
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.role-table {
+  min-width: 720px;
+  width: 100%;
+  border-collapse: collapse;
+}
+/* ---------- RESPONSIVE ---------- */
+
+/* TABLET */
+@media (max-width: 1024px) {
+  .page-title {
+    font-size: 26px;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+  .nav-container {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .nav-btn {
+    width: 100%;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  th, td {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .badge {
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}
+
 </style>
