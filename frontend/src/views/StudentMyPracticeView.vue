@@ -309,13 +309,14 @@ const submitEdit = async (id) => {
     const token = localStorage.getItem("access_token");
 
     await axios.put(
-      `http://localhost:8000/api/internships/${id}`,
-      {
-        start_date: editForm.value.start_date,
-        end_date: editForm.value.end_date,
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+  `http://localhost:8000/api/student/internships/${id}`,
+  {
+    start_date: editForm.value.start_date,
+    end_date: editForm.value.end_date,
+  },
+  { headers: { Authorization: `Bearer ${token}` } }
+);
+
 
     cancelEditing();
     await loadPractices();

@@ -37,6 +37,7 @@ class User extends Authenticatable
 
         // Firma
         'company_name',
+        'ico',
         'contact_person_name',
         'contact_person_email',
         'contact_person_phone',

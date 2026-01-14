@@ -9,10 +9,22 @@
     <form @submit.prevent="submitForm">
       <!-- Výber firmy -->
       <label for="company">Firma</label>
-      <input id="company" v-model="companySearch" type="text" placeholder="Vyhľadaj firmu podľa názvu..."
-        @input="filterCompanies" @change="selectCompany" list="companyList" required />
+      <input
+        id="company"
+        v-model="companySearch"
+        type="text"
+        placeholder="Vyhľadaj firmu podľa názvu..."
+        @input="filterCompanies"
+        @change="selectCompany"
+        list="companyList"
+        required
+      />
       <datalist id="companyList">
-        <option v-for="company in filteredCompanies" :key="company.id" :value="company.company_name || company.name" />
+        <option
+          v-for="company in filteredCompanies"
+          :key="company.id"
+          :value="company.company_name || company.name"
+        />
       </datalist>
 
       <!-- Rok a semester -->
@@ -28,20 +40,29 @@
 
       <!-- Dátumy praxe -->
       <label for="start_date">Začiatok praxe</label>
-      <input id="start_date" v-model="start_date" type="date" required @change="setYearFromStartDate" />
+      <input
+        id="start_date"
+        v-model="start_date"
+        type="date"
+        required
+        @change="setYearFromStartDate"
+      />
 
       <label for="end_date">Koniec praxe</label>
       <input id="end_date" v-model="end_date" type="date" required />
 
       <!-- Odoslanie -->
-      <button type="submit">Uložiť prax</button>
+      <button type="submit" :disabled="submitting">
+        {{ submitting ? "Ukladám..." : "Uložiť prax" }}
+      </button>
     </form>
+
     <br />
+
     <!-- Firma nie je v zozname -->
     <div class="missing-company">
-      <h3>Nenašli ste firmu v zozname?</h3><br />
-
-
+      <h3>Nenašli ste firmu v zozname?</h3>
+      <br />
       <button type="button" class="register-company-btn" @click="goToCompanyRegister">
         Zaregistrovať firmu
       </button>
@@ -62,6 +83,16 @@ import CompanyNavBar from "@/components/icons/CompanyNavBar.vue";
 const router = useRouter();
 const goBack = () => router.back();
 
+const COMPANY_LIST_URL = "http://localhost:8000/api/companies";
+
+/**
+ * ✅ Toto MUSÍ byť route, ktorá je v api.php v skupine:
+ * Route::middleware(['auth:api', 'role:student'])->group(...)
+ *
+ * Príklad: Route::post('/student/internships', [InternshipController::class, 'storeForStudent']);
+ */
+const CREATE_INTERNSHIP_URL = "http://localhost:8000/api/student/internships";
+
 const companySearch = ref("");
 const companies = ref([]);
 const filteredCompanies = ref([]);
@@ -69,14 +100,14 @@ const selectedCompany = ref(null);
 
 const year = ref(new Date().getFullYear());
 const semester = ref("");
-const successMessage = ref("");
-const errorMessage = ref("");
-
 const start_date = ref("");
 const end_date = ref("");
 
+const submitting = ref(false);
+const successMessage = ref("");
+const errorMessage = ref("");
+
 const token = localStorage.getItem("access_token");
-const user = JSON.parse(localStorage.getItem("user") || "null");
 
 // Funkcia na nastavenie roku na základe začiatku praxe
 const setYearFromStartDate = () => {
@@ -86,13 +117,13 @@ const setYearFromStartDate = () => {
 };
 
 const goToCompanyRegister = () => {
-  router.push("/register/company");
+  router.push("/student/company-register");
 };
 
 // Načítanie všetkých firiem
 onMounted(async () => {
   try {
-    const res = await axios.get("http://localhost:8000/api/companies", {
+    const res = await axios.get(COMPANY_LIST_URL, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
 
@@ -103,7 +134,8 @@ onMounted(async () => {
     // ak je len jedna firma, rovno ju vyber
     if (companies.value.length === 1) {
       selectedCompany.value = companies.value[0];
-      companySearch.value = companies.value[0].company_name || companies.value[0].name;
+      companySearch.value =
+        companies.value[0].company_name || companies.value[0].name || "";
       filteredCompanies.value = [companies.value[0]];
     }
   } catch (error) {
@@ -122,35 +154,59 @@ const filterCompanies = () => {
 
 // Výber firmy zo zoznamu
 const selectCompany = () => {
-  const label = companySearch.value;
+  const label = (companySearch.value || "").trim();
   const found = companies.value.find(
-    (c) => c.company_name === label || c.name === label
+    (c) => (c.company_name || "").trim() === label || (c.name || "").trim() === label
   );
-  if (found) selectedCompany.value = found;
+  selectedCompany.value = found || null;
 };
 
 // Odoslanie formulára
 const submitForm = async () => {
-  let selected = selectedCompany.value;
+  successMessage.value = "";
+  errorMessage.value = "";
 
+  // ✅ základné validácie
+  if (!semester.value) {
+    errorMessage.value = "Vyber semester.";
+    return;
+  }
+  if (!start_date.value || !end_date.value) {
+    errorMessage.value = "Vyplň dátum začiatku aj konca praxe.";
+    return;
+  }
+  if (new Date(end_date.value) < new Date(start_date.value)) {
+    errorMessage.value = "Koniec praxe nemôže byť pred začiatkom praxe.";
+    return;
+  }
+
+  let selected = selectedCompany.value;
   if (!selected) {
+    const label = (companySearch.value || "").trim();
     selected = companies.value.find(
-      (c) => c.company_name === companySearch.value || c.name === companySearch.value
+      (c) => (c.company_name || "").trim() === label || (c.name || "").trim() === label
     );
   }
 
   if (!selected) {
     errorMessage.value = "Prosím, vyber firmu zo zoznamu.";
-    successMessage.value = "";
     return;
   }
 
+  if (!token) {
+    errorMessage.value = "Nie si prihlásený. Prihlás sa prosím znova.";
+    return;
+  }
+
+  submitting.value = true;
+
   try {
+    const user = JSON.parse(localStorage.getItem("user") || "null");
     await axios.post(
-      "http://localhost:8000/api/internships",
+      CREATE_INTERNSHIP_URL,
       {
         company_id: selected.id,
-        student_id: user?.id || 1,
+        student_id: user?.id,
         status: "Vytvorená",
         year: year.value,
         semester: semester.value,
@@ -164,15 +220,26 @@ const submitForm = async () => {
 
     successMessage.value = "Prax bola úspešne vytvorená!";
     errorMessage.value = "";
+
+    // reset formulára
+    companySearch.value = "";
+    selectedCompany.value = null;
+    semester.value = "";
+    start_date.value = "";
+    end_date.value = "";
+    year.value = new Date().getFullYear();
   } catch (error) {
     successMessage.value = "";
-    errorMessage.value = "Nepodarilo sa vytvoriť prax.";
+    errorMessage.value =
+      error.response?.data?.message ||
+      (error.response?.data?.errors
+        ? Object.values(error.response.data.errors).flat().join(" ")
+        : "") ||
+      "Nepodarilo sa vytvoriť prax.";
 
-    if (error.response?.data) {
-      console.error("Backend error:", error.response.data);
-    } else {
-      console.error("Chyba:", error);
-    }
+    console.error("Chyba pri vytváraní praxe:", error.response?.data || error);
+  } finally {
+    submitting.value = false;
   }
 };
 </script>
@@ -183,8 +250,7 @@ const submitForm = async () => {
   margin: 0 auto;
   background: #fff;
   padding: 24px;
-  padding-top: 94px;
-  /* rezerva pre sticky navbar */
+  padding-top: 94px; /* rezerva pre sticky navbar */
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -229,5 +295,22 @@ const submitForm = async () => {
 
 .register-company-btn:hover {
   background-color: #2e7d32;
+}
+
+button[type="submit"] {
+  width: 100%;
+  background-color: #1b5e20;
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button[type="submit"]:disabled {
+  opacity: 0.7;
+  cursor: default;
 }
 </style>

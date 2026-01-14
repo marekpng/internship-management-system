@@ -67,7 +67,6 @@
       </button>
     </form>
   </div>
-    <FooterComponent />
 </div>
 </template>
 
@@ -76,7 +75,6 @@ import { reactive, ref } from 'vue'
 import axios from 'axios'
 import '@/assets/landing.css'
 import HeaderComponent from '@/components/HeaderComponent.vue'
-import FooterComponent from '@/components/FooterComponent.vue'
 
 const form = reactive({
   first_name: '',

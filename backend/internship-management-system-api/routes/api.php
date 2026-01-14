@@ -19,10 +19,14 @@ Route::get('/company/activate/{id}', [RegisterController::class, 'activateCompan
 
 Route::middleware(['auth:api', 'role:student'])->group(function () {
     Route::get('/student/dashboard', [StudentController::class, 'dashboard']);
+    Route::post('/student/company', [CompanyController::class, 'registerCompanyByStudent']);
 
     // Profil študenta – načítanie a úprava (pre stránku Nastavenia)
     Route::get('/student/profile', [StudentController::class, 'profile']);
     Route::put('/student/profile', [StudentController::class, 'updateProfile']);
+
+    Route::post('/student/internships', [InternshipController::class, 'store']);
+    Route::put('/student/internships/{id}', [InternshipController::class, 'update']);
 
     // Notifikácie – nastavenia (emailové preferencie)
     Route::get('/student/notifications', [StudentController::class, 'getNotifications']);
@@ -60,7 +64,6 @@ Route::middleware(['auth:api', 'role:company'])->group(function () {
     Route::get('/company/user-notifications', [CompanyController::class, 'getUserNotifications']);
     Route::post('/company/notifications/read/{id}', [CompanyController::class, 'markNotificationRead']);
 });
-Route::get('/internships/count/{status}', [GarantController::class, 'getCountByStatus']);
 
 Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function () {
 
@@ -73,6 +76,9 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
     // Notifikácie – nastavenia (emailové preferencie)
     Route::get('/notifications', [GarantController::class, 'getNotifications']);
     Route::put('/notifications', [GarantController::class, 'updateNotifications']);
+
+    Route::get('/students', [GarantController::class, 'listStudents']);
+
 
     // Zoznam praxí podľa stavu
     Route::get('/internships/status/{status}', [InternshipController::class, 'getByStatus']);
@@ -90,6 +96,11 @@ Route::middleware(['auth:api', 'role:garant'])->prefix('garant')->group(function
     Route::post('/internships/{id}/not-defended', [GarantController::class, 'markNotDefended']);
 
     Route::put('internships/{id}', [InternshipController::class, 'update']);
+
+    Route::put('/internships/{id}/full', [GarantController::class, 'updateInternshipFull']);
+
+    Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
+
 
     // Garant nahraje dokument k praxi
     Route::post('/internships/{id}/documents/upload', [DocumentController::class, 'uploadGarantDocument']);
@@ -116,12 +127,6 @@ Route::middleware('auth:api')->get('/internships/myNew', [InternshipController::
 
 Route::middleware('auth:api')->post('/internships/{id}/status', [InternshipController::class, 'changeStatus']);
 
-Route::get('internships', [InternshipController::class, 'index']);
-Route::get('internships/{id}', [InternshipController::class, 'show']);
-Route::get('internships/user/{id}', [InternshipController::class, 'show']);
-Route::post('internships', [InternshipController::class, 'store']);
-Route::put('internships/{id}', [InternshipController::class, 'update']);
-Route::delete('internships/{id}', [InternshipController::class, 'destroy']);
 
 Route::middleware('auth:api')->post('/update-profile', [LoginController::class, 'updateProfile']);
 

@@ -138,24 +138,46 @@ class InternshipController extends Controller
     }
 
     public function update(Request $request, $id)
-    {
-        $internship = Internship::findOrFail($id);
+{
+    $internship = Internship::findOrFail($id);
 
-        $validated = $request->validate([
-            'start_date' => 'required|date',
-            'end_date'   => 'required|date',
-        ]);
+    $validated = $request->validate([
+        'start_date' => ['required', 'date'],
+        'end_date'   => ['required', 'date'],
 
-        $internship->update([
-            'start_date' => $validated['start_date'],
-            'end_date'   => $validated['end_date'],
-        ]);
+        // tieto 3 posiela tvoj garant detail view pri editovaní:
+        'semester'   => ['nullable', 'string', 'max:255'],
+        'year'       => ['nullable', 'integer'],
+        'status'     => ['nullable', 'string', 'max:255'],
+    ]);
 
-        return response()->json([
-            'message'    => 'Prax bola úspešne aktualizovaná.',
-            'internship' => $internship->load(['company', 'student', 'garant']),
-        ]);
+    // update dát
+    $internship->start_date = $validated['start_date'];
+    $internship->end_date   = $validated['end_date'];
+
+    if (array_key_exists('semester', $validated)) {
+        $internship->semester = $validated['semester'];
     }
+
+    if (array_key_exists('year', $validated)) {
+        $internship->year = $validated['year'];
+    }
+
+    if (array_key_exists('status', $validated) && !empty($validated['status'])) {
+        $internship->status = $validated['status'];
+
+        // ✅ ak status mení garant, nastav garant_id na toho, kto to spravil
+        // (route /garant/... je už v middleware role:garant)
+        $internship->garant_id = $request->user()->id;
+    }
+
+    $internship->save();
+
+    return response()->json([
+        'message'    => 'Prax bola úspešne aktualizovaná.',
+        'internship' => $internship->load(['company', 'student', 'garant']),
+    ]);
+}
 
     public function destroy($id)
     {
@@ -200,38 +222,44 @@ class InternshipController extends Controller
         return response()->json($data);
     }
 
-    public function myInternshipsNew(Request $request)
-    {
-        $user = $request->user();
+    // len pre garanta
+public function myInternshipsNew(Request $request)
+{
+    // všetky praxe (pre garanta)
+    $internships = Internship::with(['company', 'student', 'garant'])
+        ->orderBy('created_at', 'DESC')
+        ->get();
 
-        // Získame všetky stáže, kde je študent, firma alebo garant
-        $internships = Internship::with(['company', 'student', 'garant'])
-            ->where('student_id', $user->id)
-            ->orWhere('company_id', $user->id)
-            ->orWhere('garant_id', $user->id)
-            ->get();
+    $data = $internships->map(function ($internship) {
+        $studentArr = $internship->student ? $internship->student->toArray() : null;
 
-        // Mapujeme dáta na požiadavaný formát
-        $data = $internships->map(function ($internship) {
-            return [
-                'id'                 => $internship->id,
-                'year'               => $internship->year,
-                'semester'           => $internship->semester,
-                'created_at'         => $internship->created_at,
-                'start_date'         => $internship->start_date,
-                'end_date'           => $internship->end_date,
-                'status'             => $internship->status,
-                'company'            => $internship->company ? $internship->company->toArray() : null, // Všetky dáta o firme
-                'student'            => $internship->student ? $internship->student->toArray() : null, // Všetky dáta o študentovi
-                'garant_id'          => $internship->garant_id,
-                'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
-                'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
-                'agreement_pdf_path' => $internship->agreement_pdf_path,
-            ];
-        });
+        // ✅ istota: doplň study_field aj keby ho niečo niekde skrylo
+        if (is_array($studentArr)) {
+            $studentArr['study_field'] = $internship->student->study_field;
+        }
 
-        return response()->json($data);
-    }
+        return [
+            'id'                 => $internship->id,
+            'year'               => $internship->year,
+            'semester'           => $internship->semester,
+            'created_at'         => $internship->created_at,
+            'start_date'         => $internship->start_date,
+            'end_date'           => $internship->end_date,
+            'status'             => $internship->status,
+            'company'            => $internship->company ? $internship->company->toArray() : null,
+            'student'            => $studentArr,
+            'student_study_field'=> $internship->student?->study_field, // ✅ extra “flat” field (voliteľné, ale praktické)
+            'garant_id'          => $internship->garant_id,
+            'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
+            'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
+            'agreement_pdf_path' => $internship->agreement_pdf_path,
+        ];
+    });
+
+    return response()->json($data);
+}
+
+
 
     /**
      * Stiahnuť PDF dohodu pre konkrétnu prax.
@@ -374,22 +402,23 @@ class InternshipController extends Controller
     }
 
     public function getByStatus(Request $request, $status = null)
-    {
-        $allowed = [
-            'Vytvorená', 'Potvrdená', 'Schválená', 'Neschválená', 'Zamietnutá', 'Obhájená', 'Neobhájená',
-        ];
+{
+    $allowed = [
+        'Vytvorená', 'Potvrdená', 'Schválená', 'Neschválená',
+        'Zamietnutá', 'Obhájená', 'Neobhájená',
+    ];
 
-        $garantId = $request->user()->id;
+    $query = Internship::with(['student', 'company', 'garant']);
 
-        $query = Internship::where('garant_id', $garantId)
-            ->with(['student', 'company']);
-
-        if ($status && in_array($status, $allowed, true)) {
-            $query->where('status', $status);
-        }
-
-        return response()->json($query->orderBy('created_at', 'DESC')->get());
+    if ($status && in_array($status, $allowed, true)) {
+        $query->where('status', $status);
     }
+
+    return response()->json(
+        $query->orderBy('created_at', 'DESC')->get()
+    );
+}
+
 
     public function getCountByStatus($status)
     {

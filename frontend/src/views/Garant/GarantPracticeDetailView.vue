@@ -2,7 +2,6 @@
   <CompanyNavBar>
     <template #filters>
       <div class="filter-bar">
-        <!-- Rovnaké filtre ako v zozname (GarantPracticesView). Stav držíme v query ?status=... -->
         <router-link class="filter-btn" :class="{ active: status === 'vsetky' }" to="/garant/practices?status=vsetky">Všetky</router-link>
         <router-link class="filter-btn" :class="{ active: status === 'vytvorena' }" to="/garant/practices?status=vytvorena">Čakajúce</router-link>
         <router-link class="filter-btn" :class="{ active: status === 'potvrdena' }" to="/garant/practices?status=potvrdena">Potvrdené</router-link>
@@ -29,16 +28,29 @@
     <!-- INFO KARTA -->
     <!-- ============================= -->
     <div class="card">
-      <h2>Študent</h2>
-      <p><strong>Meno:</strong> {{ internship.student?.first_name || "Neznámy študent" }} {{ internship.student?.last_name || "" }}</p>
-      <p><strong>Email:</strong> {{ internship.student?.email || "" }}</p>
+      <div class="card-header">
+        <h2>Prehľad</h2>
 
-      <h2>Firma</h2>
-      <p><strong>Názov:</strong> {{ internship.company?.company_name || internship.company?.first_name || "Neznáma firma" }}</p>
-      <p><strong>Email:</strong> {{ internship.company?.email || "" }}</p>
+        <button
+          v-if="!editMode"
+          class="btn-outline"
+          type="button"
+          @click="startFullEdit"
+        >
+          ✏️ Upraviť všetky údaje
+        </button>
+      </div>
 
-      <h2>Prax</h2>
       <div v-if="!editMode">
+        <h3>Študent</h3>
+        <p><strong>Meno:</strong> {{ internship.student?.first_name || "Neznámy študent" }} {{ internship.student?.last_name || "" }}</p>
+        <p><strong>Email:</strong> {{ internship.student?.email || "" }}</p>
+
+        <h3>Firma</h3>
+        <p><strong>Názov:</strong> {{ internship.company?.company_name || internship.company?.first_name || "Neznáma firma" }}</p>
+        <p><strong>Email:</strong> {{ internship.company?.email || "" }}</p>
+
+        <h3>Prax</h3>
         <p><strong>Začiatok:</strong> {{ formatDate(internship.start_date) }}</p>
         <p><strong>Koniec:</strong> {{ formatDate(internship.end_date) }}</p>
         <p><strong>Semester:</strong> {{ internship.semester }}</p>
@@ -46,25 +58,59 @@
         <p><strong>Stav:</strong> {{ internship.status }}</p>
       </div>
 
+      <!-- ============================= -->
+      <!-- FULL EDIT MODE -->
+      <!-- ============================= -->
       <template v-else>
         <hr style="margin: 15px 0;">
-        <h3>Upraviť prax</h3>
-        <div class="form-group">
-          <label>Začiatok:</label>
-          <input type="datetime-local" v-model="editForm.start_date">
+        <h3>Upraviť prax (všetky údaje)</h3>
+
+        <div class="grid">
+          <div class="form-group">
+            <label>Študent:</label>
+            <select v-model.number="editForm.student_id">
+              <option :value="null" disabled>Vyber študenta…</option>
+              <option v-for="s in students" :key="s.id" :value="s.id">
+                {{ s.first_name }} {{ s.last_name }} ({{ s.email }})
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Firma:</label>
+            <select v-model.number="editForm.company_id">
+              <option :value="null" disabled>Vyber firmu…</option>
+              <option v-for="c in companies" :key="c.id" :value="c.id">
+                {{ c.company_name || c.first_name || 'Firma #' + c.id }}
+              </option>
+            </select>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Koniec:</label>
-          <input type="datetime-local" v-model="editForm.end_date">
+
+        <div class="grid">
+          <div class="form-group">
+            <label>Začiatok:</label>
+            <input type="datetime-local" v-model="editForm.start_date" />
+          </div>
+
+          <div class="form-group">
+            <label>Koniec:</label>
+            <input type="datetime-local" v-model="editForm.end_date" />
+          </div>
         </div>
-        <div class="form-group">
-          <label>Semester:</label>
-          <input type="text" v-model="editForm.semester">
+
+        <div class="grid">
+          <div class="form-group">
+            <label>Semester:</label>
+            <input type="text" v-model="editForm.semester" />
+          </div>
+
+          <div class="form-group">
+            <label>Rok:</label>
+            <input type="number" v-model.number="editForm.year" />
+          </div>
         </div>
-        <div class="form-group">
-          <label>Rok:</label>
-          <input type="number" v-model="editForm.year">
-        </div>
+
         <div class="form-group">
           <label>Stav:</label>
           <select v-model="editForm.status">
@@ -77,6 +123,17 @@
             <option value="Neobhájená">Neobhájená</option>
           </select>
         </div>
+
+        <div class="actions">
+          <button class="approve" type="button" @click="saveEdit" :disabled="saving">
+            {{ saving ? 'Ukladám…' : 'Uložiť zmeny' }}
+          </button>
+          <button class="reject" type="button" @click="cancelEdit" :disabled="saving">
+            Zrušiť
+          </button>
+        </div>
+
+        <p v-if="editError" class="err">{{ editError }}</p>
       </template>
     </div>
 
@@ -127,7 +184,6 @@
 
       <hr style="margin: 18px 0;" />
 
-      <!-- Upload: garant môže nahrať hodnotenie -->
       <h3>Pridať dokument (garant)</h3>
       <form class="upload-form" @submit.prevent="uploadDocument">
         <label>Typ dokumentu:</label>
@@ -151,25 +207,29 @@
     <!-- ============================= -->
     <!-- ACTIONS (Prax) -->
     <!-- ============================= -->
-    <div class="actions">
-      <template v-if="internship.status === 'Potvrdená' && !editMode">
+    <div class="actions" v-if="!editMode">
+      <template v-if="internship.status === 'Potvrdená'">
         <button class="approve" @click="approveByGarant">Schváliť prax</button>
         <button class="reject" @click="rejectByGarant">Neschváliť prax</button>
       </template>
 
-      <template v-if="internship.status === 'Schválená' && !editMode">
-        <button class="approve" style="background:#0b6b37" @click="editMode = true">
-          Upraviť prax / nastaviť obhajobu
-        </button>
-      </template>
+      <template v-if="internship.status === 'Schválená'">
+        <div class="actions-col">
+          <button
+            class="approve"
+            @click="markDefended"
+            :disabled="!hasRequiredStudentDocument"
+            :title="!hasRequiredStudentDocument ? 'Študent musí mať nahratý dokument (správa alebo podpísaná dohoda).' : ''"
+          >
+            Obhájiť
+          </button>
 
-      <template v-if="editMode">
-        <button class="approve" style="background:#0b6b37" @click="saveEdit">Uložiť</button>
-        <button class="reject" @click="cancelEdit">Zrušiť</button>
-      </template>
+          <p v-if="!hasRequiredStudentDocument" class="hint">
+            Pre posunutie na <strong>Obhájená</strong> musí mať študent nahratý dokument:
+            <strong>Správa z praxe</strong> alebo <strong>Podpísaná dohoda</strong>.
+          </p>
+        </div>
 
-      <template v-if="internship.status === 'Schválená' && !editMode">
-        <button class="approve" @click="markDefended">Obhájiť</button>
         <button class="reject" @click="markNotDefended">Neobhájiť</button>
       </template>
     </div>
@@ -190,15 +250,25 @@ export default {
     return {
       internship: null,
       loading: true,
+      saving: false,
+      editError: "",
       status: 'vytvorena',
       editMode: false,
+
+      // ✅ FULL EDIT FORM (všetky polia)
       editForm: {
         start_date: "",
         end_date: "",
         semester: "",
         year: null,
         status: "",
+        student_id: null,
+        company_id: null,
       },
+
+      // options pre selecty
+      students: [],
+      companies: [],
 
       // dokumenty
       documents: [],
@@ -206,7 +276,17 @@ export default {
       uploadError: "",
       uploadSuccess: "",
       uploadLoading: false,
+
+      // ✅ typy dokumentov, ktoré rátame ako “študentský dokument”
+      studentDocsRequiredTypes: ["report", "signed_agreement"],
     };
+  },
+
+  computed: {
+    // ✅ musí existovať aspoň 1 dokument typu report alebo signed_agreement
+    hasRequiredStudentDocument() {
+      return this.documents.some((d) => this.studentDocsRequiredTypes.includes(d.type));
+    }
   },
 
   methods: {
@@ -217,34 +297,76 @@ export default {
     formatDate(date) {
       return date ? new Date(date).toLocaleDateString("sk-SK") : "";
     },
-    goToFilter(filter) {
-      this.$router.push({ path: '/garant/practices', query: { status: filter } })
+
+    toDateTimeLocal(val) {
+      if (!val) return "";
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+        return `${val}T00:00`;
+      }
+
+      if (typeof val === "string") {
+        const s = val.replace(" ", "T");
+        return s.slice(0, 16);
+      }
+
+      const d = new Date(val);
+      const pad = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    },
+
+    async loadStudentsAndCompanies() {
+      try {
+        const headers = { Authorization: `Bearer ${this.token()}` };
+
+        const companiesRes = await axios.get(`http://localhost:8000/api/companies`, { headers });
+        this.companies = companiesRes.data || [];
+
+        const studentsRes = await axios.get(`http://localhost:8000/api/garant/students`, { headers });
+        this.students = studentsRes.data || [];
+      } catch (e) {
+        console.warn("Nepodarilo sa načítať zoznamy (students/companies).", e);
+      }
+    },
+
+    startFullEdit() {
+      this.editError = "";
+      this.editMode = true;
+
+      this.editForm.start_date = this.toDateTimeLocal(this.internship.start_date);
+      this.editForm.end_date   = this.toDateTimeLocal(this.internship.end_date);
+      this.editForm.semester   = this.internship.semester || "";
+      this.editForm.year       = this.internship.year || new Date().getFullYear();
+      this.editForm.status     = this.internship.status || "Vytvorená";
+      this.editForm.student_id = this.internship.student_id || this.internship.student?.id || null;
+      this.editForm.company_id = this.internship.company_id || this.internship.company?.id || null;
+
+      this.loadStudentsAndCompanies();
+    },
+
+    cancelEdit() {
+      this.editMode = false;
+      this.editError = "";
     },
 
     async loadDetail() {
       try {
         const id = this.$route.params.id;
+        const res = await axios.get(`http://localhost:8000/api/garant/internships/${id}`, {
+          headers: { Authorization: `Bearer ${this.token()}` }
+        });
 
-        const response = await axios.get(
-          `http://localhost:8000/api/garant/internships/${id}`,
-          { headers: { Authorization: `Bearer ${this.token()}` } }
-        );
+        this.internship = res.data;
 
-        this.internship = response.data;
-
-        this.editForm.start_date = this.internship.start_date
-          ? this.internship.start_date.replace(" ", "T")
-          : "";
-        this.editForm.end_date = this.internship.end_date
-          ? this.internship.end_date.replace(" ", "T")
-          : "";
-        this.editForm.semester = this.internship.semester || "";
-        this.editForm.year = this.internship.year || new Date().getFullYear();
-        this.editForm.status = this.internship.status || "Vytvorená";
+        this.editForm.start_date = this.toDateTimeLocal(this.internship.start_date);
+        this.editForm.end_date   = this.toDateTimeLocal(this.internship.end_date);
+        this.editForm.semester   = this.internship.semester || "";
+        this.editForm.year       = this.internship.year || new Date().getFullYear();
+        this.editForm.status     = this.internship.status || "Vytvorená";
+        this.editForm.student_id = this.internship.student_id || this.internship.student?.id || null;
+        this.editForm.company_id = this.internship.company_id || this.internship.company?.id || null;
 
         await this.loadDocuments();
-      } catch (error) {
-        console.error("Error loading detail:", error);
       } finally {
         this.loading = false;
       }
@@ -284,7 +406,6 @@ export default {
         fd.append("document_type", this.uploadForm.document_type);
         fd.append("file", this.uploadForm.file);
 
-        // ✅ garant upload
         await axios.post(
           `http://localhost:8000/api/garant/internships/${id}/documents/upload`,
           fd,
@@ -300,7 +421,7 @@ export default {
         this.uploadForm.document_type = "";
         this.uploadForm.file = null;
 
-        await this.loadDocuments();
+        await this.loadDocuments(); // ✅ refresh
       } catch (err) {
         this.uploadError = err.response?.data?.message || "Chyba pri nahrávaní.";
       } finally {
@@ -348,7 +469,7 @@ export default {
         {},
         { headers: { Authorization: `Bearer ${this.token()}` } }
       );
-      await this.loadDocuments();
+      await this.loadDocuments(); // ✅ refresh
     },
 
     async rejectDocument(docId) {
@@ -357,7 +478,7 @@ export default {
         {},
         { headers: { Authorization: `Bearer ${this.token()}` } }
       );
-      await this.loadDocuments();
+      await this.loadDocuments(); // ✅ refresh
     },
 
     translateDocType(type) {
@@ -382,97 +503,101 @@ export default {
      *   PRACTICE ACTIONS
      * ============================= */
     async approveByGarant() {
-      try {
-        const id = this.$route.params.id;
-        await axios.post(
-          `http://localhost:8000/api/garant/internships/${id}/approve`,
-          {},
-          { headers: { Authorization: `Bearer ${this.token()}` } }
-        );
-        alert("Prax bola schválená garantom.");
-        this.goToFilter('schvalena');
-      } catch (error) {
-        console.error(error);
-      }
+      const id = this.$route.params.id;
+      await axios.post(
+        `http://localhost:8000/api/garant/internships/${id}/approve`,
+        {},
+        { headers: { Authorization: `Bearer ${this.token()}` } }
+      );
+      alert("Prax bola schválená garantom.");
+      this.goToFilter('schvalena');
     },
 
     async rejectByGarant() {
-      try {
-        const id = this.$route.params.id;
-        await axios.post(
-          `http://localhost:8000/api/garant/internships/${id}/disapprove`,
-          {},
-          { headers: { Authorization: `Bearer ${this.token()}` } }
-        );
-        alert("Prax bola neschválená garantom.");
-        this.goToFilter('neschvalena');
-      } catch (error) {
-        console.error(error);
-      }
+      const id = this.$route.params.id;
+      await axios.post(
+        `http://localhost:8000/api/garant/internships/${id}/disapprove`,
+        {},
+        { headers: { Authorization: `Bearer ${this.token()}` } }
+      );
+      alert("Prax bola neschválená garantom.");
+      this.goToFilter('neschvalena');
     },
 
     async markDefended() {
-      try {
-        const id = this.$route.params.id;
-        await axios.post(
-          `http://localhost:8000/api/garant/internships/${id}/defended`,
-          {},
-          { headers: { Authorization: `Bearer ${this.token()}` } }
-        );
-        alert("Prax bola označená ako obhájená.");
-        this.goToFilter('obhajena');
-      } catch (error) {
-        console.error(error);
+      // ✅ bezpečnostná kontrola aj v JS (okrem disabled)
+      if (!this.hasRequiredStudentDocument) {
+        alert("Študent musí mať nahratý dokument (Správa z praxe alebo Podpísaná dohoda).");
+        return;
       }
+
+      const id = this.$route.params.id;
+      await axios.post(
+        `http://localhost:8000/api/garant/internships/${id}/defended`,
+        {},
+        { headers: { Authorization: `Bearer ${this.token()}` } }
+      );
+      alert("Prax bola označená ako obhájená.");
+      this.goToFilter('obhajena');
     },
 
     async markNotDefended() {
-      try {
-        const id = this.$route.params.id;
-        await axios.post(
-          `http://localhost:8000/api/garant/internships/${id}/not-defended`,
-          {},
-          { headers: { Authorization: `Bearer ${this.token()}` } }
-        );
-        alert("Prax bola označená ako neobhájená.");
-        this.goToFilter('neobhajena');
-      } catch (error) {
-        console.error(error);
-      }
+      const id = this.$route.params.id;
+      await axios.post(
+        `http://localhost:8000/api/garant/internships/${id}/not-defended`,
+        {},
+        { headers: { Authorization: `Bearer ${this.token()}` } }
+      );
+      alert("Prax bola označená ako neobhájená.");
+      this.goToFilter('neobhajena');
     },
 
+    goToFilter(filter) {
+      this.$router.push({ path: '/garant/practices', query: { status: filter } })
+    },
+
+    /* =============================
+     *   SAVE FULL EDIT
+     * ============================= */
     async saveEdit() {
+      this.saving = true;
+      this.editError = "";
+
       try {
         const id = this.$route.params.id;
+
         const payload = {
           start_date: this.editForm.start_date,
           end_date: this.editForm.end_date,
           semester: this.editForm.semester,
           year: this.editForm.year,
           status: this.editForm.status,
+          student_id: this.editForm.student_id,
+          company_id: this.editForm.company_id,
         };
 
         await axios.put(
-          `http://localhost:8000/api/garant/internships/${id}`,
+          `http://localhost:8000/api/garant/internships/${id}/full`,
           payload,
           { headers: { Authorization: `Bearer ${this.token()}` } }
         );
 
         alert("Prax bola úspešne aktualizovaná.");
         this.editMode = false;
-        this.loadDetail();
+        await this.loadDetail();
       } catch (error) {
         console.error(error);
+        this.editError =
+          error.response?.data?.message ||
+          (error.response?.data?.errors ? Object.values(error.response.data.errors).flat().join(" ") : "") ||
+          "Nepodarilo sa uložiť zmeny.";
+      } finally {
+        this.saving = false;
       }
-    },
-
-    cancelEdit() {
-      this.editMode = false;
     },
   },
 
   mounted() {
-    // status prichádza zo zoznamu cez query param (vďaka tomu sa vieme vrátiť späť do rovnakého filtra)
     this.status = this.$route.query.status || 'vytvorena'
     this.loadDetail();
   },
@@ -481,6 +606,7 @@ export default {
 
 <style scoped>
 .container { padding: 20px; }
+
 .card {
   border: 1px solid #ddd;
   padding: 20px;
@@ -489,7 +615,25 @@ export default {
   background: white;
 }
 
-.actions { display: flex; gap: 20px; margin-top: 15px; }
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 700px) {
+  .grid { grid-template-columns: 1fr; }
+}
+
+.actions { display: flex; gap: 20px; margin-top: 15px; flex-wrap: wrap; }
+.actions-col { display: flex; flex-direction: column; gap: 6px; }
+
 .approve {
   background: #3aa76d; color: white; padding: 12px 20px;
   border: none; border-radius: 6px; cursor: pointer;
@@ -498,6 +642,22 @@ export default {
   background: #d9534f; color: white; padding: 12px 20px;
   border: none; border-radius: 6px; cursor: pointer;
 }
+
+.approve:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: #7a5b00;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  padding: 8px 10px;
+  border-radius: 8px;
+}
+
 .loading { padding: 20px; }
 
 .form-group { margin-bottom: 12px; }
@@ -517,17 +677,6 @@ export default {
   cursor: pointer;
 }
 .back-btn:hover { background: #f0f6f2; }
-
-.header-bar {
-  display: flex; justify-content: space-between; align-items: center;
-  background: #0b6b37; padding: 12px 20px; color: white; margin-bottom: 15px;
-}
-.header-title { font-size: 16px; font-weight: 600; }
-.header-back {
-  background: white; color: #0b6b37; padding: 6px 12px;
-  border-radius: 6px; cursor: pointer; border: none; font-weight: 600;
-}
-.header-back:hover { background: #f0f6f2; }
 
 /* Dokumenty */
 .documents-list { display: flex; flex-direction: column; gap: 14px; margin: 10px 0; }
@@ -565,4 +714,10 @@ export default {
 .upload-error { color: #d9534f; font-weight: 600; }
 .upload-success { color: #0b6b37; font-weight: 600; }
 .no-documents { color: #666; }
+
+.err {
+  margin-top: 10px;
+  color: #b00020;
+  font-weight: 700;
+}
 </style>

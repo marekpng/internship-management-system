@@ -10,14 +10,12 @@
       <RouterLink class="btn secondary" to="/register/company">Registrovať firmu</RouterLink>
     </div>
   </div>
-  <FooterComponent />
 </div>
 </template>
 
 <script setup>
 import '@/assets/landing.css'
 import HeaderComponent from '@/components/HeaderComponent.vue'
-import FooterComponent from '@/components/FooterComponent.vue'
 </script>
 
 <style scoped>

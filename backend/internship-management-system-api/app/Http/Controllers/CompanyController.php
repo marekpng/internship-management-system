@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Notification;
 use App\Models\Internship;
 use App\Models\User;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+
+
 
 class CompanyController extends Controller
 {
@@ -262,6 +266,7 @@ class CompanyController extends Controller
                 'id' => $user->id,
                 'email' => $user->email,
                 'company_name' => $user->company_name,
+                'ico' => $user->ico,
                 'contact_person_name' => $user->contact_person_name,
                 'role' => $user->role,
             ],
@@ -333,7 +338,7 @@ class CompanyController extends Controller
     {
         // Vráti všetkých používateľov, ktorí majú company_name vyplnené
         $companies = User::whereNotNull('company_name')
-            ->select('id', 'company_name', 'email')
+            ->select('id', 'company_name', 'ico', 'email')
             ->get();
 
         return response()->json($companies);
@@ -507,6 +512,7 @@ class CompanyController extends Controller
             'street' => $user->street,
             'house_number' => $user->house_number,
             'city' => $user->city,
+            'ico' => $user->ico,
             'postal_code' => $user->postal_code,
             'contact_person_name' => $user->contact_person_name,
             'contact_person_email' => $user->contact_person_email,
@@ -525,6 +531,7 @@ class CompanyController extends Controller
         $data = $request->validate([
             'email' => ['required', 'email'],
             'phone' => ['nullable', 'string', 'max:255'],
+            'ico' => ['nullable', 'digits:8'],
             'contact_person_name' => ['nullable', 'string', 'max:255'],
             'contact_person_email' => ['nullable', 'email'],
             'contact_person_phone' => ['nullable', 'string', 'max:255'],
@@ -564,6 +571,62 @@ class CompanyController extends Controller
             'company' => $user->fresh(),
         ]);
     }
+
+public function registerCompanyByStudent(Request $request)
+{
+    $student = $request->user();
+
+    $data = $request->validate([
+        'company_name' => ['required', 'string', 'max:255'],
+        'ico' => ['required', 'digits:8'],
+    ]);
+
+    $ico = preg_replace('/\D+/', '', (string) $data['ico']);
+    $placeholderEmail = "placeholder+{$ico}@local";
+
+    // Ak už existuje firma s týmto IČO, nepovolíme vytvoriť ďalšiu
+    if (User::where('ico', $ico)->exists()) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Firma s týmto IČO už existuje.',
+            'errors' => [
+                'ico' => ['Firma s týmto IČO už existuje.'],
+            ],
+        ], 422);
+    }
+
+    $studentMail = $student->student_email ?: $student->email;
+
+    // Vytvoríme placeholder firmu:
+    $company = User::create([
+        'company_name' => $data['company_name'],
+        'ico' => $ico,
+
+        // študentov mail uložíme sem (OK)
+        'alternative_email' => $studentMail,
+
+        // placeholder email (splní NOT NULL + UNIQUE)
+        'email' => $placeholderEmail,
+
+        // random heslo (lebo password je NOT NULL)
+        'password' => Hash::make(Str::random(32)),
+
+        'must_change_password' => false,
+        'company_account_active_state' => false,
+    ]);
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Firma bola uložená (placeholder).',
+        'company' => [
+            'id' => $company->id,
+            'company_name' => $company->company_name,
+            'ico' => $company->ico,
+        ],
+    ], 201);
+}
+
+
 
     public function updateNotificationSettings(Request $request)
     {
