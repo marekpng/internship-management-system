@@ -200,38 +200,35 @@ class InternshipController extends Controller
         return response()->json($data);
     }
 
+    // len pre garanta
     public function myInternshipsNew(Request $request)
-    {
-        $user = $request->user();
+{
+    // všetky praxe (pre garanta)
+    $internships = Internship::with(['company', 'student', 'garant'])
+        ->orderBy('created_at', 'DESC')
+        ->get();
 
-        // Získame všetky stáže, kde je študent, firma alebo garant
-        $internships = Internship::with(['company', 'student', 'garant'])
-            ->where('student_id', $user->id)
-            ->orWhere('company_id', $user->id)
-            ->orWhere('garant_id', $user->id)
-            ->get();
+    $data = $internships->map(function ($internship) {
+        return [
+            'id'                 => $internship->id,
+            'year'               => $internship->year,
+            'semester'           => $internship->semester,
+            'created_at'         => $internship->created_at,
+            'start_date'         => $internship->start_date,
+            'end_date'           => $internship->end_date,
+            'status'             => $internship->status,
+            'company'            => $internship->company ? $internship->company->toArray() : null,
+            'student'            => $internship->student ? $internship->student->toArray() : null,
+            'garant_id'          => $internship->garant_id,
+            'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
+            'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
+            'agreement_pdf_path' => $internship->agreement_pdf_path,
+        ];
+    });
 
-        // Mapujeme dáta na požiadavaný formát
-        $data = $internships->map(function ($internship) {
-            return [
-                'id'                 => $internship->id,
-                'year'               => $internship->year,
-                'semester'           => $internship->semester,
-                'created_at'         => $internship->created_at,
-                'start_date'         => $internship->start_date,
-                'end_date'           => $internship->end_date,
-                'status'             => $internship->status,
-                'company'            => $internship->company ? $internship->company->toArray() : null, // Všetky dáta o firme
-                'student'            => $internship->student ? $internship->student->toArray() : null, // Všetky dáta o študentovi
-                'garant_id'          => $internship->garant_id,
-                'garant_first_name'  => $internship->garant?->first_name ?? 'Nezadané meno',
-                'garant_last_name'   => $internship->garant?->last_name ?? 'Nezadané priezvisko',
-                'agreement_pdf_path' => $internship->agreement_pdf_path,
-            ];
-        });
+    return response()->json($data);
+}
 
-        return response()->json($data);
-    }
 
     /**
      * Stiahnuť PDF dohodu pre konkrétnu prax.
@@ -374,22 +371,23 @@ class InternshipController extends Controller
     }
 
     public function getByStatus(Request $request, $status = null)
-    {
-        $allowed = [
-            'Vytvorená', 'Potvrdená', 'Schválená', 'Neschválená', 'Zamietnutá', 'Obhájená', 'Neobhájená',
-        ];
+{
+    $allowed = [
+        'Vytvorená', 'Potvrdená', 'Schválená', 'Neschválená',
+        'Zamietnutá', 'Obhájená', 'Neobhájená',
+    ];
 
-        $garantId = $request->user()->id;
+    $query = Internship::with(['student', 'company', 'garant']);
 
-        $query = Internship::where('garant_id', $garantId)
-            ->with(['student', 'company']);
-
-        if ($status && in_array($status, $allowed, true)) {
-            $query->where('status', $status);
-        }
-
-        return response()->json($query->orderBy('created_at', 'DESC')->get());
+    if ($status && in_array($status, $allowed, true)) {
+        $query->where('status', $status);
     }
+
+    return response()->json(
+        $query->orderBy('created_at', 'DESC')->get()
+    );
+}
+
 
     public function getCountByStatus($status)
     {

@@ -2,6 +2,7 @@
   <CompanyNavBar>
     <template #filters>
       <div class="filter-bar">
+        <!-- Status filter buttons -->
         <router-link class="filter-btn" :class="{ active: status === 'vsetky' }" :to="statusLink('vsetky')">Všetky</router-link>
         <router-link class="filter-btn" :class="{ active: status === 'vytvorena' }" :to="statusLink('vytvorena')">Čakajúce</router-link>
         <router-link class="filter-btn" :class="{ active: status === 'potvrdena' }" :to="statusLink('potvrdena')">Potvrdené</router-link>
@@ -12,7 +13,7 @@
         <router-link class="filter-btn" :class="{ active: status === 'neobhajena' }" :to="statusLink('neobhajena')">Neobhájené</router-link>
       </div>
 
-      <!-- ✅ FILTRE Z DÁT -->
+      <!-- Filters from loaded data -->
       <div class="filter-row">
         <div class="field">
           <label>Rok</label>
@@ -34,11 +35,7 @@
           <label>Študent</label>
           <select v-model="filters.studentKey">
             <option value="">Všetci</option>
-            <option
-              v-for="st in availableStudents"
-              :key="st.key"
-              :value="st.key"
-            >
+            <option v-for="st in availableStudents" :key="st.key" :value="st.key">
               {{ st.label }}
             </option>
           </select>
@@ -75,15 +72,16 @@
     </div>
 
     <ul v-else class="practice-list">
-      <li
-        v-for="internship in filteredInternships"
-        :key="internship.id"
-        class="practice-item"
-      >
+      <li v-for="internship in filteredInternships" :key="internship.id" class="practice-item">
         <router-link
           class="practice-link"
           :to="{ name: 'garantPracticeDetail', params: { id: internship.id }, query: { status: status || 'vytvorena' } }"
         >
+          <!-- ✅ STATUS BADGE (same style as in "Moja prax") -->
+          <div class="status-box" :class="statusClass(internship.status)">
+            {{ internship.status }}
+          </div>
+
           <strong>
             {{ internship.student?.first_name || "Neznámy študent" }}
             {{ internship.student?.last_name || "" }}
@@ -91,11 +89,8 @@
 
           <div>{{ internship.student?.email || "" }}</div>
 
-          <div>
-            {{ internship.status }} — vytvorená: {{ formatDate(internship.created_at) }}
-          </div>
+          <div>vytvorená: {{ formatDate(internship.created_at) }}</div>
 
-          <!-- voliteľne: firma/rok/semester -->
           <div class="meta">
             <span v-if="internship.company?.company_name">Firma: {{ internship.company.company_name }}</span>
             <span v-if="internship.year"> • {{ internship.year }}</span>
@@ -122,15 +117,13 @@ export default {
       status: null,
       title: "",
 
-      // ✅ vybrané filtre (dropdown)
       filters: {
         year: "",
         semester: "",
-        studentKey: "",   // "First Last" normalizované
+        studentKey: "",
         companyName: "",
       },
 
-      // ✅ dostupné možnosti (počítané z internships)
       availableYears: [],
       availableSemesters: [],
       availableStudents: [], // [{ key, label }]
@@ -152,22 +145,16 @@ export default {
       };
     },
 
-    // ✅ výsledný list podľa filtrov
     filteredInternships() {
       return this.internships.filter((i) => {
-        // year
         if (this.filters.year && String(i.year ?? "") !== String(this.filters.year)) return false;
-
-        // semester
         if (this.filters.semester && String(i.semester ?? "") !== String(this.filters.semester)) return false;
 
-        // student
         if (this.filters.studentKey) {
           const key = this.normalizeStudentKey(i);
           if (key !== this.filters.studentKey) return false;
         }
 
-        // company
         if (this.filters.companyName) {
           const c = (i.company?.company_name || "").trim();
           if (c !== this.filters.companyName) return false;
@@ -179,7 +166,6 @@ export default {
   },
 
   methods: {
-    // zachová filtre v url pri prepnutí statusu (aby si nestratil výber)
     statusLink(status) {
       return { path: "/garant/practices", query: { ...this.$route.query, status } };
     },
@@ -188,7 +174,7 @@ export default {
       const fn = (internship.student?.first_name || "").trim();
       const ln = (internship.student?.last_name || "").trim();
       const full = `${fn} ${ln}`.trim();
-      return full.toLowerCase(); // kľúč
+      return full.toLowerCase();
     },
 
     buildFilterOptionsFromData() {
@@ -212,7 +198,6 @@ export default {
         if (companyName) companies.add(companyName);
       }
 
-      // sort
       this.availableYears = Array.from(years).sort((a, b) => Number(b) - Number(a));
       this.availableSemesters = Array.from(semesters).sort((a, b) => a.localeCompare(b, "sk"));
       this.availableStudents = Array.from(studentsMap.entries())
@@ -228,6 +213,24 @@ export default {
       this.filters.companyName = "";
     },
 
+    statusClass(status) {
+      const s = (status || '').trim();
+
+      if (['Zamietnutá', 'Neschválená', 'Neobhájená'].includes(s)) {
+        return 'status--danger';
+      }
+
+      if (['Vytvorená', 'Potvrdená'].includes(s)) {
+        return 'status--warning';
+      }
+
+      if (['Schválená', 'Obhájená'].includes(s)) {
+        return 'status--success';
+      }
+
+      return 'status--neutral';
+    },
+
     async loadInternships() {
       try {
         this.loading = true;
@@ -237,8 +240,8 @@ export default {
         this.title = map.title;
 
         let url = "";
-
         if (this.status === "vsetky") {
+          // ✅ Garant view should use the "all" endpoint (or keep myNew if you route it for guarant)
           url = "http://localhost:8000/api/internships/myNew";
         } else {
           url = "http://localhost:8000/api/garant/internships/status/" + encodeURIComponent(map.api);
@@ -249,8 +252,6 @@ export default {
         });
 
         this.internships = response.data || [];
-
-        // ✅ z načítaných dát vyrob možnosti filtrov
         this.buildFilterOptionsFromData();
       } catch (e) {
         console.error("Error loading internships:", e);
@@ -268,7 +269,6 @@ export default {
 
   watch: {
     '$route.query.status'() {
-      // pri zmene statusu reload (dáta sa menia)
       this.loadInternships();
     }
   },
@@ -290,6 +290,7 @@ export default {
 }
 
 .practice-item {
+  position: relative; /* ✅ needed for status badge */
   padding: 12px;
   margin-bottom: 10px;
   border: 1px solid #ccc;
@@ -329,6 +330,7 @@ export default {
   background: #f0f6f2;
 }
 
+/* Navbar status buttons (if you already have these globally, you can remove) */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -336,7 +338,7 @@ export default {
   padding: 10px 0;
 }
 
-/* ✅ filter dropdown row */
+/* ✅ Filters row */
 .filter-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
@@ -353,7 +355,6 @@ export default {
   margin-bottom: 6px;
 }
 
-.field input,
 .field select {
   width: 100%;
   padding: 8px 10px;
@@ -377,7 +378,6 @@ export default {
   font-weight: 700;
   height: 38px;
 }
-
 .btn-clear:hover {
   background: #f0f6f2;
 }
@@ -386,6 +386,44 @@ export default {
   margin-top: 4px;
   font-size: 12px;
   opacity: 0.8;
+}
+
+/* ✅ Status badge (same as "Moja prax") */
+.status-box {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 14px;
+  border: 1px solid transparent;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.status--warning {
+  background: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+
+.status--danger {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.status--success {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.status--neutral {
+  background: #f1f5f9;
+  color: #334155;
+  border-color: #e2e8f0;
 }
 
 @media (max-width: 900px) {
